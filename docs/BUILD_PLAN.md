@@ -13,7 +13,7 @@ The product scope, USCIS rules and security requirements come from the guide. Th
 | Area | Decision |
 |---|---|
 | App | One Next.js 16 app at the repo root: public site, consumer area, `/firm/*`, and `/api/*` routes (including the mobile API) |
-| Database | Prisma 6 + PostgreSQL on a **new** Supabase project (pooled `DATABASE_URL` plus `DIRECT_URL`). Migrations run on deploy, as in Scanvio |
+| Database | Prisma 6 + PostgreSQL on a **new** Supabase project, for local dev and production alike (no Docker). Pooled `DATABASE_URL` plus session `DIRECT_URL`. Migrations run on deploy, as in Scanvio |
 | Credentials | **Server-only environment variables** (`.env` locally, Vercel env in production), read only in server code, as in Scanvio. Per-user sensitive data (receipt numbers) is stored **encrypted** in Supabase (AES-256-GCM, `ENCRYPTION_KEY`) |
 | USCIS | `src/lib/uscis`: OAuth client-credentials, in-memory token cache, `mock` / `sandbox` / `production` modes, mock refused on production (`VERCEL_ENV`) |
 | Auth | Auth.js (next-auth v5), email + password, as in Scanvio. Mobile uses token auth via `/api/mobile` |
@@ -50,7 +50,7 @@ Each step is small enough to review on its own before the next one starts.
 
 ### Step 2 — Database schema ✅
 - Prisma schema and first migration: `User`, `Firm`, `FirmMembership`, `Client`, `TrackedCase` (owned by a user **or** a firm, with encrypted receipt and digest), `CaseConsent`, `CaseStatusEvent`, `CaseCheckRun`, `AuditLog`, `DeletionRequest`, `NotificationPreference`.
-- Local Postgres via docker-compose on port 5433 (beside Scanvio). Seed data uses staging receipts only.
+- Database is the dedicated ICT Supabase project (no Docker or local Postgres). Seed data uses staging receipts only.
 - DB-enforced rules: one owner per case, client must belong to the case's firm, per-owner receipt uniqueness, RLS on and Supabase API roles revoked. Covered by DB tests.
 
 ### Step 3 — Accounts and auth
@@ -71,7 +71,7 @@ Each step is small enough to review on its own before the next one starts.
 ### Step 6 — Background polling, alerts and first deploy
 - Inngest scheduled function: eligible cases (active consent, not checked recently), throttled under the USCIS rate limit, global daily budget, circuit breaker, check-run log, change detection, events.
 - Email alerts on change (SMTP), idempotent.
-- **Create the new Supabase and Vercel projects** and deploy. Migrations run on build.
+- **Create the new Vercel project** (pointing at the ICT Supabase project) and deploy. Migrations run on build.
 
 ### Step 7 — Law firm workspace
 - Firms, memberships (owner/admin/staff), invitations with revocation, clients, consent evidence.
@@ -97,6 +97,7 @@ Each step is small enough to review on its own before the next one starts.
 | When | What |
 |---|---|
 | Now | Run `npm run uscis:smoke` daily with sandbox credentials in your local `.env` |
-| Step 6 | Create a **new** Supabase project and a **new** Vercel project under company accounts. Choose an SMTP provider |
+| Now | Create the **new** ImmigrationCaseTracker Supabase project and put its connection strings in your `.env` |
+| Step 6 | Create a **new** Vercel project under the company account. Choose an SMTP provider |
 | Step 8 | Stripe account for the LLC |
 | Step 10 | Lawyer review of the privacy policy, terms and consent wording |

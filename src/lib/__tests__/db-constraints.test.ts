@@ -1,8 +1,9 @@
 /**
  * Database-level guarantees, run against a real Postgres.
- * Skipped unless TEST_DATABASE_URL points at a migrated database:
+ * Skipped unless TEST_DATABASE_URL points at a migrated, disposable database
+ * (e.g. a Supabase dev project's session-pooler URL) — never production:
  *
- *   TEST_DATABASE_URL=postgresql://ict:ict@localhost:5433/ict_dev npm test
+ *   TEST_DATABASE_URL="postgresql://…:5432/postgres" npm test
  *
  * Every record is created with a unique suffix and removed afterwards.
  */

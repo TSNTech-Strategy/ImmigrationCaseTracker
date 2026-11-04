@@ -9,16 +9,17 @@ The build plan is in [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md).
 
 ## Stack
 
-Built the same way as Scanvio: one Next.js 16 app (web + API routes), with Prisma on a new Supabase Postgres, Auth.js and Inngest. It deploys to a new Vercel project. An Expo app in `mobile/` comes later.
+Built the same way as Scanvio: one Next.js 16 app (web + API routes), with Prisma and Inngest. It deploys to a new Vercel project. An Expo app in `mobile/` comes later.
+
+**All data lives in the dedicated ImmigrationCaseTracker Supabase project**, never Scanvio's. There's no local or Docker database: local development points at a Supabase development database through `.env`.
 
 ## Getting started
 
 ```bash
 npm install
-cp .env.example .env      # fill in USCIS_CLIENT_ID / USCIS_CLIENT_SECRET and ENCRYPTION_KEY
-docker compose up -d db   # local Postgres on port 5433
-npm run db:migrate        # create the tables
-npm run db:seed           # optional demo data (staging receipts only)
+cp .env.example .env   # Supabase connection strings, USCIS credentials, ENCRYPTION_KEY
+npm run db:deploy      # create/update the tables in Supabase
+npm run db:seed        # optional demo data (staging receipts only)
 npm run dev
 ```
 
@@ -27,12 +28,13 @@ With empty USCIS credentials the app runs in **mock mode**, which returns determ
 | Command | What it does |
 |---|---|
 | `npm run dev` | Start the web app |
-| `npm test` | Unit tests (no live USCIS calls). Add `TEST_DATABASE_URL=…` to also run the database tests |
+| `npm test` | Unit tests (no live USCIS calls). Add `TEST_DATABASE_URL=…` (a disposable database, never production) to also run the database tests |
 | `npm run typecheck` | TypeScript |
 | `npm run lint` | ESLint |
-| `npm run db:migrate` | Apply / create Prisma migrations locally |
+| `npm run db:deploy` | Apply committed migrations to the Supabase database in `.env` |
+| `npm run db:migrate` | *(Developers)* Create a new migration after changing `prisma/schema.prisma` |
 | `npm run db:seed` | Demo data: `demo@ict.dev` and `firm@ict.dev`, password `ict-demo-1234` |
-| `npm run db:studio` | Browse the local database |
+| `npm run db:studio` | Browse the database (or use the Supabase Table Editor) |
 | `npm run uscis:smoke` | Daily USCIS **sandbox** check. Writes sanitized evidence to `docs/uscis-evidence/`. Add `-- --show-errors` to print USCIS error bodies (console only) |
 
 ## Credentials
