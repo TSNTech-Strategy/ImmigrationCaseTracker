@@ -24,6 +24,15 @@ describe("parseErrorDetails", () => {
     ]);
     expect(parseErrorDetails({ code: 422, message: "nope" })).toEqual([{ code: "422", message: "nope", category: undefined }]);
   });
+  it("reads the real sandbox 422 body (a bare message)", () => {
+    const body = {
+      message:
+        "The application receipt number is not formatted correctly, It should be a total of 13 characters (3 character prefix followed by 10 digits). Please check your receipt number and try again.",
+    };
+    const [d] = parseErrorDetails(body);
+    expect(d.code).toBeUndefined();
+    expect(d.message).toMatch(/^The application receipt number is not formatted correctly/);
+  });
   it("reads errors as a single object", () => {
     expect(parseErrorDetails({ errors: { code: "A", message: "b" } })).toEqual([{ code: "A", message: "b", category: undefined }]);
   });

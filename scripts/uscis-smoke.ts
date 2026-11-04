@@ -35,6 +35,8 @@ type Entry = {
   statusTitleEn?: string | null;
   hasHistory?: boolean;
   errorCodes?: string[];
+  /** USCIS's own error message (generic wording, e.g. the receipt-format rule). */
+  errorMessage?: string;
 };
 
 const withAuthError = process.argv.includes("--with-auth-error");
@@ -91,7 +93,8 @@ async function run(test: string, receipt: string, cfg: UscisConfig, skipValidati
       attempts: null,
       durationMs: Date.now() - started,
       tokenRequests: tokenRequests - before,
-      errorCodes: e.details.map((d) => d.code ?? "?"),
+      errorCodes: e.details.map((d) => d.code).filter((c): c is string => Boolean(c)),
+      errorMessage: e.details.find((d) => d.message)?.message,
     };
   }
 }
@@ -123,7 +126,7 @@ async function main() {
       outcome: e.outcome,
       tokens: e.tokenRequests,
       ms: e.durationMs,
-      status: e.statusTitleEn ?? e.errorCodes?.join(",") ?? "",
+      status: e.statusTitleEn ?? (e.errorCodes?.join(",") || e.errorMessage?.slice(0, 60) || ""),
     })),
   );
   console.log(`Logged ${entries.length} entries to ${file}`);
