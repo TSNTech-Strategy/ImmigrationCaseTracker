@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { prisma } from "@/lib/db";
 import { createSupabaseServerClient, createSupabaseTokenClient } from "@/lib/supabase/server";
 import { bearerToken } from "./paths";
@@ -27,6 +28,10 @@ async function toAppUser(claims: AuthClaims & { aal?: string }): Promise<AppUser
  * Cached per request.
  */
 export const getCurrentUser = cache(async (): Promise<AppUser | null> => {
+  // Who's signed in is per request: never part of a prerender. Without this,
+  // token-expiry checks (Date.now) inside Supabase/Prisma trip Cache
+  // Components' prerender guard.
+  await connection();
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims?.sub) return null;
