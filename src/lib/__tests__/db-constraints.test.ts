@@ -8,6 +8,7 @@
  * Every record is created with a unique suffix and removed afterwards.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { protectReceipt } from "../cases/receipt-store";
 
@@ -20,8 +21,8 @@ describe.skipIf(!url)("database constraints", () => {
 
   beforeAll(async () => {
     process.env.ENCRYPTION_KEY ??= Buffer.alloc(32, 3).toString("base64");
-    userA = (await prisma.user.create({ data: { email: `a-${tag}@test.dev`, passwordHash: "x" } })).id;
-    userB = (await prisma.user.create({ data: { email: `b-${tag}@test.dev`, passwordHash: "x" } })).id;
+    userA = (await prisma.user.create({ data: { id: randomUUID(), email: `a-${tag}@test.dev` } })).id;
+    userB = (await prisma.user.create({ data: { id: randomUUID(), email: `b-${tag}@test.dev` } })).id;
     firmA = (await prisma.firm.create({ data: { name: `Firm A ${tag}` } })).id;
     firmB = (await prisma.firm.create({ data: { name: `Firm B ${tag}` } })).id;
     clientOfB = (await prisma.client.create({ data: { firmId: firmB, displayName: "Client of B" } })).id;
@@ -75,10 +76,10 @@ describe.skipIf(!url)("database constraints", () => {
   });
 
   it("rejects uppercase emails and unsupported locales", async () => {
-    await expect(prisma.user.create({ data: { email: `Upper-${tag}@test.dev`, passwordHash: "x" } })).rejects.toThrow(
+    await expect(prisma.user.create({ data: { id: randomUUID(), email: `Upper-${tag}@test.dev` } })).rejects.toThrow(
       /email_lowercase/,
     );
-    await expect(prisma.user.create({ data: { email: `l-${tag}@test.dev`, passwordHash: "x", locale: "fr" } })).rejects.toThrow(
+    await expect(prisma.user.create({ data: { id: randomUUID(), email: `l-${tag}@test.dev`, locale: "fr" } })).rejects.toThrow(
       /locale_supported/,
     );
   });
@@ -101,7 +102,7 @@ describe.skipIf(!url)("database constraints", () => {
   });
 
   it("deleting a user removes their own cases", async () => {
-    const u = await prisma.user.create({ data: { email: `temp-${tag}@test.dev`, passwordHash: "x" } });
+    const u = await prisma.user.create({ data: { id: randomUUID(), email: `temp-${tag}@test.dev` } });
     const c = await prisma.trackedCase.create({ data: { ...receipt(8), ownerUserId: u.id } });
     await prisma.user.delete({ where: { id: u.id } });
     expect(await prisma.trackedCase.findUnique({ where: { id: c.id } })).toBeNull();

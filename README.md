@@ -9,7 +9,7 @@ The build plan is in [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md).
 
 ## Stack
 
-Built the same way as Scanvio: one Next.js 16 app (web + API routes), with Prisma and Inngest. It deploys to a new Vercel project. An Expo app in `mobile/` comes later.
+Built the same way as Scanvio: one Next.js 16 app (web + API routes), with Prisma and Inngest. Accounts use **Supabase Auth**; set up the dashboard with [`docs/SUPABASE-AUTH-SETUP.md`](docs/SUPABASE-AUTH-SETUP.md). It deploys to a new Vercel project. An Expo app in `mobile/` comes later.
 
 **All data lives in the dedicated ImmigrationCaseTracker Supabase project**, never Scanvio's. There's no local or Docker database: local development points at a Supabase development database through `.env`.
 
@@ -33,7 +33,7 @@ With empty USCIS credentials the app runs in **mock mode**, which returns determ
 | `npm run lint` | ESLint |
 | `npm run db:deploy` | Apply committed migrations to the Supabase database in `.env` |
 | `npm run db:migrate` | *(Developers)* Create a new migration after changing `prisma/schema.prisma` |
-| `npm run db:seed` | Demo data: `demo@ict.dev` and `firm@ict.dev`, password `ict-demo-1234` |
+| `npm run db:seed` | Demo data: Supabase Auth users `demo@ict.dev` and `firm@ict.dev`, password `ict-demo-1234` (needs `SUPABASE_SECRET_KEY`) |
 | `npm run db:studio` | Browse the database (or use the Supabase Table Editor) |
 | `npm run uscis:smoke` | Daily USCIS **sandbox** check. Writes sanitized evidence to `docs/uscis-evidence/`. Add `-- --show-errors` to print USCIS error bodies (console only) |
 

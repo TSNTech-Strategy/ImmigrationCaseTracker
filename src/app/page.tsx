@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="mx-auto flex min-h-full max-w-2xl flex-col justify-center gap-6 px-4 py-16">
@@ -10,7 +12,14 @@ export default function Home() {
         ImmigrationCaseTracker is not affiliated with or endorsed by USCIS or the Department of Homeland
         Security, and does not provide legal advice. USCIS is the authoritative source for case status.
       </p>
-      <p className="text-sm opacity-60">Under construction.</p>
+      <div className="flex flex-wrap gap-3">
+        <Link href="/signup" className="rounded-md bg-[var(--accent)] px-4 py-2.5 font-medium text-[var(--accent-fg)]">
+          Create an account
+        </Link>
+        <Link href="/login" className="rounded-md border border-[var(--border)] px-4 py-2.5 font-medium">
+          Sign in
+        </Link>
+      </div>
     </main>
   );
 }

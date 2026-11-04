@@ -1,15 +1,16 @@
 /**
- * Local demo data — fake people, USCIS *staging* receipts only.
+ * Demo data — fake people, USCIS *staging* receipts only.
  *
  *   npm run db:seed
  *
- * Creates:
+ * Creates two real Supabase Auth users (already email-confirmed) plus their
+ * profiles and cases:
  *   demo@ict.dev  / ict-demo-1234  — individual with two tracked staging cases
  *   firm@ict.dev  / ict-demo-1234  — owner of "Demo Immigration Law" with one client + case
- * Safe to re-run (upserts).
+ * Needs SUPABASE_SECRET_KEY in .env. Safe to re-run.
  */
-import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { protectReceipt } from "../src/lib/cases/receipt-store";
 import { SANDBOX_RECEIPTS } from "../src/lib/receipt";
 
@@ -17,14 +18,42 @@ const prisma = new PrismaClient();
 const PASSWORD = "ict-demo-1234";
 const CONSENT_VERSION = "2026-11-04";
 
+function adminClient(): SupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const secret = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !secret) throw new Error("Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY in .env to seed.");
+  return createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+/** Find or create a confirmed Supabase Auth user; returns its id. */
+async function authUser(admin: SupabaseClient, email: string, name: string): Promise<string> {
+  const created = await admin.auth.admin.createUser({
+    email,
+    password: PASSWORD,
+    email_confirm: true,
+    user_metadata: { name, locale: "en" },
+  });
+  if (created.data.user) return created.data.user.id;
+  // Already exists: look it up.
+  for (let page = 1; page < 50; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) throw error;
+    const found = data.users.find((u) => u.email === email);
+    if (found) return found.id;
+    if (data.users.length < 200) break;
+  }
+  throw created.error ?? new Error(`Could not create or find ${email}`);
+}
+
 async function main() {
   if (process.env.VERCEL_ENV === "production") throw new Error("Refusing to seed the production database.");
-  const passwordHash = await bcrypt.hash(PASSWORD, 10);
+  const admin = adminClient();
 
+  const demoId = await authUser(admin, "demo@ict.dev", "Demo Applicant");
   const demo = await prisma.user.upsert({
-    where: { email: "demo@ict.dev" },
+    where: { id: demoId },
     update: {},
-    create: { email: "demo@ict.dev", name: "Demo Applicant", passwordHash, notificationPreference: { create: {} } },
+    create: { id: demoId, email: "demo@ict.dev", name: "Demo Applicant", notificationPreference: { create: {} } },
   });
 
   for (const [receipt, nickname] of [
@@ -42,32 +71,27 @@ async function main() {
         nickname,
         ownerUserId: demo.id,
         addedById: demo.id,
-        consents: {
-          create: { basis: "SELF", source: "WEB", statementVersion: CONSENT_VERSION, grantedById: demo.id },
-        },
+        consents: { create: { basis: "SELF", source: "WEB", statementVersion: CONSENT_VERSION, grantedById: demo.id } },
       },
     });
   }
 
+  const ownerId = await authUser(admin, "firm@ict.dev", "Demo Attorney");
   const owner = await prisma.user.upsert({
-    where: { email: "firm@ict.dev" },
+    where: { id: ownerId },
     update: {},
-    create: { email: "firm@ict.dev", name: "Demo Attorney", passwordHash, notificationPreference: { create: {} } },
+    create: { id: ownerId, email: "firm@ict.dev", name: "Demo Attorney", notificationPreference: { create: {} } },
   });
 
   let firm = await prisma.firm.findFirst({ where: { memberships: { some: { userId: owner.id } } } });
-  if (!firm) {
-    firm = await prisma.firm.create({
-      data: { name: "Demo Immigration Law", memberships: { create: { userId: owner.id, role: "OWNER" } } },
-    });
-  }
+  firm ??= await prisma.firm.create({
+    data: { name: "Demo Immigration Law", memberships: { create: { userId: owner.id, role: "OWNER" } } },
+  });
 
   let client = await prisma.client.findFirst({ where: { firmId: firm.id } });
-  if (!client) {
-    client = await prisma.client.create({
-      data: { firmId: firm.id, displayName: "Sample Client", externalRef: "MATTER-001", createdById: owner.id },
-    });
-  }
+  client ??= await prisma.client.create({
+    data: { firmId: firm.id, displayName: "Sample Client", externalRef: "MATTER-001", createdById: owner.id },
+  });
 
   const p = protectReceipt(SANDBOX_RECEIPTS.withHistory);
   const firmCase = await prisma.trackedCase.findUnique({
@@ -94,7 +118,7 @@ async function main() {
     });
   }
 
-  console.log(`Seeded. Log in as demo@ict.dev or firm@ict.dev with password "${PASSWORD}".`);
+  console.log(`Seeded. Sign in as demo@ict.dev or firm@ict.dev with password "${PASSWORD}".`);
 }
 
 main()

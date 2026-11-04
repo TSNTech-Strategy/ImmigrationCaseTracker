@@ -16,7 +16,7 @@ The product scope, USCIS rules and security requirements come from the guide. Th
 | Database | Prisma 6 + PostgreSQL on a **new** Supabase project, for local dev and production alike (no Docker). Pooled `DATABASE_URL` plus session `DIRECT_URL`. Migrations run on deploy, as in Scanvio |
 | Credentials | **Server-only environment variables** (`.env` locally, Vercel env in production), read only in server code, as in Scanvio. Per-user sensitive data (receipt numbers) is stored **encrypted** in Supabase (AES-256-GCM, `ENCRYPTION_KEY`) |
 | USCIS | `src/lib/uscis`: OAuth client-credentials, in-memory token cache, `mock` / `sandbox` / `production` modes, mock refused on production (`VERCEL_ENV`) |
-| Auth | Auth.js (next-auth v5), email + password, as in Scanvio. Mobile uses token auth via `/api/mobile` |
+| Auth | **Supabase Auth** (email + password, email confirmation, reset, MFA later). Mobile signs in with Supabase and sends a Bearer token |
 | Authorization | Checked on every server entrypoint (page, action, route), with an owner-or-firm-membership check on every case query |
 | Jobs | Inngest: scheduled polling with throttle under USCIS limits, retries and idempotent notifications |
 | Email | SMTP (console driver in dev), as in Scanvio |
@@ -53,10 +53,12 @@ Each step is small enough to review on its own before the next one starts.
 - Database is the dedicated ICT Supabase project (no Docker or local Postgres). Seed data uses staging receipts only.
 - DB-enforced rules: one owner per case, client must belong to the case's firm, per-owner receipt uniqueness, RLS on and Supabase API roles revoked. Covered by DB tests.
 
-### Step 3 — Accounts and auth
-- Auth.js credentials login, signup, password reset, session roles.
-- Route protection (`proxy.ts`) plus server-side checks.
-- Mobile token endpoint (stub until Step 9).
+### Step 3 — Accounts and login (Supabase Auth) ✅
+- Supabase Auth: sign-up with email confirmation, sign-in, forgot/reset password, sign-out.
+- `User.id` = Supabase auth user id; profile created on first sign-in.
+- `src/proxy.ts` refreshes sessions and guards `/cases`, `/settings`, `/firm`, `/admin`; every page/action/API re-checks with `getClaims()`.
+- `/api/v1/me` accepts the web session or a Bearer token (mobile app).
+- Dashboard setup: `docs/SUPABASE-AUTH-SETUP.md`. MFA (two-factor) is added with Settings in Step 5.
 
 ### Step 4 — Consumer case tracking
 - Add a case behind a consent gate. Receipt is validated, encrypted and checked for duplicates by digest.
@@ -66,7 +68,7 @@ Each step is small enough to review on its own before the next one starts.
 
 ### Step 5 — Public pages + settings
 - `/`, `/how-it-works`, `/pricing`, `/privacy`, `/terms`, `/accessibility`, with the non-affiliation disclosure. Legal text is a placeholder marked *for counsel review*.
-- `/settings`: profile, alert preferences, data deletion request.
+- `/settings`: profile, alert preferences, two-factor authentication (Supabase MFA), data deletion request.
 
 ### Step 6 — Background polling, alerts and first deploy
 - Inngest scheduled function: eligible cases (active consent, not checked recently), throttled under the USCIS rate limit, global daily budget, circuit breaker, check-run log, change detection, events.

@@ -5,6 +5,8 @@
 // database enforces that with a CHECK constraint added in the migration SQL
 // (Prisma can't express it).
 //
+// Authentication is Supabase Auth; User.id is the Supabase auth user id.
+//
 // Receipt numbers are sensitive personal case identifiers. They're stored
 // only encrypted (AES-256-GCM, src/lib/crypto.ts) plus a keyed HMAC digest
 // for duplicate detection and a masked hint for display — never in plain text.
@@ -24,17 +26,16 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model User {
-  id                String    @id @default(cuid())
-  email             String    @unique
-  name              String?
-  passwordHash      String
+  /// Same id as the Supabase Auth user (auth.users.id). Supabase Auth owns
+  /// passwords, email verification, sessions and MFA; this table holds our
+  /// profile and is created on the user's first authenticated request.
+  id        String   @id
+  email     String   @unique
+  name      String?
   /// "en" | "es" — UI language and which USCIS status text to show first.
-  locale            String    @default("en")
-  emailVerifiedAt   DateTime?
-  /// Sessions issued before this are rejected (password reset signs out everywhere).
-  passwordChangedAt DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  locale    String   @default("en")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   notificationPreference NotificationPreference?
   memberships            FirmMembership[]
