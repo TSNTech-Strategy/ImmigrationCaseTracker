@@ -8,15 +8,14 @@ import {
   checkFailureMessage,
   cooldownRemainingMs,
   formatWait,
-  individualCaseLimit,
   MANUAL_REFRESH_COOLDOWN_MS,
   MANUAL_REFRESHES_PER_USER_PER_DAY,
   nextCheckAfterFailure,
-  SCHEDULED_INTERVAL_MS,
   startOfUtcDay,
   uscisDailyBudget,
 } from "./policy";
 import { InvalidReceiptError, protectReceipt, revealReceipt } from "./receipt-store";
+import { checkIntervalMs, PLAN_LIMITS } from "@/lib/plans";
 
 /**
  * Everything a signed-in individual can do with their own cases.
@@ -45,7 +44,8 @@ export type AddCaseResult =
   | { ok: false; error: "invalid_receipt" | "duplicate" | "limit"; message: string };
 
 export type RefreshResult =
-  | { status: "updated"; changed: boolean; message: string }
+  /** eventId: the CaseStatusEvent recording the change, when changed. */
+  | { status: "updated"; changed: boolean; eventId?: string; message: string }
   | { status: "failed"; message: string }
   | { status: "cooldown" | "limit" | "budget" | "no_consent" | "paused" | "not_found"; message: string };
 
@@ -108,9 +108,18 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
     });
     if (duplicate) return { ok: false, error: "duplicate", message: "You're already tracking this receipt number." };
 
-    const limit = individualCaseLimit(env);
+    const owner = await db.user.findUnique({ where: { id: userId }, select: { plan: true } });
+    const plan = owner?.plan ?? "FREE";
+    const limit = PLAN_LIMITS[plan].maxCases;
     if ((await db.trackedCase.count({ where: { ownerUserId: userId } })) >= limit) {
-      return { ok: false, error: "limit", message: `You can track up to ${limit} cases.` };
+      return {
+        ok: false,
+        error: "limit",
+        message:
+          plan === "FREE"
+            ? "The Free plan includes 1 case. Premium (coming soon) tracks up to 10 cases."
+            : `Your plan includes up to ${limit} cases.`,
+      };
     }
 
     const nickname = input.nickname?.trim().slice(0, 60) || null;
@@ -224,7 +233,7 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
     const started = Date.now();
     try {
       const result = await uscis.getCaseStatus(receipt);
-      const changed = await applySnapshot(c, result.snapshot, t);
+      const { changed, eventId } = await applySnapshot(c, result.snapshot, t);
       await db.caseCheckRun.create({
         data: {
           caseId: c.id,
@@ -240,6 +249,7 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
       return {
         status: "updated",
         changed,
+        eventId,
         message: changed ? "Status updated from USCIS." : "Checked with USCIS. No change since the last check.",
       };
     } catch (err) {
@@ -261,13 +271,19 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
   }
 
   /** Save the latest status; record an event only when the fingerprint changes. */
-  async function applySnapshot(c: TrackedCase, s: CaseStatusSnapshot, t: Date): Promise<boolean> {
+  async function applySnapshot(c: TrackedCase, s: CaseStatusSnapshot, t: Date): Promise<{ changed: boolean; eventId?: string }> {
     const changed = c.statusFingerprint !== s.fingerprint;
+    // Individuals are checked per their plan; firm cases like Premium.
+    const ownerPlan = c.ownerUserId
+      ? ((await db.user.findUnique({ where: { id: c.ownerUserId }, select: { plan: true } }))?.plan ?? "FREE")
+      : null;
+    let eventId: string | undefined;
     await db.$transaction(async (tx) => {
       if (changed) {
-        await tx.caseStatusEvent.createMany({
-          data: [
-            {
+        const event = await tx.caseStatusEvent.upsert({
+          where: { caseId_fingerprint: { caseId: c.id, fingerprint: s.fingerprint } },
+          update: {},
+          create: {
               caseId: c.id,
               formType: s.formType,
               statusTitleEn: s.status.en.title,
@@ -277,10 +293,10 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
               uscisReportedRaw: s.modifiedDate?.raw ?? null,
               fingerprint: s.fingerprint,
               firstObservedAt: t,
-            },
-          ],
-          skipDuplicates: true,
+          },
+          select: { id: true },
         });
+        eventId = event.id;
       }
       await tx.trackedCase.update({
         where: { id: c.id },
@@ -297,12 +313,12 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
           lastCheckedAt: t,
           lastCheckOutcome: "ok",
           consecutiveFailures: 0,
-          nextCheckAt: new Date(t.getTime() + SCHEDULED_INTERVAL_MS),
+          nextCheckAt: new Date(t.getTime() + checkIntervalMs(ownerPlan)),
           ...(changed ? { lastChangeObservedAt: t } : {}),
         },
       });
     });
-    return changed;
+    return { changed, eventId };
   }
 
   return { listCases, getCase, addCase, removeCase, refreshCase, runCheck };

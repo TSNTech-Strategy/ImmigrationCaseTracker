@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PLAN_LIMITS, describeCadence } from "@/lib/plans";
 import { AlertsForm, DeleteAccountForm, MfaDisable, MfaSetup, PasswordForm, ProfileForm } from "./forms";
 
 export const metadata: Metadata = { title: "Settings · ImmigrationCaseTracker" };
@@ -24,6 +25,7 @@ function Section({ id, title, children, danger }: { id: string; title: string; c
 export default async function SettingsPage() {
   const user = await requireUser("/settings");
   const prefs = await prisma.notificationPreference.findUnique({ where: { userId: user.id } });
+  const plan = (await prisma.user.findUnique({ where: { id: user.id }, select: { plan: true } }))?.plan ?? "FREE";
 
   // Supabase is the source of truth for factors; keep our enforcement flag in step.
   const supabase = await createSupabaseServerClient();
@@ -39,6 +41,13 @@ export default async function SettingsPage() {
       <Section id="profile-h" title="Profile">
         <p className="text-sm text-[var(--muted)]">Signed in as {user.email}</p>
         <ProfileForm name={user.name ?? ""} locale={user.locale} />
+      </Section>
+      <Section id="plan-h" title="Plan">
+        <p>
+          <strong>{PLAN_LIMITS[plan].label}</strong>: up to {PLAN_LIMITS[plan].maxCases} {PLAN_LIMITS[plan].maxCases === 1 ? "case" : "cases"},
+          checked {describeCadence(plan)}.
+        </p>
+        {plan === "FREE" && <p className="text-sm text-[var(--muted)]">Premium (up to 10 cases, checked twice a day) is coming soon.</p>}
       </Section>
       <Section id="alerts-h" title="Alerts">
         <AlertsForm emailOnChange={prefs?.emailOnChange ?? true} />

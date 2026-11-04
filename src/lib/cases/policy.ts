@@ -10,12 +10,6 @@ const intEnv = (name: string, fallback: number, env: Record<string, string | und
 
 export const MANUAL_REFRESH_COOLDOWN_MS = 10 * 60 * 1000;
 export const MANUAL_REFRESHES_PER_USER_PER_DAY = 30;
-/** Normal polling interval once Step 6's scheduler runs. */
-export const SCHEDULED_INTERVAL_MS = 12 * 60 * 60 * 1000;
-
-/** Cap on cases one person can track until billing sets plan limits. */
-export const individualCaseLimit = (env?: Record<string, string | undefined>) => intEnv("INDIVIDUAL_CASE_LIMIT", 10, env);
-
 /** Global cap on USCIS case-status calls per UTC day, across all users. */
 export const uscisDailyBudget = (env?: Record<string, string | undefined>) => intEnv("USCIS_DAILY_BUDGET", 800, env);
 

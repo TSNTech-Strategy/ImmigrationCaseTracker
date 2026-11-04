@@ -4,19 +4,29 @@ import Link from "next/link";
 export const metadata: Metadata = { title: "Pricing · ImmigrationCaseTracker" };
 
 const PLANS = [
-  { name: "Free", price: "$0", period: "", for: "Individuals", features: ["1 case", "Status and history", "Manual refresh"], cta: "Create account", href: "/signup" },
+  {
+    name: "Free",
+    price: "$0",
+    period: "",
+    for: "Individuals",
+    features: ["1 case", "Checked automatically once a day", "Email alert when the status changes", "Full status history, English and Spanish"],
+    cta: "Create account",
+    href: "/signup",
+  },
   {
     name: "Premium",
     price: "$5.99",
     period: "/month",
+    note: "or $49/year",
     for: "Individuals and families",
-    features: ["Multiple cases", "Automatic checks and change alerts", "English and Spanish status text", "Family-friendly case list"],
+    features: ["Up to 10 cases for the whole family", "Checked automatically twice a day", "Faster alerts (push and text coming)", "Everything in Free"],
     soon: true,
   },
   {
     name: "Firm Starter",
     price: "$99",
     period: "/month",
+    note: "14-day free trial",
     for: "Immigration law firms",
     features: ["Up to 100 authorized client cases", "Staff accounts and roles", "CSV import", "Audit trail and export"],
     soon: true,
@@ -43,6 +53,7 @@ export default function Pricing() {
             <p>
               <span className="text-3xl font-semibold">{p.price}</span>
               <span className="text-[var(--muted)]">{p.period}</span>
+              {p.note && <span className="block text-sm text-[var(--muted)]">{p.note}</span>}
             </p>
             <ul className="flex flex-1 flex-col gap-1.5 text-sm">
               {p.features.map((f) => (

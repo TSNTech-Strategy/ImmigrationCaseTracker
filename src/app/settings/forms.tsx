@@ -52,7 +52,7 @@ export function AlertsForm({ emailOnChange }: { emailOnChange: boolean }) {
         <input type="checkbox" name="emailOnChange" defaultChecked={emailOnChange} className="mt-1" />
         <span>
           Email me when a case status changes
-          <span className="block text-sm text-[var(--muted)]">Emails start once automatic checking is switched on.</span>
+          <span className="block text-sm text-[var(--muted)]">Sent when our automatic checks see a new status.</span>
         </span>
       </label>
       <div>

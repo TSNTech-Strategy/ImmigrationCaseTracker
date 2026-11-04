@@ -5,7 +5,7 @@ TSN TECH & STRATEGY NETWORK LLC.
 
 > Not affiliated with or endorsed by USCIS or DHS. Not legal advice.
 
-The build plan is in [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md).
+The build plan is in [`docs/BUILD_PLAN.md`](docs/BUILD_PLAN.md). Deploying: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ## Stack
 
@@ -35,6 +35,7 @@ With empty USCIS credentials the app runs in **mock mode**, which returns determ
 | `npm run db:migrate` | *(Developers)* Create a new migration after changing `prisma/schema.prisma` |
 | `npm run db:seed` | Demo data: Supabase Auth users `demo@ict.dev` and `firm@ict.dev`, password `ict-demo-1234` (needs `SUPABASE_SECRET_KEY`) |
 | `npm run db:studio` | Browse the database (or use the Supabase Table Editor) |
+| `npm run dev:inngest` | Local Inngest dev server for background jobs (needs `INNGEST_DEV=1`) |
 | `npm run uscis:smoke` | Daily USCIS **sandbox** check. Writes sanitized evidence to `docs/uscis-evidence/`. Add `-- --show-errors` to print USCIS error bodies (console only) |
 
 ## Credentials

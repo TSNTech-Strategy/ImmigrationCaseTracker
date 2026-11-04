@@ -37,6 +37,7 @@ describe.skipIf(!url)("case service", () => {
     bob = (await db.user.create({ data: { id: randomUUID(), email: `bob-${randomUUID()}@test.dev` } })).id;
   });
   beforeEach(async () => {
+    await db.user.updateMany({ where: { id: { in: [alice, bob] } }, data: { plan: "PREMIUM" } });
     calls.length = 0;
     nextResponse = null;
     clock = new Date(clock.getTime() + 24 * 3600_000); // fresh day each test
@@ -67,13 +68,16 @@ describe.skipIf(!url)("case service", () => {
     expect(await db.auditLog.count({ where: { targetId: c.id, action: "case.created" } })).toBe(1);
   });
 
-  it("rejects invalid, duplicate and over-limit adds", async () => {
-    const s = service("mock", { INDIVIDUAL_CASE_LIMIT: "2" });
+  it("rejects invalid, duplicate and over-plan-limit adds", async () => {
+    await db.user.update({ where: { id: alice }, data: { plan: "FREE" } });
+    const s = service();
     expect(await s.addCase(alice, { receipt: "123", basis: "SELF" })).toMatchObject({ ok: false, error: "invalid_receipt" });
     await s.addCase(alice, { receipt: "EAC9999103402", basis: "SELF" });
     expect(await s.addCase(alice, { receipt: "EAC-9999-103402", basis: "SELF" })).toMatchObject({ ok: false, error: "duplicate" });
-    await s.addCase(alice, { receipt: "EAC9999103403", basis: "SELF" });
-    expect(await s.addCase(alice, { receipt: "IOE0000000012", basis: "SELF" })).toMatchObject({ ok: false, error: "limit" });
+    // Free plan: 1 case.
+    expect(await s.addCase(alice, { receipt: "EAC9999103403", basis: "SELF" })).toMatchObject({ ok: false, error: "limit" });
+    await db.user.update({ where: { id: alice }, data: { plan: "PREMIUM" } });
+    expect((await s.addCase(alice, { receipt: "EAC9999103403", basis: "SELF" })).ok).toBe(true);
     // Bob can track the same receipt independently.
     expect((await s.addCase(bob, { receipt: "EAC9999103402", basis: "AUTHORIZED_BY_APPLICANT" })).ok).toBe(true);
   });
@@ -129,7 +133,8 @@ describe.skipIf(!url)("case service", () => {
       ),
     });
     minutes(11);
-    expect(await s.refreshCase(alice, r.caseId)).toMatchObject({ status: "updated", changed: true });
+    const changed = await s.refreshCase(alice, r.caseId);
+    expect(changed).toMatchObject({ status: "updated", changed: true, eventId: expect.any(String) });
     const c = await s.getCase(alice, r.caseId);
     expect(c?.events.map((e) => e.statusTitleEn)).toEqual(["Card Was Mailed To Me", "Case Approval Was Affirmed"]);
     expect(c?.statusTitleEn).toBe("Card Was Mailed To Me");
@@ -183,5 +188,23 @@ describe.skipIf(!url)("case service", () => {
     expect(await s.removeCase(alice, r.caseId)).toBe(true);
     expect(await db.trackedCase.count({ where: { id: r.caseId } })).toBe(0);
     expect(await db.auditLog.count({ where: { targetId: r.caseId, action: "case.removed" } })).toBe(1);
+  });
+});
+
+describe.skipIf(!url)("check cadence by plan", () => {
+  const db = new PrismaClient({ datasourceUrl: url });
+  afterAll(() => db.$disconnect());
+  it("schedules the next check in 24h on Free and 12h on Premium", async () => {
+    process.env.ENCRYPTION_KEY ??= Buffer.alloc(32, 5).toString("base64");
+    const t = new Date("2027-01-01T10:00:00Z");
+    const s = createCaseService({ db, uscis: { mode: "mock", getCaseStatus: mockFetchCaseStatus }, now: () => t });
+    for (const [plan, hours] of [["FREE", 24], ["PREMIUM", 12]] as const) {
+      const u = await db.user.create({ data: { id: randomUUID(), email: `cadence-${randomUUID()}@test.dev`, plan } });
+      const r = await s.addCase(u.id, { receipt: "EAC9999103402", basis: "SELF" });
+      if (!r.ok) throw new Error("add failed");
+      const c = await db.trackedCase.findUniqueOrThrow({ where: { id: r.caseId } });
+      expect((c.nextCheckAt!.getTime() - t.getTime()) / 3600_000).toBe(hours);
+      await db.user.delete({ where: { id: u.id } });
+    }
   });
 });

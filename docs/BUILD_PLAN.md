@@ -74,10 +74,12 @@ Each step is small enough to review on its own before the next one starts.
 - Two-factor is enforced from our database flag (`User.mfaEnrolledAt`) on every page, action and API call — not from the client-editable cookie. Sign-in sends two-factor users straight to `/login/mfa`.
 - Tested end to end (stand-in auth server): QR set-up, wrong codes rejected, pages/API blocked until the code is entered (HTTP 307 / 401), turn off, password change, account deletion.
 
-### Step 6 — Background polling, alerts and first deploy
-- Inngest scheduled function: eligible cases (active consent, not checked recently), throttled under the USCIS rate limit, global daily budget, circuit breaker, check-run log, change detection, events.
-- Email alerts on change (SMTP), idempotent.
-- **Create the new Vercel project** (pointing at the ICT Supabase project) and deploy. Migrations run on build.
+### Step 6 — Automatic checks, alerts, deploy (code ✅ · deploy pending)
+- Plans (decided Nov 5): **Free** 1 case, checked daily, email alerts · **Premium** 10 cases, twice daily ($5.99/mo or $49/yr, coming soon) · **Firm Starter** $99/mo after a 14-day trial. `User.plan`; set by hand until billing.
+- Inngest (ICT's own app, not Scanvio's): every 15 min find due cases (active consent required) → one `check-case` per case, throttled to 4 USCIS calls/second → `notify-status-change` emails the owner once per change (idempotent), in their language, masked receipt only.
+- Circuit breaker pauses ticks when USCIS calls fail in bulk; duplicate/late events never cause extra calls; scheduled jobs never run on preview deployments.
+- Email via SMTP (Resend recommended), console in development — same structure as Scanvio.
+- Deploy guide: `docs/DEPLOY.md` (new Vercel project + new Inngest app + Resend + Supabase URLs).
 
 ### Step 7 — Law firm workspace
 - Firms, memberships (owner/admin/staff), invitations with revocation, clients, consent evidence.
@@ -104,6 +106,6 @@ Each step is small enough to review on its own before the next one starts.
 |---|---|
 | Now | Run `npm run uscis:smoke` daily with sandbox credentials in your local `.env` |
 | Now | Create the **new** ImmigrationCaseTracker Supabase project and put its connection strings in your `.env` |
-| Step 6 | Create a **new** Vercel project under the company account. Choose an SMTP provider |
+| Step 6 | Create the **new** Vercel project, a **new** Inngest app and a Resend account (see `docs/DEPLOY.md`) |
 | Step 8 | Stripe account for the LLC |
 | Before launch | Company contact email (`NEXT_PUBLIC_CONTACT_EMAIL`), governing-law state, retention/backup periods, and lawyer review of the Privacy Policy, Terms and consent wording |

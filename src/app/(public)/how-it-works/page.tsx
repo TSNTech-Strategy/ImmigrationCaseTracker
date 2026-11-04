@@ -18,8 +18,8 @@ export default function HowItWorks() {
       <h2>2. We check the status with USCIS</h2>
       <p>
         We use the official USCIS Case Status API from our own secure servers. USCIS doesn&apos;t send updates on its own, so we
-        ask: once when you add a case, about twice a day after that, and whenever you press &quot;Refresh now&quot; (at most once every
-        10 minutes per case). That means a change appears here only after our next check.
+        ask: once when you add a case, then automatically (once a day on Free, twice a day on Premium), and whenever you press &quot;Refresh now&quot; (at most once every
+        10 minutes per case). That means a change appears here only after our next check. When we see a change, we email you (you can turn this off in Settings).
       </p>
       <h2>3. See what changed and when</h2>
       <p>For every case we show:</p>

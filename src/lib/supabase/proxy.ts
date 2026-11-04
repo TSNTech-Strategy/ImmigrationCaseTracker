@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabasePublicEnv } from "./env";
 import { DEFAULT_AFTER_LOGIN, isAuthPage, isProtectedPath } from "@/lib/auth/paths";
+import { needsSecondFactor } from "@/lib/auth/profile";
+import { prisma } from "@/lib/db";
 
 /**
  * Runs on every page request: refreshes the Supabase session cookies (Server
@@ -42,11 +44,11 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     return redirectTo(target);
   }
   // Two-factor users who haven't entered their code yet go straight to the
-  // code page. (UX only — the session cookie can be edited, so pages and
-  // actions enforce this again from our database.)
+  // code page (a real redirect). Decided from our database flag — the same
+  // authoritative source pages and actions use — never the editable cookie.
   if (signedIn && isProtectedPath(pathname)) {
-    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (aal?.currentLevel === "aal1" && aal.nextLevel === "aal2") {
+    const profile = await prisma.user.findUnique({ where: { id: String(data!.claims.sub) }, select: { mfaEnrolledAt: true } });
+    if (profile && needsSecondFactor(profile, data!.claims.aal as string | undefined)) {
       const target = new URL("/login/mfa", request.url);
       target.searchParams.set("next", pathname + search);
       return redirectTo(target);

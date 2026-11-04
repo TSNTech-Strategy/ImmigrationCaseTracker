@@ -25,6 +25,12 @@ datasource db {
 // Accounts
 // ---------------------------------------------------------------------------
 
+/// Individual plan. Billing (later) switches it; until then set it by hand.
+enum Plan {
+  FREE
+  PREMIUM
+}
+
 model User {
   /// Same id as the Supabase Auth user (auth.users.id). Supabase Auth owns
   /// passwords, email verification, sessions and MFA; this table holds our
@@ -38,6 +44,7 @@ model User {
   /// cleared when they turn it off. The server requires an aal2 session for
   /// these users. Authoritative — unlike the client-editable session cookie.
   mfaEnrolledAt DateTime?
+  plan          Plan      @default(FREE)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

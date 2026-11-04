@@ -8,6 +8,8 @@ import { caseService } from "@/lib/cases";
 import { INDIVIDUAL_CONSENT_OPTIONS } from "@/lib/cases/consent";
 import { checkFailureMessage } from "@/lib/cases/policy";
 import { getUscisClient } from "@/lib/uscis";
+import { describeCadence } from "@/lib/plans";
+import { prisma } from "@/lib/db";
 import { RefreshButton, RemoveCaseForm } from "./case-actions";
 
 export const metadata: Metadata = { title: "Case · ImmigrationCaseTracker" };
@@ -31,6 +33,7 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
   const consent = c.consents.find((x) => !x.withdrawnAt);
   const consentLabel = INDIVIDUAL_CONSENT_OPTIONS.find((o) => o.basis === consent?.basis)?.label;
   const failed = c.lastCheckOutcome && c.lastCheckOutcome !== "ok";
+  const plan = (await prisma.user.findUnique({ where: { id: user.id }, select: { plan: true } }))?.plan ?? "FREE";
 
   return (
     <>
@@ -97,7 +100,7 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
         </dl>
         <RefreshButton caseId={c.id} />
         <p className="text-xs text-[var(--muted)]">
-          We check automatically about twice a day. USCIS is the authoritative source:{" "}
+          We check automatically {describeCadence(plan)} and email you when the status changes. USCIS is the authoritative source:{" "}
           <a href="https://egov.uscis.gov/" className="underline underline-offset-2" target="_blank" rel="noopener noreferrer">
             USCIS Case Status Online
           </a>

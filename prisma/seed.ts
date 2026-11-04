@@ -52,8 +52,9 @@ async function main() {
   const demoId = await authUser(admin, "demo@ict.dev", "Demo Applicant");
   const demo = await prisma.user.upsert({
     where: { id: demoId },
-    update: {},
-    create: { id: demoId, email: "demo@ict.dev", name: "Demo Applicant", notificationPreference: { create: {} } },
+    update: { plan: "PREMIUM" },
+    // Premium so the demo shows several cases (Free allows 1).
+    create: { id: demoId, email: "demo@ict.dev", name: "Demo Applicant", plan: "PREMIUM", notificationPreference: { create: {} } },
   });
 
   for (const [receipt, nickname] of [
