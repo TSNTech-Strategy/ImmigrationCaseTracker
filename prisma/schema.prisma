@@ -1,0 +1,391 @@
+// ImmigrationCaseTracker data model.
+//
+// Two kinds of case owner, modelled explicitly (guide §19.2): a TrackedCase
+// belongs to exactly ONE of an individual user (B2C) or a firm (B2B). The
+// database enforces that with a CHECK constraint added in the migration SQL
+// (Prisma can't express it).
+//
+// Receipt numbers are sensitive personal case identifiers. They're stored
+// only encrypted (AES-256-GCM, src/lib/crypto.ts) plus a keyed HMAC digest
+// for duplicate detection and a masked hint for display — never in plain text.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Accounts
+// ---------------------------------------------------------------------------
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String?
+  passwordHash      String
+  /// "en" | "es" — UI language and which USCIS status text to show first.
+  locale            String    @default("en")
+  emailVerifiedAt   DateTime?
+  /// Sessions issued before this are rejected (password reset signs out everywhere).
+  passwordChangedAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  notificationPreference NotificationPreference?
+  memberships            FirmMembership[]
+  ownedCases             TrackedCase[]           @relation("CaseOwner")
+  addedCases             TrackedCase[]           @relation("CaseAddedBy")
+  clientsCreated         Client[]                @relation("ClientCreatedBy")
+  consentsGranted        CaseConsent[]           @relation("ConsentGrantedBy")
+  consentsWithdrawn      CaseConsent[]           @relation("ConsentWithdrawnBy")
+  invitationsSent        FirmInvitation[]
+  notificationDeliveries NotificationDelivery[]
+  auditLogs              AuditLog[]
+  deletionRequests       DeletionRequest[]
+}
+
+model NotificationPreference {
+  userId        String   @id
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailOnChange Boolean  @default(true)
+  pushOnChange  Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Law firms (B2B tenancy)
+// ---------------------------------------------------------------------------
+
+enum FirmStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum FirmRole {
+  OWNER
+  ADMIN
+  STAFF
+}
+
+model Firm {
+  id        String     @id @default(cuid())
+  name      String
+  status    FirmStatus @default(ACTIVE)
+  /// Plan limit on tracked cases (Firm Starter = 100). Billing sets this later.
+  caseLimit Int        @default(100)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  memberships      FirmMembership[]
+  invitations      FirmInvitation[]
+  clients          Client[]
+  cases            TrackedCase[]
+  auditLogs        AuditLog[]
+  deletionRequests DeletionRequest[]
+}
+
+model FirmMembership {
+  id        String    @id @default(cuid())
+  firmId    String
+  firm      Firm      @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      FirmRole  @default(STAFF)
+  /// Revocation takes effect immediately: every firm check filters revokedAt IS NULL.
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([firmId, userId])
+  @@index([userId])
+}
+
+model FirmInvitation {
+  id          String    @id @default(cuid())
+  firmId      String
+  firm        Firm      @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  email       String
+  role        FirmRole  @default(STAFF)
+  /// SHA-256 of the invite token; the token itself is only in the emailed link.
+  tokenHash   String    @unique
+  invitedById String?
+  invitedBy   User?     @relation(fields: [invitedById], references: [id], onDelete: SetNull)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([firmId])
+}
+
+/// A law firm's client. Deliberately minimal contact data (guide §19.2).
+model Client {
+  id          String    @id @default(cuid())
+  firmId      String
+  firm        Firm      @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  displayName String
+  email       String?
+  phone       String?
+  /// The firm's own reference for this client (matter number etc.).
+  externalRef String?
+  createdById String?
+  createdBy   User?     @relation("ClientCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  cases TrackedCase[]
+
+  /// Lets TrackedCase reference (clientId, firmId) so a case can never point
+  /// at another firm's client.
+  @@unique([id, firmId])
+  @@index([firmId])
+}
+
+// ---------------------------------------------------------------------------
+// Cases
+// ---------------------------------------------------------------------------
+
+enum TrackingStatus {
+  /// Polled on schedule.
+  ACTIVE
+  /// Owner paused monitoring, or consent was withdrawn — no USCIS calls.
+  PAUSED
+}
+
+enum CheckTrigger {
+  INITIAL
+  MANUAL
+  SCHEDULED
+}
+
+model TrackedCase {
+  id String @id @default(cuid())
+
+  // Exactly one of ownerUserId / firmId is set (CHECK constraint in SQL).
+  ownerUserId String?
+  ownerUser   User?   @relation("CaseOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  firmId      String?
+  firm        Firm?   @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  /// Firm cases only. Composite FK guarantees the client belongs to the same firm.
+  clientId    String?
+  client      Client? @relation(fields: [clientId, firmId], references: [id, firmId], onDelete: NoAction)
+
+  addedById String?
+  addedBy   User?   @relation("CaseAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+
+  /// AES-256-GCM ciphertext of the normalized receipt number.
+  receiptEncrypted String
+  /// Keyed HMAC digest of the normalized receipt — duplicate detection.
+  receiptDigest    String
+  /// Display hint only, e.g. "EAC*******402".
+  receiptMasked    String
+  /// Owner-chosen label, e.g. "Mom's I-130".
+  nickname         String?
+
+  trackingStatus TrackingStatus @default(ACTIVE)
+
+  // Latest known USCIS state (status texts are USCIS's public wording).
+  formType            String?
+  statusTitleEn       String?
+  statusTitleEs       String?
+  statusDescriptionEn String?
+  statusDescriptionEs String?
+  /// Dates exactly as USCIS reported them (zone unspecified by USCIS).
+  uscisSubmittedRaw   String?
+  uscisModifiedRaw    String?
+  /// USCIS-provided history (hist_case_status), normalized. Source data —
+  /// distinct from CaseStatusEvent, which records what WE observed and when.
+  uscisHistory        Json?
+  statusFingerprint   String?
+
+  /// Last time we asked USCIS (success or failure).
+  lastCheckedAt        DateTime?
+  /// Outcome of that check: "ok" or a UscisError kind.
+  lastCheckOutcome     String?
+  /// Last time we observed the status change. Shown separately from lastCheckedAt.
+  lastChangeObservedAt DateTime?
+  /// When the scheduler should next poll this case.
+  nextCheckAt          DateTime?
+  /// For backoff / circuit breaking on repeated failures.
+  consecutiveFailures  Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  consents  CaseConsent[]
+  events    CaseStatusEvent[]
+  checkRuns CaseCheckRun[]
+
+  @@unique([ownerUserId, receiptDigest])
+  @@unique([firmId, receiptDigest])
+  @@index([trackingStatus, nextCheckAt])
+  @@index([clientId])
+}
+
+enum ConsentBasis {
+  /// "This is my own case."
+  SELF
+  /// "I'm authorized by the applicant (e.g. a family member) to track it."
+  AUTHORIZED_BY_APPLICANT
+  /// Firm: attorney/accredited representative of record (e.g. G-28 on file).
+  LEGAL_REPRESENTATIVE
+}
+
+enum ConsentSource {
+  WEB
+  MOBILE
+  FIRM_ATTESTATION
+  CSV_IMPORT
+}
+
+/// Express consent to track a case (guide §9, §19.1). A case is only polled
+/// while it has an active (not withdrawn) consent.
+model CaseConsent {
+  id               String        @id @default(cuid())
+  caseId           String
+  case             TrackedCase   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  basis            ConsentBasis
+  source           ConsentSource
+  /// Version of the consent wording the user agreed to (kept in code).
+  statementVersion String
+  /// Firm cases: reference to consent evidence on file (no documents stored here).
+  evidenceRef      String?
+  grantedById      String?
+  grantedBy        User?         @relation("ConsentGrantedBy", fields: [grantedById], references: [id], onDelete: SetNull)
+  capturedAt       DateTime      @default(now())
+  withdrawnAt      DateTime?
+  withdrawnById    String?
+  withdrawnBy      User?         @relation("ConsentWithdrawnBy", fields: [withdrawnById], references: [id], onDelete: SetNull)
+
+  @@index([caseId, withdrawnAt])
+}
+
+/// A status change WE observed (first time we saw a new fingerprint).
+model CaseStatusEvent {
+  id                  String      @id @default(cuid())
+  caseId              String
+  case                TrackedCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  formType            String?
+  statusTitleEn       String?
+  statusTitleEs       String?
+  statusDescriptionEn String?
+  statusDescriptionEs String?
+  /// USCIS's modifiedDate as reported, if any.
+  uscisReportedRaw    String?
+  fingerprint         String
+  firstObservedAt     DateTime    @default(now())
+
+  deliveries NotificationDelivery[]
+
+  @@unique([caseId, fingerprint])
+  @@index([caseId, firstObservedAt])
+}
+
+/// Sanitized operational record of every USCIS call for a case. No payloads.
+model CaseCheckRun {
+  id          String       @id @default(cuid())
+  caseId      String
+  case        TrackedCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  trigger     CheckTrigger
+  uscisEnv    String
+  httpStatus  Int?
+  outcome     String
+  durationMs  Int
+  changed     Boolean      @default(false)
+  attemptedAt DateTime     @default(now())
+
+  @@index([caseId, attemptedAt])
+  @@index([attemptedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+enum NotificationChannel {
+  EMAIL
+  PUSH
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model NotificationDelivery {
+  id             String              @id @default(cuid())
+  eventId        String
+  event          CaseStatusEvent     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel        NotificationChannel
+  status         DeliveryStatus      @default(PENDING)
+  /// event + user + channel — a retried job never sends twice.
+  idempotencyKey String              @unique
+  error          String?
+  createdAt      DateTime            @default(now())
+  sentAt         DateTime?
+
+  @@index([userId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Compliance
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  firmId      String?
+  firm        Firm?    @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  /// e.g. "case.created", "consent.withdrawn", "member.revoked"
+  action      String
+  targetType  String
+  targetId    String
+  /// Minimal, non-sensitive context. Never receipt numbers or USCIS payloads.
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([firmId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([targetType, targetId])
+}
+
+enum DeletionScope {
+  ACCOUNT
+  CASE
+  FIRM
+}
+
+enum DeletionStatus {
+  REQUESTED
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+model DeletionRequest {
+  id             String         @id @default(cuid())
+  requesterId    String?
+  requester      User?          @relation(fields: [requesterId], references: [id], onDelete: SetNull)
+  /// Email at request time, so the record survives the account's deletion.
+  requesterEmail String
+  firmId         String?
+  firm           Firm?          @relation(fields: [firmId], references: [id], onDelete: SetNull)
+  scope          DeletionScope
+  targetId       String?
+  status         DeletionStatus @default(REQUESTED)
+  notes          String?
+  requestedAt    DateTime       @default(now())
+  completedAt    DateTime?
+
+  @@index([status, requestedAt])
+}

@@ -48,9 +48,10 @@ Each step is small enough to review on its own before the next one starts.
 - 40 unit tests driven by fake USCIS responses.
 - `npm run uscis:smoke` plus the evidence log.
 
-### Step 2 — Database schema
+### Step 2 — Database schema ✅
 - Prisma schema and first migration: `User`, `Firm`, `FirmMembership`, `Client`, `TrackedCase` (owned by a user **or** a firm, with encrypted receipt and digest), `CaseConsent`, `CaseStatusEvent`, `CaseCheckRun`, `AuditLog`, `DeletionRequest`, `NotificationPreference`.
-- Local Postgres via docker-compose (as in Scanvio). Seed data uses staging receipts only.
+- Local Postgres via docker-compose on port 5433 (beside Scanvio). Seed data uses staging receipts only.
+- DB-enforced rules: one owner per case, client must belong to the case's firm, per-owner receipt uniqueness, RLS on and Supabase API roles revoked. Covered by DB tests.
 
 ### Step 3 — Accounts and auth
 - Auth.js credentials login, signup, password reset, session roles.

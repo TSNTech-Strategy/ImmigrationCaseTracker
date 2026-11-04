@@ -4,14 +4,21 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && node scripts/migrate-on-deploy.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "uscis:smoke": "tsx --env-file=.env scripts/uscis-smoke.ts"
+    "uscis:smoke": "tsx --env-file=.env scripts/uscis-smoke.ts",
+    "postinstall": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx --env-file=.env prisma/seed.ts",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
     "next": "16.4.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -25,6 +32,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
+    "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "tsx": "4.23.0",
     "typescript": "^5",
@@ -32,5 +40,11 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "prisma@6.19.3": true,
+    "esbuild@0.28.2": true
   }
 }

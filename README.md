@@ -15,7 +15,10 @@ Built the same way as Scanvio: one Next.js 16 app (web + API routes), with Prism
 
 ```bash
 npm install
-cp .env.example .env   # fill in USCIS_CLIENT_ID / USCIS_CLIENT_SECRET for sandbox
+cp .env.example .env      # fill in USCIS_CLIENT_ID / USCIS_CLIENT_SECRET and ENCRYPTION_KEY
+docker compose up -d db   # local Postgres on port 5433
+npm run db:migrate        # create the tables
+npm run db:seed           # optional demo data (staging receipts only)
 npm run dev
 ```
 
@@ -24,9 +27,12 @@ With empty USCIS credentials the app runs in **mock mode**, which returns determ
 | Command | What it does |
 |---|---|
 | `npm run dev` | Start the web app |
-| `npm test` | Unit tests (no live USCIS calls) |
+| `npm test` | Unit tests (no live USCIS calls). Add `TEST_DATABASE_URL=…` to also run the database tests |
 | `npm run typecheck` | TypeScript |
 | `npm run lint` | ESLint |
+| `npm run db:migrate` | Apply / create Prisma migrations locally |
+| `npm run db:seed` | Demo data: `demo@ict.dev` and `firm@ict.dev`, password `ict-demo-1234` |
+| `npm run db:studio` | Browse the local database |
 | `npm run uscis:smoke` | Daily USCIS **sandbox** check. Writes sanitized evidence to `docs/uscis-evidence/`. Add `-- --show-errors` to print USCIS error bodies (console only) |
 
 ## Credentials
@@ -40,3 +46,14 @@ USCIS, encryption and (later) Stripe/SMTP secrets are **server-only environment 
 - Errors are classified as `auth`, `bad_request`, `not_found`, `rate_limited`, `server`, `timeout`, `network` or `bad_response`. Only 5xx, timeout and network errors are retried, with backoff. A 401 refreshes the token once.
 - Responses are validated and normalized. USCIS-reported dates are kept separate from when we observed a change, and a fingerprint is computed for change detection.
 - Receipt numbers are never logged in full (`maskReceiptNumber`), and are encrypted at rest with `src/lib/crypto.ts`.
+
+## Data model (`prisma/schema.prisma`)
+
+- A **TrackedCase** belongs to exactly one owner: an individual `User` **or** a `Firm`. This is enforced by a database CHECK constraint. A firm case can link to a `Client`, and a composite foreign key guarantees it's the same firm's client.
+- Receipt numbers are stored only as AES-256-GCM ciphertext, a keyed HMAC digest (duplicate detection) and a masked hint (`EAC*******402`). See `src/lib/cases/receipt-store.ts`.
+- **CaseConsent** records express consent: its basis, source, wording version, and withdrawal. Cases are polled only while consent is active.
+- **CaseStatusEvent** records what *we* observed and when. USCIS's own history is kept separately on the case (`uscisHistory`).
+- **CaseCheckRun** is a sanitized log of every USCIS call: status code, outcome and duration, with no payloads.
+- `AuditLog`, `DeletionRequest`, `NotificationPreference` and `NotificationDelivery` (idempotent alerts) are also included.
+- Row Level Security is enabled on every table, and Supabase's `anon`/`authenticated` API roles are revoked. The app reaches the data only through Prisma on the server.
+- Migrations run automatically on production deploys (`scripts/migrate-on-deploy.mjs`), but not on previews, same as Scanvio.
