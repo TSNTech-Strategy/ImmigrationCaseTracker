@@ -41,6 +41,17 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     target.searchParams.set("next", pathname + search);
     return redirectTo(target);
   }
+  // Two-factor users who haven't entered their code yet go straight to the
+  // code page. (UX only — the session cookie can be edited, so pages and
+  // actions enforce this again from our database.)
+  if (signedIn && isProtectedPath(pathname)) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal?.currentLevel === "aal1" && aal.nextLevel === "aal2") {
+      const target = new URL("/login/mfa", request.url);
+      target.searchParams.set("next", pathname + search);
+      return redirectTo(target);
+    }
+  }
   if (signedIn && isAuthPage(pathname)) {
     return redirectTo(new URL(DEFAULT_AFTER_LOGIN, request.url));
   }

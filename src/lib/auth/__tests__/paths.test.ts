@@ -27,6 +27,7 @@ describe("route classification", () => {
     expect(isAuthPage("/login")).toBe(true);
     expect(isAuthPage("/signup")).toBe(true);
     expect(isAuthPage("/reset-password")).toBe(false);
+    expect(isAuthPage("/login/mfa")).toBe(false);
   });
 });
 

@@ -11,7 +11,8 @@ export const DEFAULT_AFTER_LOGIN = "/cases";
 const matches = (pathname: string, prefix: string) => pathname === prefix || pathname.startsWith(`${prefix}/`);
 
 export const isProtectedPath = (pathname: string) => PROTECTED_PREFIXES.some((p) => matches(pathname, p));
-export const isAuthPage = (pathname: string) => AUTH_PAGES.some((p) => matches(pathname, p));
+// Exact match: /login/mfa is NOT a sign-in page — a half-signed-in user must reach it.
+export const isAuthPage = (pathname: string) => (AUTH_PAGES as readonly string[]).includes(pathname);
 
 /**
  * Only same-site relative paths are allowed as a post-login destination —

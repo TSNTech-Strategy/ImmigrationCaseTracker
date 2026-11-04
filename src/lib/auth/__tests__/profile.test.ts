@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { User } from "@prisma/client";
-import { ensureProfile, isAdminEmail, ProfileConflictError } from "../profile";
+import { ensureProfile, isAdminEmail, needsSecondFactor, ProfileConflictError } from "../profile";
 
 function fakeDb(rows: User[] = []) {
   const user = {
@@ -22,7 +22,7 @@ function fakeDb(rows: User[] = []) {
 }
 
 const row = (id: string, email: string): User =>
-  ({ id, email, name: null, locale: "en", createdAt: new Date(), updatedAt: new Date() }) as User;
+  ({ id, email, name: null, locale: "en", mfaEnrolledAt: null, createdAt: new Date(), updatedAt: new Date() }) as User;
 
 describe("ensureProfile", () => {
   it("creates a profile on first sign-in from the JWT claims", async () => {
@@ -67,5 +67,16 @@ describe("isAdminEmail", () => {
     expect(isAdminEmail("boss@ict.dev", env)).toBe(true);
     expect(isAdminEmail("nobody@ict.dev", env)).toBe(false);
     expect(isAdminEmail("boss@ict.dev", {})).toBe(false);
+  });
+});
+
+describe("needsSecondFactor", () => {
+  it("requires aal2 only for users who turned two-factor on", () => {
+    const on = { mfaEnrolledAt: new Date() };
+    const off = { mfaEnrolledAt: null };
+    expect(needsSecondFactor(on, "aal1")).toBe(true);
+    expect(needsSecondFactor(on, undefined)).toBe(true);
+    expect(needsSecondFactor(on, "aal2")).toBe(false);
+    expect(needsSecondFactor(off, "aal1")).toBe(false);
   });
 });

@@ -7,6 +7,7 @@ import { authErrorMessage } from "@/lib/auth/errors";
 import { safeNextPath } from "@/lib/auth/paths";
 import { getSiteUrl } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/db";
 
 /** Version of the Terms/Privacy text accepted at sign-up. Bump when they change. */
 const TERMS_VERSION = "2026-11-04";
@@ -36,9 +37,15 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values };
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { error: authErrorMessage(error), values };
-  redirect(safeNextPath(formData.get("next")));
+
+  const next = safeNextPath(formData.get("next"));
+  // Two-factor users go straight to the code step.
+  const hasFactor = data.user?.factors?.some((f) => f.status === "verified") ?? false;
+  const profile = data.user ? await prisma.user.findUnique({ where: { id: data.user.id }, select: { mfaEnrolledAt: true } }) : null;
+  if (hasFactor || profile?.mfaEnrolledAt) redirect(`/login/mfa?next=${encodeURIComponent(next)}`);
+  redirect(next);
 }
 
 export async function signUpAction(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -111,4 +118,19 @@ export async function signOutAction(): Promise<void> {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+/** Second step of sign-in for users with two-factor on: verify the 6-digit code. */
+export async function verifyMfaLoginAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const code = String(formData.get("code") ?? "").replace(/\s/g, "");
+  if (!/^\d{6}$/.test(code)) return { fieldErrors: { code: "Enter the 6-digit code from your authenticator app." } };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: factors, error: listError } = await supabase.auth.mfa.listFactors();
+  const factor = factors?.totp?.[0];
+  if (listError || !factor) return { error: "Your session has expired. Please sign in again." };
+
+  const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code });
+  if (error) return { error: "That code didn't work. Check the time on your phone and try the newest code." };
+  redirect(safeNextPath(formData.get("next")));
 }

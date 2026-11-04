@@ -68,9 +68,11 @@ Each step is small enough to review on its own before the next one starts.
 - Remove case (with confirmation) + audit log entries.
 - Tests: user isolation (list/read/refresh/remove), cooldown race, consent, budget, sandbox guard, change detection, failure backoff — against a real database; plus a browser click-through.
 
-### Step 5 — Public pages + settings
-- `/`, `/how-it-works`, `/pricing`, `/privacy`, `/terms`, `/accessibility`, with the non-affiliation disclosure. Legal text is a placeholder marked *for counsel review*.
-- `/settings`: profile, alert preferences, two-factor authentication (Supabase MFA), data deletion request.
+### Step 5 — Public pages + settings ✅
+- Public site (static): home, How it works, Pricing ("coming soon" for paid plans), Privacy Policy, Terms of Service, Accessibility statement. Legal pages carry a "Draft for legal review" notice and cover the USCIS affidavit topics: readable policy, deletion, data sharing/subprocessors, breach notification, change of ownership, contact.
+- Settings: profile + status language (EN/ES), email-alert preference, password change, **two-factor sign-in (TOTP)** with QR set-up, and self-service **account deletion** (recorded in DeletionRequest).
+- Two-factor is enforced from our database flag (`User.mfaEnrolledAt`) on every page, action and API call — not from the client-editable cookie. Sign-in sends two-factor users straight to `/login/mfa`.
+- Tested end to end (stand-in auth server): QR set-up, wrong codes rejected, pages/API blocked until the code is entered (HTTP 307 / 401), turn off, password change, account deletion.
 
 ### Step 6 — Background polling, alerts and first deploy
 - Inngest scheduled function: eligible cases (active consent, not checked recently), throttled under the USCIS rate limit, global daily budget, circuit breaker, check-run log, change detection, events.
@@ -104,4 +106,4 @@ Each step is small enough to review on its own before the next one starts.
 | Now | Create the **new** ImmigrationCaseTracker Supabase project and put its connection strings in your `.env` |
 | Step 6 | Create a **new** Vercel project under the company account. Choose an SMTP provider |
 | Step 8 | Stripe account for the LLC |
-| Step 10 | Lawyer review of the privacy policy, terms and consent wording |
+| Before launch | Company contact email (`NEXT_PUBLIC_CONTACT_EMAIL`), governing-law state, retention/backup periods, and lawyer review of the Privacy Policy, Terms and consent wording |

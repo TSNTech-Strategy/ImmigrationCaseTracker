@@ -66,7 +66,11 @@ Supabase's built-in email sender is for testing only:
 
 So while testing, sign up with an address that's on your Supabase team, or use the seeded demo accounts. Before real users arrive (Step 6), set up custom SMTP under **Project Settings → Authentication → SMTP Settings** (Resend, Postmark, SES, etc.).
 
-## 6. Demo accounts
+## 6. Two-factor sign-in (MFA)
+
+Go to **Authentication → Multi-Factor** (sometimes under **Sign In / Providers**) and make sure **TOTP (authenticator app)** is enabled. It's on by default. Users turn it on themselves in **Settings → Two-factor sign-in**.
+
+## 7. Demo accounts
 
 With `SUPABASE_SECRET_KEY` in `.env`, run:
 
@@ -78,7 +82,7 @@ This creates confirmed users `demo@ict.dev` and `firm@ict.dev` (password `ict-de
 
 ## How it fits together
 
-- **Supabase Auth** stores passwords and handles sign-up, email confirmation, password reset, sessions and, later, MFA.
+- **Supabase Auth** stores passwords and handles sign-up, email confirmation, password reset, sessions and two-factor (TOTP).
 - **Our `User` table** has the same `id` as the Supabase auth user. It's created automatically the first time the user signs in (`src/lib/auth/profile.ts`).
 - **Every server page, action and API route** verifies the session with `getClaims()`, which checks the token's signature. `src/proxy.ts` only handles redirects.
 - **The mobile app** (later) signs in with Supabase directly and sends `Authorization: Bearer <access token>` to `/api/v1/*`.

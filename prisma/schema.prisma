@@ -29,13 +29,17 @@ model User {
   /// Same id as the Supabase Auth user (auth.users.id). Supabase Auth owns
   /// passwords, email verification, sessions and MFA; this table holds our
   /// profile and is created on the user's first authenticated request.
-  id        String   @id
-  email     String   @unique
-  name      String?
+  id            String    @id
+  email         String    @unique
+  name          String?
   /// "en" | "es" — UI language and which USCIS status text to show first.
-  locale    String   @default("en")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  locale        String    @default("en")
+  /// Set when the user turns on two-factor (TOTP) through our settings page;
+  /// cleared when they turn it off. The server requires an aal2 session for
+  /// these users. Authoritative — unlike the client-editable session cookie.
+  mfaEnrolledAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   notificationPreference NotificationPreference?
   memberships            FirmMembership[]

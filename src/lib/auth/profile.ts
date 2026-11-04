@@ -51,3 +51,11 @@ export function isAdminEmail(email: string, env: Record<string, string | undefin
     .filter(Boolean);
   return admins.includes(email.toLowerCase());
 }
+
+/**
+ * True when this user has two-factor turned on but the session hasn't passed
+ * it yet. Uses our database flag, not the client-editable session cookie.
+ */
+export function needsSecondFactor(user: Pick<User, "mfaEnrolledAt">, aal: string | undefined): boolean {
+  return Boolean(user.mfaEnrolledAt) && aal !== "aal2";
+}
