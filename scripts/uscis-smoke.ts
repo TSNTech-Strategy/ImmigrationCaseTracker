@@ -4,6 +4,7 @@
  *
  *   npm run uscis:smoke                     # standard daily run
  *   npm run uscis:smoke -- --with-auth-error  # also prove 401 handling (bad secret)
+ *   npm run uscis:smoke -- --show-errors      # print USCIS's raw error bodies (console only)
  *
  * Reads USCIS_CLIENT_ID / USCIS_CLIENT_SECRET from .env (never committed).
  * Calls go through the same adapter the app uses (src/lib/uscis), and only
@@ -37,6 +38,9 @@ type Entry = {
 };
 
 const withAuthError = process.argv.includes("--with-auth-error");
+const showErrors = process.argv.includes("--show-errors");
+/** Raw error bodies by test name — printed with --show-errors, never written to the log. */
+const errorBodies = new Map<string, unknown>();
 
 let config: UscisConfig;
 try {
@@ -79,6 +83,7 @@ async function run(test: string, receipt: string, cfg: UscisConfig, skipValidati
     };
   } catch (err) {
     const e = err instanceof UscisError ? err : new UscisError("network", String(err));
+    errorBodies.set(test, e.responseBody);
     return {
       ...base,
       httpStatus: e.httpStatus,
@@ -122,6 +127,13 @@ async function main() {
     })),
   );
   console.log(`Logged ${entries.length} entries to ${file}`);
+
+  if (showErrors) {
+    for (const [test, body] of errorBodies) {
+      console.log(`\n--- USCIS error body for "${test}" (console only, not logged) ---`);
+      console.log(typeof body === "string" ? body : JSON.stringify(body, null, 2));
+    }
+  }
 
   const expectations: Record<string, (e: Entry) => boolean> = {
     "success-no-history": (e) => e.httpStatus === 200,

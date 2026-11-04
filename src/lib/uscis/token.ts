@@ -1,5 +1,5 @@
 import type { UscisConfig } from "./config";
-import { UscisError, kindForStatus, parseErrorDetails } from "./errors";
+import { UscisError, kindForStatus, parseErrorDetails, readBody } from "./errors";
 
 // OAuth 2.0 client-credentials token, cached in server memory until shortly
 // before it expires (USCIS tokens last ~30 minutes). Same shape as Scanvio's
@@ -64,11 +64,12 @@ async function requestToken(
     throw networkError(err, "USCIS OAuth request failed");
   }
 
-  const body: unknown = await res.json().catch(() => null);
+  const body = await readBody(res);
   if (!res.ok) {
     throw new UscisError(kindForStatus(res.status), `USCIS OAuth HTTP ${res.status}`, {
       httpStatus: res.status,
       details: parseErrorDetails(body),
+      responseBody: body,
     });
   }
   const o = (body ?? {}) as { access_token?: unknown; expires_in?: unknown };

@@ -1,6 +1,6 @@
 import { isValidReceiptNumber, normalizeReceiptNumber } from "@/lib/receipt";
 import type { UscisConfig } from "./config";
-import { UscisError, kindForStatus, parseErrorDetails } from "./errors";
+import { UscisError, kindForStatus, parseErrorDetails, readBody } from "./errors";
 import { normalizeCaseStatus, type CaseStatusSnapshot } from "./normalize";
 import { clearUscisTokenCache, getUscisAccessToken, networkError } from "./token";
 
@@ -66,13 +66,13 @@ export async function fetchCaseStatus(
         throw networkError(err, "USCIS case-status request failed");
       }
 
-      const body: unknown = await res.json().catch(() => null);
+      const body = await readBody(res);
 
       if (res.ok) {
         try {
           return { snapshot: normalizeCaseStatus(body, receipt), httpStatus: res.status, attempts, durationMs: Date.now() - started };
         } catch (err) {
-          throw new UscisError("bad_response", (err as Error).message, { httpStatus: res.status });
+          throw new UscisError("bad_response", (err as Error).message, { httpStatus: res.status, responseBody: body });
         }
       }
 
@@ -88,6 +88,7 @@ export async function fetchCaseStatus(
       throw new UscisError(kindForStatus(res.status), `USCIS case-status HTTP ${res.status}`, {
         httpStatus: res.status,
         details: parseErrorDetails(body),
+        responseBody: body,
         retryAfterSeconds: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null,
       });
     } catch (err) {

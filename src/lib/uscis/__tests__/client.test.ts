@@ -118,6 +118,18 @@ describe("fetchCaseStatus", () => {
     expect(f.caseCalls()).toHaveLength(1);
   });
 
+  it("keeps the raw error body for diagnostics, including non-JSON bodies", async () => {
+    const f = fakeUscis([json(422, { unexpected: "shape" })]);
+    const err: UscisError = await fetchCaseStatus(config, "INVALID", { fetchImpl: f.fetchImpl, skipValidation: true }).catch((e) => e);
+    expect(err.httpStatus).toBe(422);
+    expect(err.kind).toBe("bad_request");
+    expect(err.responseBody).toEqual({ unexpected: "shape" });
+
+    const g = fakeUscis([new Response("<html>Bad Gateway</html>", { status: 502 })]);
+    const err2: UscisError = await fetchCaseStatus(config, "EAC9999103402", { fetchImpl: g.fetchImpl, maxRetries: 0 }).catch((e) => e);
+    expect(err2.responseBody).toBe("<html>Bad Gateway</html>");
+  });
+
   it("classifies 404 and 429 (with Retry-After) without retrying", async () => {
     const f404 = fakeUscis([json(404, {})]);
     await expect(fetchCaseStatus(config, "EAC9999103402", { fetchImpl: f404.fetchImpl })).rejects.toMatchObject({ kind: "not_found" });

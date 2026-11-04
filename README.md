@@ -27,7 +27,7 @@ With empty USCIS credentials the app runs in **mock mode**, which returns determ
 | `npm test` | Unit tests (no live USCIS calls) |
 | `npm run typecheck` | TypeScript |
 | `npm run lint` | ESLint |
-| `npm run uscis:smoke` | Daily USCIS **sandbox** check. Writes sanitized evidence to `docs/uscis-evidence/` |
+| `npm run uscis:smoke` | Daily USCIS **sandbox** check. Writes sanitized evidence to `docs/uscis-evidence/`. Add `-- --show-errors` to print USCIS error bodies (console only) |
 
 ## Credentials
 
