@@ -11,7 +11,7 @@ export function LoginForm({ next, initialError }: { next?: string; initialError?
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormMessage state={state} />
       {next && <input type="hidden" name="next" value={next} />}
-      <Field label="Email" name="email" type="email" autoComplete="email" required error={state.fieldErrors?.email} />
+      <Field label="Email" name="email" type="email" autoComplete="email" required defaultValue={state.values?.email} error={state.fieldErrors?.email} />
       <Field
         label="Password"
         name="password"

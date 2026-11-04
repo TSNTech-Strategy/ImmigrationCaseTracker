@@ -32,3 +32,17 @@ export const SANDBOX_RECEIPTS = {
   noHistory: "EAC9999103402",
   withHistory: "EAC9999103403",
 } as const;
+
+/**
+ * Receipts that may be sent to the USCIS *sandbox*: the published staging
+ * numbers, plus any others from the USCIS page listed in
+ * USCIS_SANDBOX_EXTRA_RECEIPTS (comma-separated).
+ */
+export function isSandboxReceipt(input: string, env: Record<string, string | undefined> = process.env): boolean {
+  const r = normalizeReceiptNumber(input);
+  const extra = (env.USCIS_SANDBOX_EXTRA_RECEIPTS ?? "")
+    .split(",")
+    .map((x) => normalizeReceiptNumber(x))
+    .filter(Boolean);
+  return (Object.values(SANDBOX_RECEIPTS) as string[]).includes(r) || extra.includes(r);
+}

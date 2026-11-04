@@ -1,18 +1,31 @@
 "use client";
 
+import { useState, type ChangeEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
-import type { InputHTMLAttributes, ReactNode } from "react";
 
-export type FormState = { error?: string; success?: string; fieldErrors?: Record<string, string> };
+export type FormState = {
+  error?: string;
+  success?: string;
+  fieldErrors?: Record<string, string>;
+  /**
+   * What the user typed, echoed back so a failed submit doesn't wipe the form
+   * (React resets forms after an action). Never include passwords.
+   */
+  values?: Record<string, string>;
+};
 
 export function Field({
   label,
   name,
   hint,
-  error,
+  error: serverError,
+  onChange,
   ...input
 }: { label: string; name: string; hint?: string; error?: string } & InputHTMLAttributes<HTMLInputElement>) {
   const id = `field-${name}`;
+  // Hide a field's error once the user starts fixing it.
+  const [editedAfter, setEditedAfter] = useState<string | undefined>();
+  const error = serverError && editedAfter !== serverError ? serverError : undefined;
   const describedBy = [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(" ") || undefined;
   return (
     <div className="flex flex-col gap-1.5">
@@ -24,6 +37,10 @@ export function Field({
         name={name}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+          setEditedAfter(serverError);
+          onChange?.(e);
+        }}
         className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] aria-[invalid=true]:border-[var(--danger)]"
         {...input}
       />

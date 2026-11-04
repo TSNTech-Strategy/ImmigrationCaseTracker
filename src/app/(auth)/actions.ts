@@ -32,11 +32,12 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
   const parsed = z
     .object({ email, password: z.string().min(1, "Enter your password.") })
     .safeParse({ email: formData.get("email"), password: formData.get("password") });
-  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
+  const values = { email: String(formData.get("email") ?? "") };
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values };
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
-  if (error) return { error: authErrorMessage(error) };
+  if (error) return { error: authErrorMessage(error), values };
   redirect(safeNextPath(formData.get("next")));
 }
 
@@ -54,7 +55,8 @@ export async function signUpAction(_prev: FormState, formData: FormData): Promis
       password: formData.get("password"),
       agree: formData.get("agree"),
     });
-  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
+  const values = { name: String(formData.get("name") ?? ""), email: String(formData.get("email") ?? "") };
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values };
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signUp({
@@ -70,20 +72,21 @@ export async function signUpAction(_prev: FormState, formData: FormData): Promis
       },
     },
   });
-  if (error) return { error: authErrorMessage(error) };
+  if (error) return { error: authErrorMessage(error), values };
   // Same message whether or not the email already had an account (no account enumeration).
   return { success: "Check your email for a link to confirm your account. It may take a minute to arrive." };
 }
 
 export async function requestPasswordResetAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const parsed = z.object({ email }).safeParse({ email: formData.get("email") });
-  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
+  const values = { email: String(formData.get("email") ?? "") };
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values };
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: `${getSiteUrl()}/auth/confirm?next=/reset-password`,
   });
-  if (error && (error.status === 429 || error.code?.startsWith("over_"))) return { error: authErrorMessage(error) };
+  if (error && (error.status === 429 || error.code?.startsWith("over_"))) return { error: authErrorMessage(error), values };
   // Same answer whether or not the email exists.
   return { success: "If an account exists for that email, we've sent a link to reset your password." };
 }

@@ -60,11 +60,13 @@ Each step is small enough to review on its own before the next one starts.
 - `/api/v1/me` accepts the web session or a Bearer token (mobile app).
 - Dashboard setup: `docs/SUPABASE-AUTH-SETUP.md`. MFA (two-factor) is added with Settings in Step 5.
 
-### Step 4 — Consumer case tracking
-- Add a case behind a consent gate. Receipt is validated, encrypted and checked for duplicates by digest.
-- Case list and detail: current status, **last checked** vs **last change observed**, USCIS history, our observed timeline.
-- Manual refresh with a cooldown and a daily budget. Remove case.
-- Every server call is authorized. Isolation tests confirm user B can't see user A's cases.
+### Step 4 — Consumer case tracking ✅
+- Add a case behind a consent statement (own case / authorized by the applicant, versioned wording). Receipt validated, encrypted, duplicate-checked by digest; first USCIS check runs immediately.
+- Case list and detail: current status (EN/ES), **last checked** vs **last change observed**, our observed timeline, USCIS-reported history, consent record. Times shown in the viewer's time zone.
+- Refresh now: 10-minute cooldown claimed atomically (double-clicks can't double-call USCIS), 30 manual refreshes/user/day, global `USCIS_DAILY_BUDGET` (default 800/day).
+- Sandbox mode only ever sends USCIS's published sample receipts. Mock mode banner / sandbox banner.
+- Remove case (with confirmation) + audit log entries.
+- Tests: user isolation (list/read/refresh/remove), cooldown race, consent, budget, sandbox guard, change detection, failure backoff — against a real database; plus a browser click-through.
 
 ### Step 5 — Public pages + settings
 - `/`, `/how-it-works`, `/pricing`, `/privacy`, `/terms`, `/accessibility`, with the non-affiliation disclosure. Legal text is a placeholder marked *for counsel review*.

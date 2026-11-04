@@ -11,8 +11,8 @@ export function SignupForm() {
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormMessage state={state} />
-      <Field label="Full name" name="name" autoComplete="name" required error={state.fieldErrors?.name} />
-      <Field label="Email" name="email" type="email" autoComplete="email" required error={state.fieldErrors?.email} />
+      <Field label="Full name" name="name" autoComplete="name" required defaultValue={state.values?.name} error={state.fieldErrors?.name} />
+      <Field label="Email" name="email" type="email" autoComplete="email" required defaultValue={state.values?.email} error={state.fieldErrors?.email} />
       <Field
         label="Password"
         name="password"

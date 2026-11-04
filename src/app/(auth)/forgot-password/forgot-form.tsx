@@ -11,7 +11,7 @@ export function ForgotForm() {
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormMessage state={state} />
       <p className="text-sm text-[var(--muted)]">Enter your email and we&apos;ll send you a link to set a new password.</p>
-      <Field label="Email" name="email" type="email" autoComplete="email" required error={state.fieldErrors?.email} />
+      <Field label="Email" name="email" type="email" autoComplete="email" required defaultValue={state.values?.email} error={state.fieldErrors?.email} />
       <SubmitButton pendingText="Sending…">Send reset link</SubmitButton>
     </form>
   );
