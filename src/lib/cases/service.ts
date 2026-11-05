@@ -9,6 +9,7 @@ import {
   cooldownRemainingMs,
   formatWait,
   MANUAL_REFRESH_COOLDOWN_MS,
+  MANUAL_REFRESHES_PER_FIRM_PER_DAY,
   MANUAL_REFRESHES_PER_USER_PER_DAY,
   nextCheckAfterFailure,
   startOfUtcDay,
@@ -173,7 +174,20 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
 
   /** "Refresh now" from the case page. */
   async function refreshCase(userId: string, caseId: string): Promise<RefreshResult> {
-    const c = await db.trackedCase.findFirst({ where: own(userId, caseId) });
+    return refreshScoped({ id: caseId, ownerUserId: userId }, { ownerUserId: userId }, MANUAL_REFRESHES_PER_USER_PER_DAY);
+  }
+
+  /** "Refresh now" on a firm case. The caller has already checked firm membership. */
+  async function refreshFirmCase(firmId: string, caseId: string): Promise<RefreshResult> {
+    return refreshScoped({ id: caseId, firmId }, { firmId }, MANUAL_REFRESHES_PER_FIRM_PER_DAY);
+  }
+
+  async function refreshScoped(
+    where: Prisma.TrackedCaseWhereInput,
+    quotaScope: Prisma.TrackedCaseWhereInput,
+    perDay: number,
+  ): Promise<RefreshResult> {
+    const c = await db.trackedCase.findFirst({ where });
     if (!c) return { status: "not_found", message: "Case not found." };
 
     if (c.trackingStatus !== "ACTIVE") return { status: "paused", message: "Tracking is paused for this case." };
@@ -187,9 +201,9 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
     }
 
     const manualToday = await db.caseCheckRun.count({
-      where: { trigger: "MANUAL", attemptedAt: { gte: startOfUtcDay(t) }, case: { ownerUserId: userId } },
+      where: { trigger: "MANUAL", attemptedAt: { gte: startOfUtcDay(t) }, case: quotaScope },
     });
-    if (manualToday >= MANUAL_REFRESHES_PER_USER_PER_DAY) {
+    if (manualToday >= perDay) {
       return { status: "limit", message: "You've reached today's limit for manual refreshes. Cases are still checked automatically." };
     }
 
@@ -323,7 +337,7 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
     return { changed, eventId };
   }
 
-  return { listCases, getCase, addCase, removeCase, refreshCase, runCheck };
+  return { listCases, getCase, addCase, removeCase, refreshCase, refreshFirmCase, runCheck };
 }
 
 export type CaseService = ReturnType<typeof createCaseService>;

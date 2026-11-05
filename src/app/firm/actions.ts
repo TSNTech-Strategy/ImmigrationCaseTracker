@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { refresh } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { FormState } from "@/components/form";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -16,6 +16,7 @@ export async function createFirmAction(_prev: FormState, formData: FormData): Pr
   const name = String(formData.get("name") ?? "");
   const r = await firmService().createFirm(user.id, name);
   if (!r.ok) return { error: r.error, values: { name } };
+  revalidatePath("/firm", "layout"); // show the workspace menu right away
   redirect("/firm?notice=created");
 }
 
@@ -60,7 +61,10 @@ export async function removeMemberAction(_prev: FormState, formData: FormData): 
   if (!user) return NOT_SIGNED_IN;
   const r = await firmService().removeMember(user.id, String(formData.get("membershipId") ?? ""));
   if (!r.ok) return { error: r.error };
-  if (r.self) redirect("/cases?notice=left-firm");
+  if (r.self) {
+    revalidatePath("/firm", "layout");
+    redirect("/cases?notice=left-firm");
+  }
   refresh();
   return { success: "Removed from the team. Their access ended immediately." };
 }
@@ -70,5 +74,6 @@ export async function acceptInviteAction(_prev: FormState, formData: FormData): 
   if (!user) return NOT_SIGNED_IN;
   const r = await firmService().acceptInvite(user, String(formData.get("token") ?? ""));
   if (!r.ok) return { error: r.error };
+  revalidatePath("/firm", "layout");
   redirect("/firm?notice=joined");
 }

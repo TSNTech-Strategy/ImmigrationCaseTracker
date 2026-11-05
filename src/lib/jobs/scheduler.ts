@@ -19,7 +19,11 @@ export async function findDueCaseIds(db: PrismaClient, now: Date, limit = MAX_DI
     where: {
       trackingStatus: "ACTIVE",
       consents: { some: { withdrawnAt: null } },
-      OR: [{ nextCheckAt: null }, { nextCheckAt: { lte: now } }],
+      AND: [
+        { OR: [{ nextCheckAt: null }, { nextCheckAt: { lte: now } }] },
+        // Firm cases only while the firm is active.
+        { OR: [{ firmId: null }, { firm: { status: "ACTIVE" } }] },
+      ],
     },
     orderBy: [{ nextCheckAt: { sort: "asc", nulls: "first" } }],
     take: limit,

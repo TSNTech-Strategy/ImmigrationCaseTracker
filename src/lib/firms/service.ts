@@ -36,17 +36,20 @@ const canManageTeam = (role: FirmRole) => role === "OWNER" || role === "ADMIN";
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 const normEmail = (e: string) => e.trim().toLowerCase();
 
+/** The caller's active firm and membership, or null. Every firm action starts here. */
+export async function findFirmContext(db: PrismaClient, userId: string): Promise<FirmContext | null> {
+  const membership = await db.firmMembership.findFirst({
+    where: { userId, revokedAt: null, firm: { status: "ACTIVE" } },
+    include: { firm: true },
+    orderBy: { createdAt: "asc" },
+  });
+  if (!membership) return null;
+  const { firm, ...m } = membership;
+  return { firm, membership: m };
+}
+
 export function createFirmService({ db, mailer, siteUrl, now = () => new Date() }: FirmServiceDeps) {
-  async function getContext(userId: string): Promise<FirmContext | null> {
-    const membership = await db.firmMembership.findFirst({
-      where: { userId, revokedAt: null, firm: { status: "ACTIVE" } },
-      include: { firm: true },
-      orderBy: { createdAt: "asc" },
-    });
-    if (!membership) return null;
-    const { firm, ...m } = membership;
-    return { firm, membership: m };
-  }
+  const getContext = (userId: string) => findFirmContext(db, userId);
 
   async function audit(firmId: string, actorUserId: string, action: string, targetType: string, targetId: string, metadata?: object) {
     await db.auditLog.create({ data: { firmId, actorUserId, action, targetType, targetId, metadata: metadata ?? undefined } });
