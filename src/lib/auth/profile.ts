@@ -21,7 +21,11 @@ const SUPPORTED_LOCALES = new Set(["en", "es"]);
  * in sync if the email changes. Reads first so a normal request costs one
  * SELECT, not a write.
  */
-export async function ensureProfile(db: Pick<PrismaClient, "user">, claims: AuthClaims): Promise<User> {
+export async function ensureProfile(
+  db: Pick<PrismaClient, "user">,
+  claims: AuthClaims,
+  onCreate?: (user: User) => Promise<void>,
+): Promise<User> {
   const email = claims.email?.trim().toLowerCase();
   if (!email) throw new Error("Authenticated user has no email address.");
 
@@ -38,9 +42,12 @@ export async function ensureProfile(db: Pick<PrismaClient, "user">, claims: Auth
   const clash = await db.user.findUnique({ where: { email } });
   if (clash) throw new ProfileConflictError();
 
-  return db.user.create({
+  const created = await db.user.create({
     data: { id: claims.sub, email, name, locale, notificationPreference: { create: {} } },
   });
+  if (!onCreate) return created;
+  await onCreate(created);
+  return (await db.user.findUnique({ where: { id: created.id } })) ?? created;
 }
 
 /** Comma-separated ADMIN_EMAILS (case-insensitive), as in Scanvio. */

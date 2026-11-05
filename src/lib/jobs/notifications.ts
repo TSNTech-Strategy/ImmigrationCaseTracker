@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import type { EmailDriver } from "@/lib/email";
 import type { PushDriver } from "@/lib/push";
+import { PLAN_LIMITS } from "@/lib/plans";
 import { statusChangeEmail } from "@/lib/email/templates";
 
 export type NotifyResult = { sent: number; skipped: number; failed: number };
@@ -13,7 +14,7 @@ type Recipient = { id: string; email: string; name: string | null; locale: strin
  * never sends twice.
  *
  * Recipients:
- * - Individual case: the owner, if their alerts are on; plus a push alert to
+ * - Individual case (Premium only; Free has no alerts): the owner, if their alerts are on; plus a push alert to
  *   their phones when they turned push on in the app.
  * - Firm case: the member who added it, while still on the team; otherwise
  *   the firm's Owners. Each person's own alert setting applies.
@@ -42,7 +43,9 @@ export async function notifyStatusChange(
   let recipients: Recipient[] = [];
   let caseUrl = `${siteUrl}/cases/${c.id}`;
   if (c.ownerUserId) {
-    const owner = await db.user.findUnique({ where: { id: c.ownerUserId }, select: userSelect });
+    const owner = await db.user.findUnique({ where: { id: c.ownerUserId }, select: { ...userSelect, plan: true } });
+    // Free has no alerts: the person sees changes when they press Check now.
+    if (owner && !PLAN_LIMITS[owner.plan].alerts) return result;
     if (owner) recipients = [toRecipient(owner)];
   } else if (c.firmId) {
     caseUrl = `${siteUrl}/firm/cases/${c.id}`;
@@ -115,9 +118,9 @@ type CaseRow = { id: string; ownerUserId: string | null; nickname: string | null
 async function pushToOwner(db: PrismaClient, pusher: PushDriver, event: EventWithCase, c: CaseRow, result: NotifyResult) {
   const owner = await db.user.findUnique({
     where: { id: c.ownerUserId! },
-    select: { id: true, locale: true, notificationPreference: { select: { pushOnChange: true } } },
+    select: { id: true, locale: true, plan: true, notificationPreference: { select: { pushOnChange: true } } },
   });
-  if (!owner?.notificationPreference?.pushOnChange) return;
+  if (!owner?.notificationPreference?.pushOnChange || !PLAN_LIMITS[owner.plan].alerts) return;
   const devices = await db.pushDevice.findMany({ where: { userId: owner.id, disabledAt: null }, select: { id: true, token: true } });
   if (!devices.length) return;
 

@@ -133,7 +133,7 @@ export default function Home() {
               [ICONS.lock, "Receipt numbers encrypted"],
               [ICONS.shield, "No ads, never sold"],
               [ICONS.globe, "English and Español"],
-              [ICONS.card, "No card needed to start"],
+              [ICONS.card, "7 days of Premium free, no card"],
             ].map(([d, t]) => (
               <li key={t} className="flex items-center gap-2">
                 <span className="text-[var(--success)]">
@@ -151,7 +151,7 @@ export default function Home() {
         <ol className="grid gap-5 md:grid-cols-3">
           {[
             ["1", "Add your receipt number", "The 13-character number from your USCIS notice (Form I-797C), like EAC9999103402. We confirm you're allowed to track it."],
-            ["2", "We check with USCIS", "Automatically, on a schedule, through the official USCIS API. You see when we last checked and when it last changed."],
+            ["2", "We check with USCIS", "Through the official USCIS API, automatically twice a day on Premium. You see when we last checked and when it last changed."],
             ["3", "Get an alert when it moves", "An email (and soon a phone notification) the moment the status changes, with the full history on your dashboard."],
           ].map(([n, t, d]) => (
             <li key={n} className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
@@ -191,7 +191,7 @@ export default function Home() {
           <div className="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
             <h3 className="font-semibold">Free</h3>
             <p className="text-3xl font-bold">$0</p>
-            <p className="text-sm text-[var(--muted)]">One case, to try CasePingo.</p>
+            <p className="text-sm text-[var(--muted)]">One case. Check it yourself whenever you like.</p>
           </div>
           <div className="flex flex-col gap-2 rounded-2xl border-2 border-[var(--accent)] bg-[var(--surface)] p-6 shadow-[var(--shadow)]">
             <h3 className="font-semibold">Premium</h3>
@@ -200,7 +200,7 @@ export default function Home() {
               <span className="text-base font-medium text-[var(--muted)]">/year</span>
             </p>
             <p className="text-sm text-[var(--muted)]">
-              Up to 10 family cases. That&apos;s {perMonth(PRICES.premium.yearly)} a month.
+              Automatic checks and alerts, up to 10 family cases. That&apos;s {perMonth(PRICES.premium.yearly)} a month.
             </p>
           </div>
           <div className="flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">

@@ -29,7 +29,7 @@ const INDIVIDUAL: Card[] = [
     price: "$0",
     period: "",
     note: "Free forever. No card needed.",
-    features: ["1 case", "Checked automatically once a day", "Email alert when the status changes", "Full status history, English and Spanish"],
+    features: ["1 case", "Check the status yourself, up to 3 times a day", "Full status history, English and Spanish", "New accounts start with 7 days of Premium"],
     cta: { label: "Create a free account", href: "/signup" },
   },
   {
@@ -38,7 +38,12 @@ const INDIVIDUAL: Card[] = [
     price: formatUsd(PRICES.premium.yearly),
     period: "/year",
     note: `That's ${perMonth(PRICES.premium.yearly)} a month. Or ${formatUsd(PRICES.premium.monthly)} month to month.`,
-    features: ["Up to 10 cases for the whole family", "Checked automatically twice a day", "Email alerts now; phone push alerts when the app launches", "Everything in Free"],
+    features: [
+      "Checked automatically twice a day: no more checking",
+      "Email alert the moment a status changes; phone push alerts with the app",
+      "Up to 10 cases for the whole family",
+      "Everything in Free",
+    ],
     highlight: true,
     paid: { label: "Get Premium", href: "/settings#plan-h" },
   },

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { createSupabaseServerClient, createSupabaseTokenClient } from "@/lib/supabase/server";
 import { bearerToken } from "./paths";
 import { ensureProfile, isAdminEmail, needsSecondFactor, type AuthClaims } from "./profile";
+import { createTrialService } from "@/lib/billing/trial";
 
 export type AppUser = {
   id: string;
@@ -33,7 +34,9 @@ export type SessionState =
 type Claims = AuthClaims & { aal?: string };
 
 async function stateFromClaims(claims: Claims): Promise<SessionState> {
-  const u = await ensureProfile(prisma, claims);
+  const u = await ensureProfile(prisma, claims, async (created) => {
+    await createTrialService({ db: prisma }).grantNewAccountTrial(created.id, created.email);
+  });
   const user: AppUser = {
     id: u.id,
     email: u.email,

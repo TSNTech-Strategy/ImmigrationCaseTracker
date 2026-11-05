@@ -43,11 +43,12 @@ export const firmChecksAllowedWhere = (now: Date) => ({
 export function createEntitlements({ db, now = () => new Date() }: { db: PrismaClient; now?: () => Date }) {
   /** Recompute a user's plan from their subscriptions and pause/resume cases to fit. */
   async function applyUser(userId: string) {
-    const user = await db.user.findUnique({ where: { id: userId }, select: { plan: true } });
+    const user = await db.user.findUnique({ where: { id: userId }, select: { plan: true, trialEndsAt: true } });
     if (!user) return null;
     const t = now();
     const subs = await db.subscription.findMany({ where: { userId, product: "PREMIUM" } });
-    const plan: Plan = subs.some((s) => isEntitled(s, t)) ? "PREMIUM" : "FREE";
+    const onTrial = Boolean(user.trialEndsAt && user.trialEndsAt > t);
+    const plan: Plan = onTrial || subs.some((s) => isEntitled(s, t)) ? "PREMIUM" : "FREE";
     if (plan !== user.plan) {
       await db.user.update({ where: { id: userId }, data: { plan } });
       await db.auditLog.create({

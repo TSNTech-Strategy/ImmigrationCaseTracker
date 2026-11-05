@@ -22,7 +22,9 @@ export async function PlanSection({ userId, plan: planIn, billing, sessionId }: 
   const summary = enabled ? await billingService().summary({ userId }) : { current: null };
   const sub = summary.current;
   const paused = await prisma.trackedCase.count({ where: { ownerUserId: userId, pausedReason: "plan_limit" } });
-  const hasCustomer = Boolean((await prisma.user.findUnique({ where: { id: userId }, select: { stripeCustomerId: true } }))?.stripeCustomerId);
+  const acct = await prisma.user.findUnique({ where: { id: userId }, select: { stripeCustomerId: true, trialEndsAt: true } });
+  const hasCustomer = Boolean(acct?.stripeCustomerId);
+  const trialActive = Boolean(acct?.trialEndsAt && acct.trialEndsAt > new Date()) && !sub;
 
   return (
     <div className="flex flex-col gap-4">
@@ -42,6 +44,12 @@ export async function PlanSection({ userId, plan: planIn, billing, sessionId }: 
         <strong>{PLAN_LIMITS[plan].label}</strong>: up to {PLAN_LIMITS[plan].maxCases} {PLAN_LIMITS[plan].maxCases === 1 ? "case" : "cases"}, checked{" "}
         {describeCadence(plan)}.
       </p>
+      {trialActive && (
+        <p className="rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm">
+          Free Premium trial until {day(acct!.trialEndsAt!)}. After that your account moves to Free (no automatic checks or alerts) unless you
+          subscribe.
+        </p>
+      )}
       {sub && (
         <p className="text-sm">
           {sub.pastDue ? (
@@ -66,12 +74,14 @@ export async function PlanSection({ userId, plan: planIn, billing, sessionId }: 
       {!enabled ? (
         plan === "FREE" && (
           <p className="text-sm text-[var(--muted)]">
-            Premium (up to 10 cases for your family, checked twice a day) is coming soon for {formatUsd(PRICES.premium.yearly)} a year.
+            Premium (automatic checks twice a day, alerts, up to 10 family cases) is coming soon for {formatUsd(PRICES.premium.yearly)} a year.
           </p>
         )
-      ) : plan === "FREE" ? (
+      ) : plan === "FREE" || trialActive ? (
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-[var(--muted)]">Premium: up to 10 cases for your family, checked twice a day. Cancel any time in two clicks.</p>
+          <p className="text-sm text-[var(--muted)]">
+            Premium: automatic checks twice a day, email alerts the moment a status changes, up to 10 family cases. Cancel any time in two clicks.
+          </p>
           <div className="flex flex-wrap items-start gap-3">
             <CheckoutButton fields={{ kind: "premium", interval: "year" }}>
               Get Premium: {formatUsd(PRICES.premium.yearly)}/year ({perMonth(PRICES.premium.yearly)}/month)

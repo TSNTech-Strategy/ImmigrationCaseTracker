@@ -72,8 +72,18 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
       <CaseStatusPanel
         c={c}
         es={es}
-        actions={c.trackingStatus === "ACTIVE" ? <RefreshButton caseId={c.id} /> : undefined}
-        footnote={<>We check automatically {describeCadence(plan)} and email you when the status changes. {USCIS_SOURCE_NOTE}</>}
+        actions={c.trackingStatus === "ACTIVE" ? <RefreshButton caseId={c.id} free={plan === "FREE"} /> : undefined}
+        footnote={
+          plan === "FREE" ? (
+            <>
+              On the Free plan we don&apos;t check automatically or send alerts: press Check now (up to 3 times a day). {USCIS_SOURCE_NOTE}
+            </>
+          ) : (
+            <>
+              We check automatically {describeCadence(plan)} and email you when the status changes. {USCIS_SOURCE_NOTE}
+            </>
+          )
+        }
       />
       <ObservedChanges events={c.events} es={es} />
       <UscisHistory history={c.uscisHistory} es={es} />

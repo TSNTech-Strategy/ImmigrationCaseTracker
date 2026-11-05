@@ -19,6 +19,7 @@ import { InvalidReceiptError, protectReceipt, revealReceipt } from "./receipt-st
 import { redactSnapshot } from "@/lib/uscis/text";
 import { checkIntervalMs, formatUsd, PLAN_LIMITS, PRICES } from "@/lib/plans";
 import { firmChecksAllowed } from "@/lib/billing/entitlements";
+import { createTrialService } from "@/lib/billing/trial";
 
 /**
  * Everything a signed-in individual can do with their own cases.
@@ -112,6 +113,8 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
     });
     if (duplicate) return { ok: false, error: "duplicate", message: "You're already tracking this receipt number." };
 
+    // Trial guard: a receipt that already had a trial on another account ends this one's trial.
+    await createTrialService({ db, now }).guardReceiptDuringTrial(userId, input.receipt);
     const owner = await db.user.findUnique({ where: { id: userId }, select: { plan: true } });
     const plan = owner?.plan ?? "FREE";
     const limit = PLAN_LIMITS[plan].maxCases;
@@ -121,7 +124,7 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
         error: "limit",
         message:
           plan === "FREE"
-            ? `The Free plan includes 1 case. Premium (coming soon, ${formatUsd(PRICES.premium.yearly)}/year) tracks up to 10 cases for your family.`
+            ? `The Free plan includes 1 case. Premium (${formatUsd(PRICES.premium.yearly)}/year) tracks up to 10 family cases, checks them automatically and alerts you.`
             : `Your plan includes up to ${limit} cases.`,
       };
     }
@@ -176,7 +179,16 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
 
   /** "Refresh now" from the case page. */
   async function refreshCase(userId: string, caseId: string): Promise<RefreshResult> {
-    return refreshScoped({ id: caseId, ownerUserId: userId }, { ownerUserId: userId }, MANUAL_REFRESHES_PER_USER_PER_DAY);
+    const plan = (await db.user.findUnique({ where: { id: userId }, select: { plan: true } }))?.plan ?? "FREE";
+    const perDay = Math.min(PLAN_LIMITS[plan].manualChecksPerDay, MANUAL_REFRESHES_PER_USER_PER_DAY);
+    const r = await refreshScoped({ id: caseId, ownerUserId: userId }, { ownerUserId: userId }, perDay);
+    if (r.status === "limit" && plan === "FREE") {
+      return {
+        status: "limit",
+        message: `The Free plan includes ${perDay} checks a day. Premium checks your cases automatically and alerts you when they change.`,
+      };
+    }
+    return r;
   }
 
   /** "Refresh now" on a firm case. The caller has already checked firm membership. */

@@ -77,7 +77,7 @@ Each step is small enough to review on its own before the next one starts.
 - Tested end to end (stand-in auth server): QR set-up, wrong codes rejected, pages/API blocked until the code is entered (HTTP 307 / 401), turn off, password change, account deletion.
 
 ### Step 6 — Automatic checks, alerts, deploy (code ✅ · deploy pending)
-- Plans: **Free** 1 case, checked daily, email alerts · **Premium** 10 cases, twice daily. `User.plan`; set by hand until billing. Launch prices (revised Nov 5 after a competitor review): see Step 8.
+- Plans (revised Nov 6 after a freemium review): **Free** 1 case, no automatic checks or alerts, 3 manual checks a day · **Premium** 10 cases, automatic checks twice a day, email and push alerts · new accounts get a **7-day Premium trial** (one per email and per receipt number; throwaway emails refused; one-way fingerprints kept 12 months). `User.plan`; set by hand until billing. Launch prices (revised Nov 5 after a competitor review): see Step 8.
 - Inngest (ICT's own app, not Scanvio's): every 15 min find due cases (active consent required) → one `check-case` per case, throttled to 3 USCIS calls/second, evenly spaced (sandbox spike arrest: 1 call per 200 ms) → `notify-status-change` emails the owner once per change (idempotent), in their language, masked receipt only.
 - Circuit breaker pauses ticks when USCIS calls fail in bulk; duplicate/late events never cause extra calls; scheduled jobs never run on preview deployments.
 - Email via SMTP (Resend recommended), console in development — same structure as Scanvio.

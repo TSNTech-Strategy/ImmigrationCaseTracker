@@ -111,3 +111,42 @@ export function renewalReminderEmail(p: {
     ].join("\n"),
   };
 }
+
+/** Two days before the new-account Premium trial ends. */
+export function trialEndingEmail(p: { to: string; name: string | null; endsAt: Date; upgradeUrl: string }): EmailMessage {
+  const day = p.endsAt.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
+  return {
+    to: p.to,
+    subject: "Your CasePingo Premium trial ends soon",
+    body: [
+      `Hi${p.name ? ` ${p.name}` : ""},`,
+      "",
+      `Your free Premium trial ends on ${day}.`,
+      "After that your account moves to the Free plan: one case, no automatic checks and no alerts. You can still check it yourself a few times a day.",
+      "",
+      "Keep automatic checks and alerts for up to 10 family cases with Premium ($29/year):",
+      p.upgradeUrl,
+      "",
+      "CasePingo is an independent service, not affiliated with USCIS or DHS, and does not provide legal advice.",
+    ].join("\n"),
+  };
+}
+
+/** When the trial has ended and the account is on Free. */
+export function trialEndedEmail(p: { to: string; name: string | null; upgradeUrl: string }): EmailMessage {
+  return {
+    to: p.to,
+    subject: "Your CasePingo trial has ended",
+    body: [
+      `Hi${p.name ? ` ${p.name}` : ""},`,
+      "",
+      "Your Premium trial has ended, so your account is now on the Free plan. Your cases and history are kept.",
+      "We've stopped checking your cases automatically and won't send alerts. You can still press Check now a few times a day.",
+      "",
+      "Turn automatic checks and alerts back on with Premium:",
+      p.upgradeUrl,
+      "",
+      "CasePingo is an independent service, not affiliated with USCIS or DHS, and does not provide legal advice.",
+    ].join("\n"),
+  };
+}
