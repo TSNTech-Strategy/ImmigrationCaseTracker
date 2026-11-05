@@ -125,117 +125,52 @@
     color 0.35s ease;
 }
 
-/* ---- Day / night toggle ---------------------------------------------------- */
+/* ---- Theme toggle: a quiet icon button (sun / moon outline) -------------- */
 .theme-toggle {
   position: relative;
   display: inline-flex;
-  width: 3.5rem;
-  height: 1.875rem;
+  width: 2.25rem;
+  height: 2.25rem;
   flex: none;
-  border-radius: 999px;
-  overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 0.25);
-  background: linear-gradient(180deg, #7cc0ff 0%, #4a97f0 100%);
-  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.25);
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
   cursor: pointer;
-}
-.theme-toggle::before {
-  /* night sky fades in over the day sky */
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, #0b1a3a 0%, #1f2d5c 100%);
-  opacity: var(--is-dark);
-  transition: opacity 0.5s ease;
-}
-.theme-toggle .tt-cloud,
-.theme-toggle .tt-star {
-  position: absolute;
-  border-radius: 999px;
   transition:
-    opacity 0.5s ease,
-    transform 0.5s ease;
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
-.theme-toggle .tt-cloud {
-  background: #fff;
-  opacity: calc(1 - var(--is-dark));
-  transform: translateY(calc(var(--is-dark) * 0.6rem));
+.theme-toggle:hover {
+  background: var(--surface-2);
+  color: var(--foreground);
 }
-.theme-toggle .tt-cloud.c1 {
-  width: 0.95rem;
-  height: 0.42rem;
-  right: 0.55rem;
-  top: 0.95rem;
-}
-.theme-toggle .tt-cloud.c2 {
-  width: 0.6rem;
-  height: 0.32rem;
-  right: 1.25rem;
-  top: 0.55rem;
-  opacity: calc(0.85 - var(--is-dark));
-}
-.theme-toggle .tt-star {
-  width: 0.16rem;
-  height: 0.16rem;
-  background: #fff;
-  opacity: var(--is-dark);
-  transform: translateY(calc((1 - var(--is-dark)) * -0.5rem));
-}
-.theme-toggle .tt-star.s1 {
-  left: 0.55rem;
-  top: 0.45rem;
-}
-.theme-toggle .tt-star.s2 {
-  left: 1.05rem;
-  top: 1.15rem;
-  width: 0.12rem;
-  height: 0.12rem;
-}
-.theme-toggle .tt-star.s3 {
-  left: 1.5rem;
-  top: 0.6rem;
-  width: 0.1rem;
-  height: 0.1rem;
-}
-.theme-toggle .tt-knob {
+.theme-toggle svg {
   position: absolute;
-  top: 0.1875rem;
-  left: 0.1875rem;
-  width: 1.375rem;
-  height: 1.375rem;
-  border-radius: 999px;
-  transform: translateX(calc(var(--is-dark) * 1.625rem)) rotate(calc(var(--is-dark) * 220deg));
-  transition: transform 0.55s cubic-bezier(0.65, 0, 0.35, 1);
-}
-.theme-toggle .tt-sun,
-.theme-toggle .tt-moon {
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  transition: opacity 0.45s ease;
+  width: 1.05rem;
+  height: 1.05rem;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 .theme-toggle .tt-sun {
-  background: radial-gradient(circle at 35% 35%, #fff4b0 0%, #ffd43b 45%, #f6a609 100%);
-  box-shadow: 0 0 0.5rem rgb(255 212 59 / 0.85);
   opacity: calc(1 - var(--is-dark));
+  transform: rotate(calc(var(--is-dark) * -45deg)) scale(calc(1 - var(--is-dark) * 0.25));
 }
 .theme-toggle .tt-moon {
-  background:
-    radial-gradient(circle at 30% 35%, #c5cddb 0 0.14rem, transparent 0.15rem),
-    radial-gradient(circle at 62% 64%, #c5cddb 0 0.2rem, transparent 0.21rem),
-    radial-gradient(circle at 66% 28%, #c5cddb 0 0.09rem, transparent 0.1rem),
-    radial-gradient(circle at 40% 40%, #ffffff 0%, #e3e8f1 70%);
-  box-shadow: 0 0 0.45rem rgb(227 232 241 / 0.6);
   opacity: var(--is-dark);
+  transform: rotate(calc((1 - var(--is-dark)) * 45deg)) scale(calc(0.75 + var(--is-dark) * 0.25));
 }
 .theme-toggle:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .theme-toggle *,
-  .theme-toggle::before,
+  .theme-toggle,
+  .theme-toggle svg,
   .theme-ready body,
   .theme-ready header,
   .theme-ready footer,
