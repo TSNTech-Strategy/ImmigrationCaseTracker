@@ -78,7 +78,7 @@ Each step is small enough to review on its own before the next one starts.
 
 ### Step 6 — Automatic checks, alerts, deploy (code ✅ · deploy pending)
 - Plans (decided Nov 5): **Free** 1 case, checked daily, email alerts · **Premium** 10 cases, twice daily ($5.99/mo or $49/yr, coming soon) · **Firm Starter** $99/mo after a 14-day trial. `User.plan`; set by hand until billing.
-- Inngest (ICT's own app, not Scanvio's): every 15 min find due cases (active consent required) → one `check-case` per case, throttled to 4 USCIS calls/second → `notify-status-change` emails the owner once per change (idempotent), in their language, masked receipt only.
+- Inngest (ICT's own app, not Scanvio's): every 15 min find due cases (active consent required) → one `check-case` per case, throttled to 3 USCIS calls/second, evenly spaced (sandbox spike arrest: 1 call per 200 ms) → `notify-status-change` emails the owner once per change (idempotent), in their language, masked receipt only.
 - Circuit breaker pauses ticks when USCIS calls fail in bulk; duplicate/late events never cause extra calls; scheduled jobs never run on preview deployments.
 - Email via SMTP (Resend recommended), console in development — same structure as Scanvio.
 - Deploy guide: `docs/DEPLOY.md` (new Vercel project + new Inngest app + Resend + Supabase URLs).
