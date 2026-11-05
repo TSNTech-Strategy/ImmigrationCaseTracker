@@ -59,6 +59,7 @@ Set these in Vercel → Project → Settings → **Environment Variables**. Use 
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` | From step 1 | `SMTP_PASS` yes |
 | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` | From step 2 | **Yes** |
 | `ADMIN_EMAILS` | Your email(s) | No |
+| `EXPO_ACCESS_TOKEN` | *(Optional)* Expo → Account settings → Access tokens, if you turn on Expo's enhanced push security | **Yes** |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | The public contact address for the legal pages | No |
 
 **Do not set** `INNGEST_DEV` or `MOCK_USCIS` on Vercel. The app refuses mock mode on production.
