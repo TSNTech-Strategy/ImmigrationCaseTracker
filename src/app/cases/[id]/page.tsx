@@ -11,6 +11,7 @@ import { getUscisClient } from "@/lib/uscis";
 import { describeCadence } from "@/lib/plans";
 import { prisma } from "@/lib/db";
 import { RefreshButton, RemoveCaseForm } from "./case-actions";
+import { UscisText } from "@/components/uscis-text";
 
 export const metadata: Metadata = { title: "Case · CasePingo" };
 
@@ -59,12 +60,20 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
           Current status
         </h2>
         <p className="text-2xl font-semibold">{primary.title ?? "Not checked yet"}</p>
-        {primary.desc && <p className="leading-relaxed">{primary.desc}</p>}
+        {primary.desc && (
+          <p className="leading-relaxed">
+            <UscisText text={primary.desc} />
+          </p>
+        )}
         {secondary.title && (
           <details className="text-sm">
             <summary className="cursor-pointer underline underline-offset-2">{es ? "View in English" : "Ver en español"}</summary>
             <p className="mt-2 font-medium">{secondary.title}</p>
-            {secondary.desc && <p className="mt-1 leading-relaxed">{secondary.desc}</p>}
+            {secondary.desc && (
+              <p className="mt-1 leading-relaxed">
+                <UscisText text={secondary.desc} />
+              </p>
+            )}
           </details>
         )}
         {failed && (
