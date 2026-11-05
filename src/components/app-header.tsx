@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { signOutAction } from "@/app/(auth)/actions";
+import { Logo } from "./logo";
 
 export function AppHeader({ email }: { email: string }) {
   return (
     <header className="border-b border-[var(--border)] bg-[var(--surface)]">
       <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <Link href="/cases" className="font-semibold tracking-tight">
-          CasePingo
-        </Link>
+        <Logo href="/cases" />
         <nav aria-label="Account" className="flex items-center gap-4 text-sm">
           <Link href="/cases" className="underline-offset-2 hover:underline">
             My cases

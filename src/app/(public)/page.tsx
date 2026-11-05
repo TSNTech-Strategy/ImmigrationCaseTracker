@@ -14,7 +14,7 @@ export default function Home() {
         <QueryNotice messages={NOTICES} />
       </Suspense>
       <section className="flex max-w-2xl flex-col gap-5">
-        <p className="text-sm font-medium uppercase tracking-wide text-[var(--accent)]">{SITE.name} · USCIS case tracker</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-[var(--brand-red-text)]">{SITE.tagline}</p>
         <h1 className="text-4xl font-semibold tracking-tight">Your USCIS case. We&apos;ll ping you when it moves.</h1>
         <p className="text-lg leading-relaxed">
           Track the receipt numbers you&apos;re authorized to follow, see their status and history in one place, and get told when

@@ -68,6 +68,24 @@ describe.skipIf(!url)("case service", () => {
     expect(await db.auditLog.count({ where: { targetId: c.id, action: "case.created" } })).toBe(1);
   });
 
+  it("never stores the full receipt number from USCIS's status text", async () => {
+    nextResponse = async (receipt) => ({
+      httpStatus: 200,
+      attempts: 1,
+      durationMs: 1,
+      snapshot: normalizeCaseStatus(
+        { case_status: { receiptNumber: receipt, current_case_status_text_en: "Approved", current_case_status_desc_en: `Receipt Number ${receipt}, was approved.` } },
+        receipt,
+      ),
+    });
+    const r = await service().addCase(alice, { receipt: "EAC9999103402", basis: "SELF" });
+    if (!r.ok) throw new Error();
+    const rows = await db.$queryRaw<unknown[]>`SELECT * FROM "TrackedCase" WHERE id = ${r.caseId}`;
+    const events = await db.$queryRaw<unknown[]>`SELECT * FROM "CaseStatusEvent" WHERE "caseId" = ${r.caseId}`;
+    expect(JSON.stringify([rows, events])).not.toContain("9999103402");
+    expect(JSON.stringify(rows)).toContain("Receipt Number EAC*******402");
+  });
+
   it("rejects invalid, duplicate and over-plan-limit adds", async () => {
     await db.user.update({ where: { id: alice }, data: { plan: "FREE" } });
     const s = service();

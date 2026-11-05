@@ -15,6 +15,7 @@ import {
   uscisDailyBudget,
 } from "./policy";
 import { InvalidReceiptError, protectReceipt, revealReceipt } from "./receipt-store";
+import { redactSnapshot } from "@/lib/uscis/text";
 import { checkIntervalMs, PLAN_LIMITS } from "@/lib/plans";
 
 /**
@@ -233,7 +234,8 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
     const started = Date.now();
     try {
       const result = await uscis.getCaseStatus(receipt);
-      const { changed, eventId } = await applySnapshot(c, result.snapshot, t);
+      // USCIS text can contain the full receipt number — never store it.
+      const { changed, eventId } = await applySnapshot(c, redactSnapshot(result.snapshot, receipt), t);
       await db.caseCheckRun.create({
         data: {
           caseId: c.id,

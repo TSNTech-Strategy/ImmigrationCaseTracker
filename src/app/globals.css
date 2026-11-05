@@ -6,8 +6,11 @@
   --surface: #ffffff;
   --border: #d9d9d4;
   --muted: #5f5f5a;
-  --accent: #1f4e8c;
+  --accent: #1758a8; /* brand blue */
   --accent-fg: #ffffff;
+  --brand-ink: #0a2345; /* brand navy */
+  --brand-red: #e43b53; /* brand red accent (logo / large marks) */
+  --brand-red-text: #b8233a; /* same hue, 4.5:1+ for small text */
   --danger: #b42318;
   --success: #1e7a43;
 }
@@ -21,6 +24,9 @@
     --muted: #a3a3a0;
     --accent: #7fa8e0;
     --accent-fg: #0d1520;
+    --brand-ink: #ececec;
+    --brand-red: #ff6b7d;
+    --brand-red-text: #ff8b98;
     --danger: #f2877d;
     --success: #6fcf97;
   }
