@@ -8,14 +8,15 @@ const LINKS = [
   { href: "/firm/cases", label: "Cases" },
   { href: "/firm/clients", label: "Clients" },
   { href: "/firm/team", label: "Team" },
+  { href: "/firm/audit", label: "Activity", managersOnly: true },
 ] as const;
 
-export function FirmNav({ firmName }: { firmName: string }) {
+export function FirmNav({ firmName, isManager }: { firmName: string; isManager: boolean }) {
   const path = usePathname();
   const active = (href: string) => (href === "/firm" ? path === "/firm" : path === href || path.startsWith(`${href}/`));
   return (
     <nav aria-label={`${firmName} workspace`} className="flex flex-wrap gap-1 border-b border-[var(--border)] pb-2 text-sm">
-      {LINKS.map((l) => (
+      {LINKS.filter((l) => isManager || !("managersOnly" in l)).map((l) => (
         <Link
           key={l.href}
           href={l.href}
