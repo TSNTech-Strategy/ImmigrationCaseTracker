@@ -2,7 +2,7 @@ import Link from "next/link";
 import { signOutAction } from "@/app/(auth)/actions";
 import { Logo } from "./logo";
 
-export function AppHeader({ email }: { email: string }) {
+export function AppHeader({ email, isAdmin = false }: { email: string; isAdmin?: boolean }) {
   return (
     <header className="border-b border-[var(--border)] bg-[var(--surface)]">
       <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -17,6 +17,11 @@ export function AppHeader({ email }: { email: string }) {
           <Link href="/settings" className="underline-offset-2 hover:underline">
             Settings
           </Link>
+          {isAdmin && (
+            <Link href="/admin" className="underline-offset-2 hover:underline">
+              Admin
+            </Link>
+          )}
           <span className="hidden text-[var(--muted)] md:inline">{email}</span>
           <form action={signOutAction}>
             <button type="submit" className="rounded-md border border-[var(--border)] px-3 py-1.5">

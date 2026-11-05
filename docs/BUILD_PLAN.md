@@ -92,8 +92,9 @@ Each step is small enough to review on its own before the next one starts.
 - `/firm`, `/firm/clients`, `/firm/cases` (filters + CSV import with dry run), `/firm/team`, `/firm/audit`.
 - Cross-firm isolation tests and an audit log entry for every change.
 
-### Step 8 — Billing + admin (8A ✅ code · 8B next)
+### Step 8 — Billing + admin ✅ (code; Stripe test-mode setup in progress)
 - **8A ✅ Billing:** Stripe Checkout (hosted, card data never touches us) with **Stripe Tax** on, and the Stripe customer portal for two-click cancel at period end, card and plan changes. Webhook `/api/stripe/webhook`: signature-checked, processed once (`StripeEvent`), the subscription re-read from Stripe each time (`Subscription` table mirrors it). Entitlements: Premium → 10 checked cases; on downgrade the oldest case stays checked and the rest pause (`pausedReason = plan_limit`), with "Check this case instead" and automatic resume on upgrade. Past-due keeps access for a 7-day grace (daily `billing-reconcile` job). Firms: plan sets the case limit (Solo 50, Firm 300), Firm Solo caps the team at 2, and after the trial a firm's cases aren't checked until it subscribes. Founding coupon applied automatically while places last. Our own email 7 days before yearly renewals. Account deletion cancels Premium billing first. `npm run stripe:setup` creates products, prices, coupon, portal and webhook from `src/lib/plans.ts`. Setup steps: `docs/DEPLOY.md` §8.
+- **8B ✅ Admin:** `/admin` for emails in `ADMIN_EMAILS`, only with two-factor on and passed this session (everyone else gets a 404). Shows USCIS calls today against the daily budget, last successful and last scheduled check (alert if the scheduler is quiet for 2 h), overdue cases, circuit breaker, results in the last 24 h, email alerts sent and failed (masked addresses), users, Premium, firms by plan, cases, subscriptions and failed payments. Open deletion requests can be retried (account), marked done or declined with a reason; every admin action is audit-logged. No receipt numbers or client details anywhere on the page.
 - **Launch prices** (Nov 5, 2026; single source `src/lib/plans.ts`):
 
   | Plan | Price | Includes |

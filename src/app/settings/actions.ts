@@ -5,10 +5,10 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import type { FormState } from "@/components/form";
 import { prisma } from "@/lib/db";
-import { billingEnabled, billingService } from "@/lib/billing";
+import { performAccountDeletion } from "@/lib/auth/delete-account";
 import { authErrorMessage } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/session";
-import { createSupabaseAdminClient, createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const NOT_SIGNED_IN: FormState = { error: "Your session has expired. Please sign in again." };
 const newPassword = z
@@ -153,26 +153,8 @@ export async function deleteAccountAction(_prev: FormState, formData: FormData):
   const request = await prisma.deletionRequest.create({
     data: { requesterId: user.id, requesterEmail: user.email, scope: "ACCOUNT", targetId: user.id, status: "IN_PROGRESS" },
   });
-
-  // Stop any Premium billing first, so a deleted account is never charged again.
-  if (billingEnabled()) {
-    try {
-      await billingService().cancelForDeletedUser(user.id);
-    } catch {
-      await prisma.deletionRequest.update({ where: { id: request.id }, data: { status: "REQUESTED", notes: "Billing cancellation failed; retry." } });
-      return { error: "We couldn't cancel your subscription right now, so your account wasn't deleted yet. Please try again in a few minutes." };
-    }
-  }
-
-  // Sign-in account first, so the person can't sign back in to half-deleted data.
-  const { error } = await createSupabaseAdminClient().auth.admin.deleteUser(user.id);
-  if (error) {
-    await prisma.deletionRequest.update({ where: { id: request.id }, data: { status: "REQUESTED", notes: "Auth deletion failed; retry." } });
-    return { error: "We couldn't delete your account right now. Your request is recorded and we'll complete it." };
-  }
-  // Cascades to cases, consents, events, check runs, preferences and memberships.
-  await prisma.user.delete({ where: { id: user.id } });
-  await prisma.deletionRequest.update({ where: { id: request.id }, data: { status: "COMPLETED", completedAt: new Date() } });
+  const r = await performAccountDeletion(request.id, user.id);
+  if (!r.ok) return { error: `${r.error} Please try again in a few minutes.` };
 
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
