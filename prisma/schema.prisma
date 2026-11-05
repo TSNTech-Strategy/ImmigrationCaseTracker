@@ -47,6 +47,10 @@ model User {
   plan             Plan      @default(FREE)
   /// Stripe customer for Premium billing (Step 8). Never a card or bank detail.
   stripeCustomerId String?   @unique
+  /// End of the new-account Premium trial (7 days). Null = never had one.
+  trialEndsAt      DateTime?
+  /// Trial emails sent: 0 none, 1 "ends soon", 2 "ended".
+  trialNoticeStage Int       @default(0)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -478,4 +482,16 @@ model PushDevice {
   disabledAt DateTime?
 
   @@index([userId])
+}
+
+/// One-way fingerprints (keyed HMAC) of emails and receipt numbers that have
+/// already had a Premium trial, so deleting an account or making a new email
+/// doesn't give another one. Never the email or receipt itself. Kept 12 months.
+model TrialLedger {
+  key       String   @id
+  /// "email" | "receipt"
+  kind      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

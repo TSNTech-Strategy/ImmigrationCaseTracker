@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { isDisposableEmail } from "@/lib/billing/trial";
 import { z } from "zod";
 import type { FormState } from "@/components/form";
 import { authErrorMessage } from "@/lib/auth/errors";
@@ -64,6 +65,9 @@ export async function signUpAction(_prev: FormState, formData: FormData): Promis
     });
   const values = { name: String(formData.get("name") ?? ""), email: String(formData.get("email") ?? "") };
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values };
+  if (isDisposableEmail(parsed.data.email)) {
+    return { fieldErrors: { email: "Please use a permanent email address. We send important case updates there." }, values };
+  }
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signUp({

@@ -4,17 +4,26 @@ import { useActionState } from "react";
 import { FormMessage, SubmitButton, type FormState } from "@/components/form";
 import { refreshCaseAction, removeCaseAction } from "../actions";
 
-export function RefreshButton({ caseId }: { caseId: string }) {
+export function RefreshButton({ caseId, free = false }: { caseId: string; free?: boolean }) {
   const [state, action] = useActionState<FormState, FormData>(refreshCaseAction, {});
   return (
     <form action={action} className="flex flex-col gap-2">
       <input type="hidden" name="caseId" value={caseId} />
       <div>
-        <SubmitButton pendingText="Checking with USCIS…">Refresh now</SubmitButton>
+        <SubmitButton pendingText="Checking with USCIS…">Check now</SubmitButton>
       </div>
       <div aria-live="polite">
         <FormMessage state={state} />
       </div>
+      {free && (state.success || state.error) && (
+        <p className="text-sm">
+          Tired of checking?{" "}
+          <a href="/settings#plan-h" className="font-semibold text-[var(--accent)] hover:underline">
+            Premium checks automatically and alerts you
+          </a>
+          .
+        </p>
+      )}
     </form>
   );
 }

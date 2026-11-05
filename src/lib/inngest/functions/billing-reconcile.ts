@@ -1,12 +1,20 @@
+import { prisma } from "@/lib/db";
+import { getEmailDriver } from "@/lib/email";
 import { billingEnabled, billingService } from "@/lib/billing";
+import { createTrialService } from "@/lib/billing/trial";
 import { inngest } from "@/lib/inngest/client";
+import { getSiteUrl } from "@/lib/supabase/env";
 
-// Daily: end the 7-day grace period for unpaid subscriptions (Stripe sends no
-// event at that moment, so we re-apply entitlements here).
+// Hourly: Premium trials (reminder, end, fingerprint clean-up) and the end of
+// the 7-day grace for unpaid subscriptions. Neither has a Stripe event at the
+// right moment, so we re-apply entitlements here.
 export const billingReconcile = inngest.createFunction(
-  { id: "billing-reconcile", retries: 2, singleton: { mode: "skip" }, triggers: [{ cron: "17 6 * * *" }] },
+  { id: "billing-reconcile", retries: 2, singleton: { mode: "skip" }, triggers: [{ cron: "17 * * * *" }] },
   async ({ step }) => {
-    if (!billingEnabled()) return { skipped: "billing not configured" };
-    return step.run("reconcile-past-due", () => billingService().reconcilePastDue());
+    const trials = await step.run("trials", () =>
+      createTrialService({ db: prisma, mailer: getEmailDriver(), siteUrl: getSiteUrl() }).runTrialJobs(),
+    );
+    const pastDue = billingEnabled() ? await step.run("reconcile-past-due", () => billingService().reconcilePastDue()) : { skipped: "billing not configured" };
+    return { trials, pastDue };
   },
 );

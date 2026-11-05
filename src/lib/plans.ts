@@ -4,10 +4,22 @@ import type { Plan } from "@prisma/client";
 // affordable of the major USCIS trackers (see docs/BUILD_PLAN.md).
 // Billing (Step 8) switches User.plan; until then it's set by hand.
 
-export const PLAN_LIMITS: Record<Plan, { maxCases: number; checkIntervalHours: number; label: string }> = {
-  FREE: { maxCases: 1, checkIntervalHours: 24, label: "Free" },
-  PREMIUM: { maxCases: 10, checkIntervalHours: 12, label: "Premium" },
+/**
+ * Free is deliberately limited (decided Nov 6, 2026, after a competitor and
+ * freemium review): one case, no automatic checks and no alerts; the person
+ * checks it themselves a few times a day. Premium adds automatic checks and
+ * alerts. New accounts get a 7-day Premium trial (lib/billing/trial.ts).
+ */
+export const PLAN_LIMITS: Record<
+  Plan,
+  { maxCases: number; checkIntervalHours: number; label: string; autoChecks: boolean; alerts: boolean; manualChecksPerDay: number }
+> = {
+  FREE: { maxCases: 1, checkIntervalHours: 24, label: "Free", autoChecks: false, alerts: false, manualChecksPerDay: 3 },
+  PREMIUM: { maxCases: 10, checkIntervalHours: 12, label: "Premium", autoChecks: true, alerts: true, manualChecksPerDay: 30 },
 };
+
+/** New accounts start with this many days of Premium. */
+export const PREMIUM_TRIAL_DAYS = 7;
 
 /** Firm cases are checked like Premium. */
 export const FIRM_CHECK_INTERVAL_HOURS = 12;
@@ -18,6 +30,7 @@ export function checkIntervalMs(plan: Plan | null): number {
 }
 
 export function describeCadence(plan: Plan): string {
+  if (!PLAN_LIMITS[plan].autoChecks) return "only when you press Check now";
   return PLAN_LIMITS[plan].checkIntervalHours >= 24 ? "about once a day" : "about twice a day";
 }
 

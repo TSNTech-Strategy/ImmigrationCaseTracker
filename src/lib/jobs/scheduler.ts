@@ -24,6 +24,8 @@ export async function findDueCaseIds(db: PrismaClient, now: Date, limit = MAX_DI
         { OR: [{ nextCheckAt: null }, { nextCheckAt: { lte: now } }] },
         // Firm cases only while the firm is active and paid (or in its trial).
         { OR: [{ firmId: null }, { firm: firmChecksAllowedWhere(now) }] },
+        // Personal cases only on Premium (Free has no automatic checks).
+        { OR: [{ ownerUserId: null }, { ownerUser: { plan: "PREMIUM" } }] },
       ],
     },
     orderBy: [{ nextCheckAt: { sort: "asc", nulls: "first" } }],

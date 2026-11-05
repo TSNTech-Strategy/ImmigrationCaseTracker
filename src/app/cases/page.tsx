@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { LocalTime } from "@/components/local-time";
 import { ModeBanner } from "@/components/mode-banner";
 import { requireUser } from "@/lib/auth/session";
+import { prisma } from "@/lib/db";
 import { caseService } from "@/lib/cases";
 import { getUscisClient } from "@/lib/uscis";
 
@@ -20,6 +21,9 @@ export default async function CasesPage({ searchParams }: PageProps<"/cases">) {
   const cases = await caseService().listCases(user.id);
   const mode = getUscisClient().mode;
   const preferEs = user.locale === "es";
+  const account = await prisma.user.findUnique({ where: { id: user.id }, select: { plan: true, trialEndsAt: true } });
+  const now = new Date();
+  const trialDays = account?.trialEndsAt && account.trialEndsAt > now ? Math.ceil((account.trialEndsAt.getTime() - now.getTime()) / 86_400_000) : 0;
 
   return (
     <>
@@ -30,6 +34,25 @@ export default async function CasesPage({ searchParams }: PageProps<"/cases">) {
         </Link>
       </div>
       <ModeBanner mode={mode} />
+      {trialDays > 0 ? (
+        <p className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm">
+          <span>
+            <strong>Premium trial: {trialDays} day{trialDays === 1 ? "" : "s"} left.</strong> We check your cases automatically and email you when they change.
+          </span>
+          <Link href="/settings#plan-h" className="font-semibold text-[var(--accent)] hover:underline">
+            Keep Premium
+          </Link>
+        </p>
+      ) : (
+        account?.plan === "FREE" && (
+          <p className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm">
+            <span>Free plan: we don&apos;t check automatically or send alerts. Open your case and press Check now.</span>
+            <Link href="/settings#plan-h" className="font-semibold text-[var(--accent)] hover:underline">
+              Get automatic checks
+            </Link>
+          </p>
+        )
+      )}
       {message && (
         <p role="status" className="rounded-md border border-[var(--success)] px-3 py-2 text-sm text-[var(--success)]">
           {message}

@@ -80,6 +80,11 @@ export default function Privacy() {
         <li>Case information: until you remove the case or delete your account.</li>
         <li>Account information: until you delete your account.</li>
         <li>Records of deletion requests and security logs: [retention period to be confirmed with counsel], without case content.</li>
+        <li>
+          Free-trial records: a one-way fingerprint of the email address and of receipt numbers used during a free trial (never the
+          email or receipt number itself), kept for 12 months so each person and each case gets one trial. They are kept even if you
+          delete your account, and can&apos;t be used to identify you or your case.
+        </li>
         <li>Backups: deleted data may remain in encrypted backups for up to [backup window] before being overwritten.</li>
       </ul>
 

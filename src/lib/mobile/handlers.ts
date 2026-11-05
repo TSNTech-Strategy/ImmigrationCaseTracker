@@ -65,7 +65,7 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
   async function me(userId: string): Promise<ApiResult> {
     const u = await db.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, locale: true, plan: true, mfaEnrolledAt: true, notificationPreference: true },
+      select: { id: true, email: true, name: true, locale: true, plan: true, mfaEnrolledAt: true, trialEndsAt: true, notificationPreference: true },
     });
     if (!u) return err(404, "not_found", "Account not found.");
     const [caseCount, paused] = await Promise.all([
@@ -78,7 +78,16 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
       name: u.name,
       locale: u.locale,
       twoFactor: Boolean(u.mfaEnrolledAt),
-      plan: { id: u.plan, name: PLAN_LIMITS[u.plan].label, maxCases: PLAN_LIMITS[u.plan].maxCases, cadence: describeCadence(u.plan) },
+      plan: {
+        id: u.plan,
+        name: PLAN_LIMITS[u.plan].label,
+        maxCases: PLAN_LIMITS[u.plan].maxCases,
+        cadence: describeCadence(u.plan),
+        autoChecks: PLAN_LIMITS[u.plan].autoChecks,
+        alerts: PLAN_LIMITS[u.plan].alerts,
+        manualChecksPerDay: PLAN_LIMITS[u.plan].manualChecksPerDay,
+        trialEndsAt: u.trialEndsAt && u.trialEndsAt > now() ? u.trialEndsAt : null,
+      },
       cases: { count: caseCount, pausedByPlan: paused },
       alerts: { email: u.notificationPreference?.emailOnChange ?? true, push: u.notificationPreference?.pushOnChange ?? false },
     });
