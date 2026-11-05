@@ -23,6 +23,8 @@ export function Field({
   ...input
 }: { label: string; name: string; hint?: string; error?: string } & InputHTMLAttributes<HTMLInputElement>) {
   const id = `field-${name}`;
+  const isPassword = input.type === "password";
+  const [reveal, setReveal] = useState(false);
   // Hide a field's error once the user starts fixing it.
   const [editedAfter, setEditedAfter] = useState<string | undefined>();
   const error = serverError && editedAfter !== serverError ? serverError : undefined;
@@ -32,18 +34,33 @@ export function Field({
       <label htmlFor={id} className="text-sm font-medium">
         {label}
       </label>
-      <input
-        id={id}
-        name={name}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy}
-        onChange={(e: ChangeEvent<HTMLInputElement>) => {
-          setEditedAfter(serverError);
-          onChange?.(e);
-        }}
-        className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] aria-[invalid=true]:border-[var(--danger)]"
-        {...input}
-      />
+      <div className="relative">
+        <input
+          id={id}
+          name={name}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            setEditedAfter(serverError);
+            onChange?.(e);
+          }}
+          className={`w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] aria-[invalid=true]:border-[var(--danger)] ${isPassword ? "pr-11" : ""}`}
+          {...input}
+          type={isPassword && reveal ? "text" : input.type}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setReveal((v) => !v)}
+            aria-label={reveal ? "Hide password" : "Show password"}
+            aria-pressed={reveal}
+            aria-controls={id}
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-md text-[var(--muted)] hover:text-[var(--foreground)] focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+          >
+            <EyeIcon open={!reveal} />
+          </button>
+        )}
+      </div>
       {hint && (
         <p id={`${id}-hint`} className="text-xs text-[var(--muted)]">
           {hint}
@@ -85,4 +102,15 @@ export function FormMessage({ state }: { state: FormState }) {
       </p>
     );
   return null;
+}
+
+/** Eye (show) / eye-off (hide) icon for password fields. Decorative: the button carries the label. */
+function EyeIcon({ open }: { open: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+      {!open && <path d="M3 3l18 18" />}
+    </svg>
+  );
 }

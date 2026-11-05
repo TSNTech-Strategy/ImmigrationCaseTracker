@@ -30,3 +30,20 @@ describe("status change email", () => {
     expect(statusChangeEmail({ ...base, locale: "es", statusTitleEs: null }).subject).toContain("Case Was Approved");
   });
 });
+
+import { firmInviteEmail } from "../templates";
+describe("firm invite email", () => {
+  it("names the firm, inviter, role and link", () => {
+    const m = firmInviteEmail({
+      to: "a@b.co",
+      firmName: "Rivera Law",
+      inviterName: "Ana",
+      role: "ADMIN",
+      acceptUrl: "https://casepingo.com/firm/invite/tok",
+      expiresAt: new Date("2027-01-08T00:00:00Z"),
+    });
+    expect(m.subject).toBe("Ana invited you to Rivera Law on CasePingo");
+    expect(m.body).toContain("as Admin");
+    expect(m.body).toContain("https://casepingo.com/firm/invite/tok");
+  });
+});

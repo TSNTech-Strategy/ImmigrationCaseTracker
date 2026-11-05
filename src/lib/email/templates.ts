@@ -55,3 +55,31 @@ export function statusChangeEmail(p: StatusChange): EmailMessage {
     ].join("\n"),
   };
 }
+
+const ROLE_LABEL = { OWNER: "Owner", ADMIN: "Admin", STAFF: "Staff" } as const;
+
+/** Invitation to join a firm workspace. The link carries a single-use token. */
+export function firmInviteEmail(p: {
+  to: string;
+  firmName: string;
+  inviterName: string;
+  role: keyof typeof ROLE_LABEL;
+  acceptUrl: string;
+  expiresAt: Date;
+}): EmailMessage {
+  const until = p.expiresAt.toUTCString().slice(0, 16);
+  return {
+    to: p.to,
+    subject: `${p.inviterName} invited you to ${p.firmName} on CasePingo`,
+    body: [
+      `${p.inviterName} invited you to join ${p.firmName} on CasePingo Pro as ${ROLE_LABEL[p.role]}.`,
+      "",
+      `Accept the invitation: ${p.acceptUrl}`,
+      "",
+      `This link works once and expires on ${until}. Sign in (or create an account) with ${p.to} to accept.`,
+      "If you weren't expecting this, you can ignore this email.",
+      "",
+      "CasePingo is an independent service, not affiliated with USCIS or DHS, and does not provide legal advice.",
+    ].join("\n"),
+  };
+}
