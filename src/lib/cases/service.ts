@@ -17,7 +17,7 @@ import {
 } from "./policy";
 import { InvalidReceiptError, protectReceipt, revealReceipt } from "./receipt-store";
 import { redactSnapshot } from "@/lib/uscis/text";
-import { checkIntervalMs, PLAN_LIMITS } from "@/lib/plans";
+import { checkIntervalMs, formatUsd, PLAN_LIMITS, PRICES } from "@/lib/plans";
 
 /**
  * Everything a signed-in individual can do with their own cases.
@@ -119,7 +119,7 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
         error: "limit",
         message:
           plan === "FREE"
-            ? "The Free plan includes 1 case. Premium (coming soon) tracks up to 10 cases."
+            ? `The Free plan includes 1 case. Premium (coming soon, ${formatUsd(PRICES.premium.yearly)}/year) tracks up to 10 cases for your family.`
             : `Your plan includes up to ${limit} cases.`,
       };
     }
