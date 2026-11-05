@@ -65,7 +65,26 @@ const countingFetch: typeof fetch = (input, init) => {
 const centralDate = (d: Date) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 
+/**
+ * The sandbox's spike arrest allows 5 calls/second with a burst of 1 (one call
+ * per 200 ms). Back-to-back tests tripped it, so tests got a 429 instead of
+ * USCIS's real answer. Wait this long after the previous test *finishes*: a
+ * test that fetches a token makes its case call at the very end.
+ */
+const MIN_GAP_MS = 300;
+let lastEnd = 0;
+
 async function run(test: string, receipt: string, cfg: UscisConfig, skipValidation = false): Promise<Entry> {
+  const wait = lastEnd + MIN_GAP_MS - Date.now();
+  if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+  try {
+    return await runOnce(test, receipt, cfg, skipValidation);
+  } finally {
+    lastEnd = Date.now();
+  }
+}
+
+async function runOnce(test: string, receipt: string, cfg: UscisConfig, skipValidation: boolean): Promise<Entry> {
   const now = new Date();
   const before = tokenRequests;
   const started = Date.now();
