@@ -3,8 +3,9 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * Animated day/night switch. The look comes from CSS (--is-dark in
- * globals.css), so it is right on first paint with no flash. Clicking saves
+ * Light/dark switch: a quiet icon button (sun or moon outline) with a short
+ * fade. The icon comes from CSS (--is-dark in globals.css), so it is right on
+ * first paint with no flash. Clicking saves
  * the choice; until then the site follows the device's setting.
  */
 
@@ -47,15 +48,13 @@ export function ThemeToggle() {
   const label = dark === null ? "Switch between light and dark mode" : dark ? "Switch to light mode" : "Switch to dark mode";
   return (
     <button type="button" className="theme-toggle" onClick={toggle} aria-label={label} title={label}>
-      <span className="tt-star s1" aria-hidden="true" />
-      <span className="tt-star s2" aria-hidden="true" />
-      <span className="tt-star s3" aria-hidden="true" />
-      <span className="tt-cloud c1" aria-hidden="true" />
-      <span className="tt-cloud c2" aria-hidden="true" />
-      <span className="tt-knob" aria-hidden="true">
-        <span className="tt-sun" />
-        <span className="tt-moon" />
-      </span>
+      <svg className="tt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4" />
+      </svg>
+      <svg className="tt-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />
+      </svg>
     </button>
   );
 }
