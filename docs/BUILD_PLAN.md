@@ -110,7 +110,9 @@ Each step is small enough to review on its own before the next one starts.
 - Stripe Checkout/Billing, signed idempotent webhooks, entitlements from `PLAN_LIMITS` / `FIRM_PLANS` (Firm Solo user cap enforced on invite), founding-firm coupon.
 - `/admin`: sanitized job metrics, failed syncs, deletion requests (as in Scanvio's `ADMIN_EMAILS`).
 
-### Step 9 — Mobile (Expo)
+### Step 9 — Mobile (Expo) (9A ✅ · 9B next · 9C store release)
+- Decided Nov 6: no buying in the app (upgrades on the website), personal cases only, both store accounts exist.
+- **9A ✅ Mobile API and push:** `/api/v1/*` (see `docs/MOBILE-API.md`): profile and settings, cases (add with consent, list, detail, refresh, remove, check-instead), push device registration, account deletion from the app. Changes accept only the Supabase Bearer token, never website cookies. Push alerts through Expo's push service for personal cases, once per change, in the person's language, masked receipt only; dead tokens are switched off. `PushDevice` table.
 - Onboarding → login → consent → cases → add receipt → status and timeline → settings and deletion. Push notifications.
 
 ### Step 10 — Production readiness and USCIS approval

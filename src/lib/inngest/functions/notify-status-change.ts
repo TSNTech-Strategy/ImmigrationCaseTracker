@@ -2,9 +2,10 @@ import { prisma } from "@/lib/db";
 import { getEmailDriver } from "@/lib/email";
 import { EVENTS, inngest, type CaseStatusChangedData } from "@/lib/inngest/client";
 import { notifyStatusChange } from "@/lib/jobs/notifications";
+import { getPushDriver } from "@/lib/push";
 import { getSiteUrl } from "@/lib/supabase/env";
 
-// Email the owner about a status change. Idempotent per (event, person).
+// Email (and push) the owner about a status change. Idempotent per (event, person, channel).
 export const notifyStatusChangeFn = inngest.createFunction(
   {
     id: "notify-status-change",
@@ -13,6 +14,6 @@ export const notifyStatusChangeFn = inngest.createFunction(
   },
   async ({ event, step }) => {
     const { eventId } = event.data as CaseStatusChangedData;
-    return step.run("send-email", () => notifyStatusChange(prisma, getEmailDriver(), eventId, getSiteUrl()));
+    return step.run("send-alerts", () => notifyStatusChange(prisma, getEmailDriver(), eventId, getSiteUrl(), getPushDriver()));
   },
 );

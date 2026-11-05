@@ -62,6 +62,7 @@ model User {
   auditLogs              AuditLog[]
   deletionRequests       DeletionRequest[]
   subscriptions          Subscription[]
+  pushDevices            PushDevice[]
 }
 
 model NotificationPreference {
@@ -458,4 +459,23 @@ model StripeEvent {
   id          String   @id
   type        String
   processedAt DateTime @default(now())
+}
+
+/// A phone that registered for push alerts (Expo push token). Token only:
+/// no device identifiers, contacts or location.
+model PushDevice {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// "ExponentPushToken[...]"
+  token      String    @unique
+  /// "ios" | "android"
+  platform   String
+  appVersion String?
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  /// Set when Expo reports the token is no longer valid, or on sign-out.
+  disabledAt DateTime?
+
+  @@index([userId])
 }
