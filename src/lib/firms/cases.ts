@@ -1,6 +1,7 @@
-import type { FirmRole, PrismaClient, TrackedCase } from "@prisma/client";
+import type { FirmRole, Prisma, PrismaClient, TrackedCase } from "@prisma/client";
+import { isValidReceiptNumber, normalizeReceiptNumber } from "@/lib/receipt";
 import { caseViewSelect, type CaseService, type RefreshResult } from "@/lib/cases/service";
-import { InvalidReceiptError, protectReceipt } from "@/lib/cases/receipt-store";
+import { InvalidReceiptError, protectReceipt, receiptDigestOf } from "@/lib/cases/receipt-store";
 import { FIRM_CONSENT_VERSION, type FirmConsentBasis } from "./consent";
 import { findFirmContext, type FirmContext } from "./service";
 
@@ -24,6 +25,43 @@ const fail = (error: string, field?: string): Fail => ({ ok: false, error, field
 
 export type ClientInput = { displayName: string; email?: string | null; phone?: string | null; externalRef?: string | null };
 export type FirmCaseInput = { clientId: string; receipt: string; nickname?: string | null; basis: FirmConsentBasis; evidenceRef: string };
+
+export const CASE_VIEWS = {
+  changed: "Changed in the last 7 days",
+  failed: "Last check failed",
+  no_consent: "No active consent",
+  unchecked: "Not checked yet",
+} as const;
+export type CaseListView = keyof typeof CASE_VIEWS;
+export const CASE_SORTS = {
+  added: "Recently added",
+  changed: "Recently changed",
+  checked: "Recently checked",
+  client: "Client name",
+} as const;
+export type CaseSort = keyof typeof CASE_SORTS;
+export type CaseFilters = { clientId?: string; q?: string; view?: CaseListView; sort?: CaseSort };
+export const LIST_LIMIT = 100;
+
+const SORTS: Record<CaseSort, Prisma.TrackedCaseOrderByWithRelationInput[]> = {
+  added: [{ createdAt: "desc" }],
+  changed: [{ lastChangeObservedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+  checked: [{ lastCheckedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+  client: [{ client: { displayName: "asc" } }, { createdAt: "desc" }],
+};
+
+function viewWhere(view: CaseListView, t: Date): Prisma.TrackedCaseWhereInput {
+  switch (view) {
+    case "changed":
+      return { lastChangeObservedAt: { gte: new Date(t.getTime() - 7 * 86_400_000) } };
+    case "failed":
+      return { AND: [{ lastCheckOutcome: { not: null } }, { lastCheckOutcome: { not: "ok" } }] };
+    case "no_consent":
+      return { consents: { none: { withdrawnAt: null } } };
+    case "unchecked":
+      return { lastCheckedAt: null };
+  }
+}
 
 const isManager = (role: FirmRole) => role === "OWNER" || role === "ADMIN";
 
@@ -111,19 +149,47 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
 
   // ---- Cases ----------------------------------------------------------------
 
-  async function listCases(userId: string, { clientId }: { clientId?: string } = {}) {
+  async function listCases(userId: string, filters: CaseFilters = {}) {
     const ctx = await ctxOf(userId);
     if (!ctx) return null;
+    const t = now();
+    const and: Prisma.TrackedCaseWhereInput[] = [{ firmId: ctx.firm.id }];
+    if (filters.clientId) and.push({ clientId: filters.clientId });
+    if (filters.view) and.push(viewWhere(filters.view, t));
+    const q = filters.q?.trim().slice(0, 80);
+    if (q) {
+      const receipt = normalizeReceiptNumber(q);
+      if (isValidReceiptNumber(receipt)) {
+        // A full receipt number: exact match on the keyed digest (it's never stored in plain text).
+        and.push({ receiptDigest: receiptDigestOf(receipt) });
+      } else {
+        const contains = { contains: q, mode: "insensitive" as const };
+        and.push({
+          OR: [
+            { nickname: contains },
+            { formType: contains },
+            { client: { displayName: contains } },
+            { client: { externalRef: contains } },
+            ...(/^\d{1,3}$/.test(q) ? [{ receiptMasked: { endsWith: q } }] : []),
+          ],
+        });
+      }
+    }
     const rows = await db.trackedCase.findMany({
-      where: { firmId: ctx.firm.id, ...(clientId ? { clientId } : {}) },
+      where: { AND: and },
       select: {
         ...caseViewSelect,
         client: { select: { id: true, displayName: true } },
         consents: { where: { withdrawnAt: null }, select: { id: true }, take: 1 },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: SORTS[filters.sort ?? "added"],
+      take: LIST_LIMIT + 1,
     });
-    return { ctx, cases: rows.map(({ consents, ...c }) => ({ ...c, hasConsent: consents.length > 0 })) };
+    return {
+      ctx,
+      truncated: rows.length > LIST_LIMIT,
+      cases: rows.slice(0, LIST_LIMIT).map(({ consents, ...c }) => ({ ...c, hasConsent: consents.length > 0 })),
+    };
   }
 
   async function getCase(userId: string, caseId: string) {
@@ -288,12 +354,17 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
   /** Dashboard numbers. Takes a context from getContext/listTeam (already membership-checked). */
   async function counts({ firm }: FirmContext) {
     const firmId = firm.id;
-    const [clients, cases, unconsented] = await Promise.all([
+    const t = now();
+    const n = (view: CaseListView) => db.trackedCase.count({ where: { AND: [{ firmId }, viewWhere(view, t)] } });
+    const [clients, cases, unconsented, changed, failed, unchecked] = await Promise.all([
       db.client.count({ where: { firmId, archivedAt: null } }),
       db.trackedCase.count({ where: { firmId } }),
-      db.trackedCase.count({ where: { firmId, consents: { none: { withdrawnAt: null } } } }),
+      n("no_consent"),
+      n("changed"),
+      n("failed"),
+      n("unchecked"),
     ]);
-    return { clients, cases, unconsented };
+    return { clients, cases, unconsented, changed, failed, unchecked };
   }
 
   return {
