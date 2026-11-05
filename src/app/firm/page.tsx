@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth/session";
-import { firmService } from "@/lib/firms";
+import { firmCaseService, firmService } from "@/lib/firms";
 import { TRIAL_CASE_LIMIT, TRIAL_DAYS } from "@/lib/firms/service";
 import { ROLE_LABELS } from "@/lib/firms/roles";
 import { CreateFirmForm } from "./forms";
@@ -49,6 +49,7 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
 
   const { ctx, members, invitations } = team;
   const trial = trialText(ctx.firm.trialEndsAt, new Date());
+  const n = await firmCaseService().counts(ctx);
   return (
     <>
       <div className="flex flex-col gap-1">
@@ -63,25 +64,41 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
       )}
       {trial && <p className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm">{trial}</p>}
       <dl className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <dt className="text-sm text-[var(--muted)]">Team members</dt>
-          <dd className="text-2xl font-semibold">{members.length}</dd>
-        </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <dt className="text-sm text-[var(--muted)]">Pending invitations</dt>
-          <dd className="text-2xl font-semibold">{invitations.length}</dd>
-        </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <dt className="text-sm text-[var(--muted)]">Case limit</dt>
-          <dd className="text-2xl font-semibold">{ctx.firm.caseLimit}</dd>
-        </div>
+        <Stat label="Cases tracked" value={`${n.cases} of ${ctx.firm.caseLimit}`} href="/firm/cases" />
+        <Stat label="Active clients" value={String(n.clients)} href="/firm/clients" />
+        <Stat label="Team members" value={String(members.length)} href="/firm/team" note={invitations.length ? `${invitations.length} invitation${invitations.length === 1 ? "" : "s"} pending` : undefined} />
       </dl>
-      <div>
-        <Link href="/firm/team" className="rounded-md bg-[var(--accent)] px-4 py-2 font-medium text-[var(--accent-fg)]">
-          Manage team
+      {n.unconsented > 0 && (
+        <p role="alert" className="rounded-md border border-[var(--danger)] px-3 py-2 text-sm text-[var(--danger)]">
+          {n.unconsented} case{n.unconsented === 1 ? " has" : "s have"} no active consent and {n.unconsented === 1 ? "isn't" : "aren't"} being checked.{" "}
+          <Link href="/firm/cases" className="underline underline-offset-2">
+            Review cases
+          </Link>
+        </p>
+      )}
+      <div className="flex flex-wrap gap-3">
+        <Link href="/firm/cases/new" className="rounded-md bg-[var(--accent)] px-4 py-2 font-medium text-[var(--accent-fg)]">
+          Add a case
+        </Link>
+        <Link href="/firm/clients" className="rounded-md border border-[var(--border)] px-4 py-2 font-medium">
+          Add a client
         </Link>
       </div>
-      <p className="text-sm text-[var(--muted)]">Client and case tracking for your firm are coming next.</p>
     </>
+  );
+}
+
+function Stat({ label, value, href, note }: { label: string; value: string; href: string; note?: string }) {
+  // dl > div > dt/dd stays valid HTML; the link covers the whole card.
+  return (
+    <div className="relative rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 focus-within:border-[var(--accent)] hover:border-[var(--accent)]">
+      <dt className="text-sm text-[var(--muted)]">{label}</dt>
+      <dd className="text-2xl font-semibold">
+        <Link href={href} className="after:absolute after:inset-0 focus-visible:outline-none">
+          {value}
+        </Link>
+      </dd>
+      {note && <dd className="text-xs text-[var(--muted)]">{note}</dd>}
+    </div>
   );
 }

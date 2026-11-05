@@ -83,9 +83,10 @@ Each step is small enough to review on its own before the next one starts.
 - Email via SMTP (Resend recommended), console in development — same structure as Scanvio.
 - Deploy guide: `docs/DEPLOY.md` (new Vercel project + new Inngest app + Resend + Supabase URLs).
 
-### Step 7 — Law firm workspace (7A ✅ · 7B–7D next)
+### Step 7 — Law firm workspace (7A ✅ · 7B ✅ · 7C–7D next)
 - **7A ✅ Firm accounts and team:** `/firm` creates a workspace (14-day trial, 10 cases), `/firm/team` lists members, invites by email (single-use link, stored hashed, expires in 7 days, re-invite replaces the old link), cancels invitations, changes roles and removes people. `/firm/invite/[token]` accepts, only when signed in with the invited email. Owner does everything; Admin invites and removes Staff; only an Owner changes roles; a firm always keeps one Owner. One firm per user. Every change is audit-logged. DB tests cover isolation between firms.
-- **7B:** clients and firm cases with consent evidence (G-28). **7C:** firm dashboard, filters, CSV import with dry run. **7D:** audit log viewer and export.
+- **7B ✅ Clients and firm cases:** `/firm/clients` (add, edit, archive or restore), `/firm/cases` (list, client filter), `/firm/cases/new`, `/firm/cases/[id]`. Adding a case needs an attestation: G-28 on file (`LEGAL_REPRESENTATIVE`) or written client consent (`AUTHORIZED_BY_APPLICANT`), plus the firm's own evidence reference (no documents stored). Consent can be withdrawn, which stops all checks, and recorded again later, keeping a full history. Duplicates are blocked per firm. New cases stop at the case limit and when the trial ends. Any member can add and refresh (manual refreshes shared, 100 per firm per day); only Owner or Admin can archive clients or remove cases. Alerts go to the member who added the case, or to the Owners once that person has left. Suspended firms' cases aren't polled. Client contact details never go into the audit log. DB tests cover isolation (other firms, ex-members, outsiders).
+- **7C:** firm dashboard, filters, CSV import with dry run. **7D:** audit log viewer and export.
 - Firms, memberships (owner/admin/staff), invitations with revocation, clients, consent evidence.
 - `/firm`, `/firm/clients`, `/firm/cases` (filters + CSV import with dry run), `/firm/team`, `/firm/audit`.
 - Cross-firm isolation tests and an audit log entry for every change.

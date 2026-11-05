@@ -10,6 +10,8 @@ const intEnv = (name: string, fallback: number, env: Record<string, string | und
 
 export const MANUAL_REFRESH_COOLDOWN_MS = 10 * 60 * 1000;
 export const MANUAL_REFRESHES_PER_USER_PER_DAY = 30;
+/** Shared by everyone in a firm. */
+export const MANUAL_REFRESHES_PER_FIRM_PER_DAY = 100;
 /** Global cap on USCIS case-status calls per UTC day, across all users. */
 export const uscisDailyBudget = (env?: Record<string, string | undefined>) => intEnv("USCIS_DAILY_BUDGET", 800, env);
 
