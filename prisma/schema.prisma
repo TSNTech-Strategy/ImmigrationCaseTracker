@@ -85,13 +85,15 @@ enum FirmRole {
 }
 
 model Firm {
-  id        String     @id @default(cuid())
-  name      String
-  status    FirmStatus @default(ACTIVE)
+  id          String     @id @default(cuid())
+  name        String
+  status      FirmStatus @default(ACTIVE)
   /// Plan limit on tracked cases (Firm Starter = 100). Billing sets this later.
-  caseLimit Int        @default(100)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  caseLimit   Int        @default(100)
+  /// End of the free trial (14 days, 10 cases). Null once on a paid plan.
+  trialEndsAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   memberships      FirmMembership[]
   invitations      FirmInvitation[]

@@ -11,6 +11,9 @@ export function AppHeader({ email }: { email: string }) {
           <Link href="/cases" className="underline-offset-2 hover:underline">
             My cases
           </Link>
+          <Link href="/firm" className="underline-offset-2 hover:underline">
+            Firm
+          </Link>
           <Link href="/settings" className="underline-offset-2 hover:underline">
             Settings
           </Link>

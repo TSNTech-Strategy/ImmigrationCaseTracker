@@ -4,7 +4,7 @@
 
 **Based on:** *Master Development Guide v2.0* (Nov 4, 2026), adapted to Scanvio's backend pattern
 **Owner:** TSN TECH & STRATEGY NETWORK LLC
-**Updated:** Nov 4, 2026
+**Updated:** Nov 5, 2026
 
 The product scope, USCIS rules and security requirements come from the guide. The **architecture follows Scanvio**: one Next.js app on Vercel, Prisma on Supabase Postgres, server-only environment variables for credentials, Inngest for background jobs, and a mock mode for the external API.
 
@@ -83,7 +83,9 @@ Each step is small enough to review on its own before the next one starts.
 - Email via SMTP (Resend recommended), console in development — same structure as Scanvio.
 - Deploy guide: `docs/DEPLOY.md` (new Vercel project + new Inngest app + Resend + Supabase URLs).
 
-### Step 7 — Law firm workspace
+### Step 7 — Law firm workspace (7A ✅ · 7B–7D next)
+- **7A ✅ Firm accounts and team:** `/firm` creates a workspace (14-day trial, 10 cases), `/firm/team` lists members, invites by email (single-use link, stored hashed, expires in 7 days, re-invite replaces the old link), cancels invitations, changes roles and removes people. `/firm/invite/[token]` accepts, only when signed in with the invited email. Owner does everything; Admin invites and removes Staff; only an Owner changes roles; a firm always keeps one Owner. One firm per user. Every change is audit-logged. DB tests cover isolation between firms.
+- **7B:** clients and firm cases with consent evidence (G-28). **7C:** firm dashboard, filters, CSV import with dry run. **7D:** audit log viewer and export.
 - Firms, memberships (owner/admin/staff), invitations with revocation, clients, consent evidence.
 - `/firm`, `/firm/clients`, `/firm/cases` (filters + CSV import with dry run), `/firm/team`, `/firm/audit`.
 - Cross-firm isolation tests and an audit log entry for every change.
