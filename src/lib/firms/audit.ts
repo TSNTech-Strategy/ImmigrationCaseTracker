@@ -39,6 +39,10 @@ export function describeAudit(action: string, m: Meta, target: string): string {
   switch (action) {
     case "firm.created":
       return "Created the firm workspace";
+    case "firm.plan_changed": {
+      const label = (v: unknown) => (v === "SOLO" ? "Firm Solo" : v === "FIRM" ? "Firm" : "no paid plan");
+      return m.to ? `Plan changed to ${label(m.to)} (${plural(m.caseLimit, "case")})` : `Paid plan ended (was ${label(m.from)})`;
+    }
     case "invite.sent":
       return `Invited ${str(m.email)} as ${role(m.role)}`;
     case "invite.revoked":
@@ -117,7 +121,7 @@ export function createFirmAuditService({ db, now = () => new Date() }: { db: Pri
         id: r.id,
         createdAt: r.createdAt,
         action: r.action,
-        actor: r.actor ? (r.actor.name ?? r.actor.email) : "Former user",
+        actor: r.actor ? (r.actor.name ?? r.actor.email) : r.actorUserId ? "Former user" : "CasePingo billing",
         actorEmail: r.actor?.email ?? null,
         description: describeAudit(r.action, (r.metadata ?? {}) as Meta, target?.label ?? ""),
         href: target?.href ?? null,

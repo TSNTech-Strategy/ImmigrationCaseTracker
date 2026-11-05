@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import type { CaseService } from "@/lib/cases/service";
+import { firmChecksAllowedWhere } from "@/lib/billing/entitlements";
 
 /** How often the scheduler wakes up. */
 export const SCHEDULER_TICK_MINUTES = 15;
@@ -21,8 +22,8 @@ export async function findDueCaseIds(db: PrismaClient, now: Date, limit = MAX_DI
       consents: { some: { withdrawnAt: null } },
       AND: [
         { OR: [{ nextCheckAt: null }, { nextCheckAt: { lte: now } }] },
-        // Firm cases only while the firm is active.
-        { OR: [{ firmId: null }, { firm: { status: "ACTIVE" } }] },
+        // Firm cases only while the firm is active and paid (or in its trial).
+        { OR: [{ firmId: null }, { firm: firmChecksAllowedWhere(now) }] },
       ],
     },
     orderBy: [{ nextCheckAt: { sort: "asc", nulls: "first" } }],

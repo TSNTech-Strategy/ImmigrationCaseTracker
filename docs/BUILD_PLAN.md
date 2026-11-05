@@ -92,7 +92,8 @@ Each step is small enough to review on its own before the next one starts.
 - `/firm`, `/firm/clients`, `/firm/cases` (filters + CSV import with dry run), `/firm/team`, `/firm/audit`.
 - Cross-firm isolation tests and an audit log entry for every change.
 
-### Step 8 — Billing + admin
+### Step 8 — Billing + admin (8A ✅ code · 8B next)
+- **8A ✅ Billing:** Stripe Checkout (hosted, card data never touches us) with **Stripe Tax** on, and the Stripe customer portal for two-click cancel at period end, card and plan changes. Webhook `/api/stripe/webhook`: signature-checked, processed once (`StripeEvent`), the subscription re-read from Stripe each time (`Subscription` table mirrors it). Entitlements: Premium → 10 checked cases; on downgrade the oldest case stays checked and the rest pause (`pausedReason = plan_limit`), with "Check this case instead" and automatic resume on upgrade. Past-due keeps access for a 7-day grace (daily `billing-reconcile` job). Firms: plan sets the case limit (Solo 50, Firm 300), Firm Solo caps the team at 2, and after the trial a firm's cases aren't checked until it subscribes. Founding coupon applied automatically while places last. Our own email 7 days before yearly renewals. Account deletion cancels Premium billing first. `npm run stripe:setup` creates products, prices, coupon, portal and webhook from `src/lib/plans.ts`. Setup steps: `docs/DEPLOY.md` §8.
 - **Launch prices** (Nov 5, 2026; single source `src/lib/plans.ts`):
 
   | Plan | Price | Includes |

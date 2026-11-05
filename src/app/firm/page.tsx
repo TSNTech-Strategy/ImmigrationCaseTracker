@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth/session";
 import { firmCaseService, firmService } from "@/lib/firms";
 import { TRIAL_CASE_LIMIT, TRIAL_DAYS } from "@/lib/firms/service";
+import { FIRM_PLANS } from "@/lib/plans";
 import { ROLE_LABELS } from "@/lib/firms/roles";
 import { CreateFirmForm } from "./forms";
 
@@ -16,7 +17,7 @@ const NOTICES: Record<string, string> = {
 function trialText(trialEndsAt: Date | null, now: Date) {
   if (!trialEndsAt) return null;
   const days = Math.ceil((trialEndsAt.getTime() - now.getTime()) / 86_400_000);
-  if (days <= 0) return "Your free trial has ended. Paid plans are coming soon; your cases keep their current limits until then.";
+  if (days <= 0) return "Your free trial has ended, so your firm's cases aren't being checked. An Owner can choose a plan in Billing.";
   return `Free trial: ${days} day${days === 1 ? "" : "s"} left.`;
 }
 
@@ -48,7 +49,7 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
   }
 
   const { ctx, members, invitations } = team;
-  const trial = trialText(ctx.firm.trialEndsAt, new Date());
+  const trial = ctx.firm.plan ? `Plan: ${FIRM_PLANS[ctx.firm.plan].label}.` : trialText(ctx.firm.trialEndsAt, new Date());
   const n = await firmCaseService().counts(ctx);
   return (
     <>

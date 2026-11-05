@@ -65,6 +65,9 @@ export default async function CasesPage({ searchParams }: PageProps<"/cases">) {
                     Last checked <LocalTime iso={c.lastCheckedAt?.toISOString() ?? null} /> · Last change seen{" "}
                     <LocalTime iso={c.lastChangeObservedAt?.toISOString() ?? null} fallback="none yet" />
                   </span>
+                  {c.pausedReason === "plan_limit" && (
+                    <span className="text-xs font-medium text-[var(--danger)]">Paused: the Free plan checks 1 case. Open it to switch, or upgrade.</span>
+                  )}
                 </Link>
               </li>
             );

@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/firm/clients", label: "Clients" },
   { href: "/firm/team", label: "Team" },
   { href: "/firm/audit", label: "Activity", managersOnly: true },
+  { href: "/firm/billing", label: "Billing", managersOnly: true },
 ] as const;
 
 export function FirmNav({ firmName, isManager }: { firmName: string; isManager: boolean }) {

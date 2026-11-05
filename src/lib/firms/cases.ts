@@ -4,6 +4,7 @@ import { caseViewSelect, type CaseService, type RefreshResult } from "@/lib/case
 import { InvalidReceiptError, protectReceipt, receiptDigestOf } from "@/lib/cases/receipt-store";
 import { FIRM_CONSENT_VERSION, type FirmConsentBasis } from "./consent";
 import { findFirmContext, type FirmContext } from "./service";
+import { firmChecksAllowed } from "@/lib/billing/entitlements";
 
 /**
  * A firm's clients and the cases it tracks for them (CasePingo Pro).
@@ -243,8 +244,8 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     if (client.archivedAt) return fail("This client is archived. Restore the client first.", "clientId");
 
     const t = now();
-    if (ctx.firm.trialEndsAt && ctx.firm.trialEndsAt <= t) {
-      return fail("Your free trial has ended, so new cases can't be added yet. Paid plans are coming soon.");
+    if (!firmChecksAllowed(ctx.firm, t)) {
+      return fail("Your free trial has ended. Choose a plan in Firm → Billing to add cases.");
     }
     if ((await db.trackedCase.count({ where: { firmId: ctx.firm.id } })) >= ctx.firm.caseLimit) {
       return fail(`Your firm's plan includes up to ${ctx.firm.caseLimit} cases.`);

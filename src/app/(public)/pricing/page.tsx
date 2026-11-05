@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { TRIAL_CASE_LIMIT, TRIAL_DAYS } from "@/lib/firms/service";
 import { FIRM_PLANS, formatUsd, FOUNDING_FIRM_OFFER, perMonth, PRICES } from "@/lib/plans";
+import { billingEnabled } from "@/lib/billing/stripe";
 
 export const metadata: Metadata = {
   title: "Pricing · CasePingo",
@@ -17,6 +18,8 @@ type Card = {
   features: string[];
   highlight?: boolean;
   cta?: { label: string; href: string };
+  /** Call to action once billing is switched on. */
+  paid?: { label: string; href: string };
 };
 
 const INDIVIDUAL: Card[] = [
@@ -37,6 +40,7 @@ const INDIVIDUAL: Card[] = [
     note: `That's ${perMonth(PRICES.premium.yearly)} a month. Or ${formatUsd(PRICES.premium.monthly)} month to month.`,
     features: ["Up to 10 cases for the whole family", "Checked automatically twice a day", "Email alerts (push and text coming)", "Everything in Free"],
     highlight: true,
+    paid: { label: "Get Premium", href: "/settings#plan-h" },
   },
 ];
 
@@ -47,6 +51,7 @@ const FIRMS: Card[] = [
     price: formatUsd(FIRM_PLANS.SOLO.price),
     period: "/month",
     features: [`Up to ${FIRM_PLANS.SOLO.maxCases} client cases`, `${FIRM_PLANS.SOLO.maxUsers} team members`, "Clients, consent records (G-28)", "CSV import, activity log and export"],
+    cta: { label: "Start your free trial", href: "/firm" },
   },
   {
     name: FIRM_PLANS.FIRM.label,
@@ -54,10 +59,12 @@ const FIRMS: Card[] = [
     price: formatUsd(FIRM_PLANS.FIRM.price),
     period: "/month",
     features: [`Up to ${FIRM_PLANS.FIRM.maxCases} client cases`, "Unlimited team members and roles", "Everything in Firm Solo", "Alerts to the person who added each case"],
+    cta: { label: "Start your free trial", href: "/firm" },
   },
 ];
 
-function PlanCard({ p }: { p: Card }) {
+function PlanCard({ p: card }: { p: Card }) {
+  const p = billingEnabled() && card.paid ? { ...card, cta: card.paid } : card;
   return (
     <li
       className={`flex flex-col gap-4 rounded-xl border bg-[var(--surface)] p-6 ${p.highlight ? "border-2 border-[var(--accent)]" : "border-[var(--border)]"}`}
@@ -140,7 +147,9 @@ export default function Pricing() {
           <li>No hidden fees. Prices are in US dollars, and include all features listed.</li>
           <li>If you cancel, you keep Premium until the end of the period you paid for, then move to Free. Your cases and history stay.</li>
         </ul>
-        <p className="text-[var(--muted)]">Paid plans aren&apos;t available yet. Everyone can use the Free plan today.</p>
+        <p className="text-[var(--muted)]">
+          {billingEnabled() ? "Prices don't include sales tax, which is added at checkout where it applies." : "Paid plans aren't available yet. Everyone can use the Free plan today."}
+        </p>
       </section>
     </div>
   );
