@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Prose } from "@/components/public-chrome";
 import { SITE } from "@/lib/site";
 
-export const metadata: Metadata = { title: "Accessibility · ImmigrationCaseTracker" };
+export const metadata: Metadata = { title: "Accessibility · CasePingo" };
 
 export default function Accessibility() {
   return (

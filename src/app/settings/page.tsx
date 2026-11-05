@@ -6,7 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PLAN_LIMITS, describeCadence } from "@/lib/plans";
 import { AlertsForm, DeleteAccountForm, MfaDisable, MfaSetup, PasswordForm, ProfileForm } from "./forms";
 
-export const metadata: Metadata = { title: "Settings · ImmigrationCaseTracker" };
+export const metadata: Metadata = { title: "Settings · CasePingo" };
 
 function Section({ id, title, children, danger }: { id: string; title: string; children: ReactNode; danger?: boolean }) {
   return (

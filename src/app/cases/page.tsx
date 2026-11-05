@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth/session";
 import { caseService } from "@/lib/cases";
 import { getUscisClient } from "@/lib/uscis";
 
-export const metadata: Metadata = { title: "My cases · ImmigrationCaseTracker" };
+export const metadata: Metadata = { title: "My cases · CasePingo" };
 
 const NOTICES: Record<string, string> = {
   "password-updated": "Your password was updated.",

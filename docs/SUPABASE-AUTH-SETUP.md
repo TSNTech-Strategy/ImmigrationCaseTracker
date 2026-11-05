@@ -26,19 +26,21 @@ Go to **Authentication → Sign In / Providers → Email**.
 
 Go to **Authentication → URL Configuration**.
 
-- **Site URL**: `http://localhost:3000` for now. Change it to the production domain at deploy time (Step 6).
+- **Site URL**: `http://localhost:3000` for now. Change it to `https://casepingo.com` at deploy time (Step 6).
 - **Redirect URLs**, add:
   - `http://localhost:3000/**`
   - Later, the production domain and Vercel preview URLs, e.g. `https://your-domain.com/**`
 
 ## 4. Email templates (recommended)
 
+Also set the sender name to **CasePingo** once custom SMTP is on (section 5).
+
 Go to **Authentication → Emails → Templates**. Replace the link in each template below so it points at our `/auth/confirm` route. This makes links work even when the email is opened on a different device or browser than the one used to sign up.
 
 **Confirm signup**
 ```html
 <h2>Confirm your email</h2>
-<p>Thanks for signing up for ImmigrationCaseTracker.</p>
+<p>Thanks for signing up for CasePingo.</p>
 <p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/cases">Confirm your email address</a></p>
 <p>If you didn't create an account, you can ignore this email.</p>
 ```

@@ -93,7 +93,7 @@ export async function startMfaEnrollAction(): Promise<MfaState> {
   const { data, error } = await supabase.auth.mfa.enroll({
     factorType: "totp",
     friendlyName: `Authenticator ${new Date().toISOString().slice(0, 10)}`,
-    issuer: "ImmigrationCaseTracker",
+    issuer: "CasePingo",
   });
   if (error || !data) return { error: authErrorMessage(error) };
   return { enrollment: { factorId: data.id, qrCode: toImageSrc(data.totp.qr_code), secret: data.totp.secret } };

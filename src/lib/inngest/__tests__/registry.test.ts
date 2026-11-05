@@ -16,6 +16,6 @@ describe("Inngest registry", () => {
   });
   it("uses this project's own Inngest app id, not Scanvio's", async () => {
     const { inngest } = await import("../client");
-    expect(inngest.id).toBe("immigration-case-tracker");
+    expect(inngest.id).toBe("casepingo");
   });
 });

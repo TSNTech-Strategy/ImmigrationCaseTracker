@@ -5,7 +5,7 @@ import { CONSENT_FOOTNOTE, INDIVIDUAL_CONSENT_OPTIONS } from "@/lib/cases/consen
 import { getUscisClient } from "@/lib/uscis";
 import { AddCaseForm } from "./add-case-form";
 
-export const metadata: Metadata = { title: "Add a case · ImmigrationCaseTracker" };
+export const metadata: Metadata = { title: "Add a case · CasePingo" };
 
 export default function NewCasePage() {
   return (

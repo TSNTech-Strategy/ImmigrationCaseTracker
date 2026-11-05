@@ -7,7 +7,7 @@ import { LoginForm } from "./login-form";
 // (Cache Components: allowed to block instead of prerendering a shell).
 export const instant = false;
 
-export const metadata: Metadata = { title: "Sign in · ImmigrationCaseTracker" };
+export const metadata: Metadata = { title: "Sign in · CasePingo" };
 
 const ERRORS: Record<string, string> = {
   link: "That link is invalid or has expired. Please try again.",

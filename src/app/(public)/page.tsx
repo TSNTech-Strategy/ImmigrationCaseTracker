@@ -14,7 +14,8 @@ export default function Home() {
         <QueryNotice messages={NOTICES} />
       </Suspense>
       <section className="flex max-w-2xl flex-col gap-5">
-        <h1 className="text-4xl font-semibold tracking-tight">Follow your USCIS case without checking every day.</h1>
+        <p className="text-sm font-medium uppercase tracking-wide text-[var(--accent)]">{SITE.name} · USCIS case tracker</p>
+        <h1 className="text-4xl font-semibold tracking-tight">Your USCIS case. We&apos;ll ping you when it moves.</h1>
         <p className="text-lg leading-relaxed">
           Track the receipt numbers you&apos;re authorized to follow, see their status and history in one place, and get told when
           something changes. For individuals, families and immigration law firms.

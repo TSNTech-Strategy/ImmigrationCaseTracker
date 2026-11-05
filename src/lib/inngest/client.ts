@@ -1,10 +1,10 @@
 import { Inngest } from "inngest";
 
-// ImmigrationCaseTracker's OWN Inngest app — separate from Scanvio's
+// CasePingo's OWN Inngest app — separate from Scanvio's
 // ("scanvio-hub"). Production reads this project's INNGEST_EVENT_KEY and
 // INNGEST_SIGNING_KEY; with neither set (local dev) the SDK talks to the
 // local dev server (`npx inngest-cli@latest dev`).
-export const inngest = new Inngest({ id: "immigration-case-tracker" });
+export const inngest = new Inngest({ id: "casepingo" });
 
 /** "ict/case.check-requested": run one scheduled USCIS check. */
 export interface CaseCheckRequestedData {

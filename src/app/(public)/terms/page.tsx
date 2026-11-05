@@ -3,7 +3,7 @@ import Link from "next/link";
 import { DraftNotice, Prose } from "@/components/public-chrome";
 import { SITE } from "@/lib/site";
 
-export const metadata: Metadata = { title: "Terms of Service · ImmigrationCaseTracker" };
+export const metadata: Metadata = { title: "Terms of Service · CasePingo" };
 
 export default function Terms() {
   return (

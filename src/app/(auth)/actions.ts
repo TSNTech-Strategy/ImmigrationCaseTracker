@@ -10,7 +10,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db";
 
 /** Version of the Terms/Privacy text accepted at sign-up. Bump when they change. */
-const TERMS_VERSION = "2026-11-04";
+const TERMS_VERSION = "2026-11-05";
 
 const email = z.string().trim().toLowerCase().email("Enter a valid email address.");
 const newPassword = z

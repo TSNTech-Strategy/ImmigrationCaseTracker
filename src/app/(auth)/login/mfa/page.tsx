@@ -7,7 +7,7 @@ import { signOutAction } from "../../actions";
 import { MfaForm } from "./mfa-form";
 
 export const instant = false;
-export const metadata: Metadata = { title: "Two-factor sign-in · ImmigrationCaseTracker" };
+export const metadata: Metadata = { title: "Two-factor sign-in · CasePingo" };
 
 export default async function MfaPage({ searchParams }: PageProps<"/login/mfa">) {
   const { next } = await searchParams;

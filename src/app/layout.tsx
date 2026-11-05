@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ImmigrationCaseTracker",
-  description: "Track authorized USCIS case statuses. Not affiliated with USCIS or DHS.",
+  title: "CasePingo · USCIS case tracker",
+  description: "CasePingo: track your USCIS case and get an alert when it changes. Not affiliated with USCIS or DHS.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

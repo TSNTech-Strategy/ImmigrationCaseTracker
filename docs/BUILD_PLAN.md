@@ -1,4 +1,6 @@
-# ImmigrationCaseTracker — Build Plan
+# CasePingo — Build Plan
+
+> Public brand **CasePingo** (decided Nov 5, 2026; domains casepingo.com + casepingo.app). The repo, the Supabase project and the USCIS developer app keep the name ImmigrationCaseTracker.
 
 **Based on:** *Master Development Guide v2.0* (Nov 4, 2026), adapted to Scanvio's backend pattern
 **Owner:** TSN TECH & STRATEGY NETWORK LLC

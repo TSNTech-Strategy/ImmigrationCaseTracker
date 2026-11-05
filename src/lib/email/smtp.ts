@@ -15,7 +15,7 @@ export const smtpDriver: EmailDriver = {
       auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS ?? "" } : undefined,
     });
     await transport.sendMail({
-      from: process.env.EMAIL_FROM || "ImmigrationCaseTracker <no-reply@immigrationcasetracker.local>",
+      from: process.env.EMAIL_FROM || "CasePingo <no-reply@casepingo.com>",
       to,
       subject,
       text: body,

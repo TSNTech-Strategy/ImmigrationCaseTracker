@@ -1,4 +1,8 @@
-# ImmigrationCaseTracker
+# CasePingo
+
+*Your USCIS case. We'll ping you when it moves.*
+
+> Brand: **CasePingo** (casepingo.com). This repository and the USCIS developer-portal app keep the name **ImmigrationCaseTracker**.
 
 USCIS case-status tracking for individuals, families and immigration law firms.
 TSN TECH & STRATEGY NETWORK LLC.

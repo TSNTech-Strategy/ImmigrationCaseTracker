@@ -10,7 +10,7 @@ export function MfaForm({ next }: { next?: string }) {
     <form action={action} className="flex flex-col gap-4" noValidate>
       <FormMessage state={state} />
       {next && <input type="hidden" name="next" value={next} />}
-      <p className="text-sm text-[var(--muted)]">Open your authenticator app and enter the 6-digit code for ImmigrationCaseTracker.</p>
+      <p className="text-sm text-[var(--muted)]">Open your authenticator app and enter the 6-digit code for CasePingo.</p>
       <Field
         label="Authentication code"
         name="code"

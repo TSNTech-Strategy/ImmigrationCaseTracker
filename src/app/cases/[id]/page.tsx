@@ -12,7 +12,7 @@ import { describeCadence } from "@/lib/plans";
 import { prisma } from "@/lib/db";
 import { RefreshButton, RemoveCaseForm } from "./case-actions";
 
-export const metadata: Metadata = { title: "Case · ImmigrationCaseTracker" };
+export const metadata: Metadata = { title: "Case · CasePingo" };
 
 type HistoryItem = { date?: { raw?: string } | null; textEn?: string | null; textEs?: string | null };
 

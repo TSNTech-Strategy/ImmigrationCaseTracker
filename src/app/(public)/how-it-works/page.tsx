@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Prose } from "@/components/public-chrome";
 import { SITE } from "@/lib/site";
 
-export const metadata: Metadata = { title: "How it works · ImmigrationCaseTracker" };
+export const metadata: Metadata = { title: "How it works · CasePingo" };
 
 export default function HowItWorks() {
   return (

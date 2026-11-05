@@ -1,4 +1,4 @@
-# Deploying ImmigrationCaseTracker
+# Deploying CasePingo
 
 Everything here is **new and separate from Scanvio**: a new Vercel project, a new Inngest app and a new email sender, all pointing at the ImmigrationCaseTracker Supabase project. Never reuse Scanvio's projects or keys.
 
@@ -6,24 +6,28 @@ The deployed app stays on the **USCIS sandbox** until USCIS approves production 
 
 ---
 
+## 0. Domains
+
+Buy **casepingo.com** (main site) and **casepingo.app** (redirects to it). The simplest place is the new Vercel project: **Settings → Domains → Buy**, so DNS is set up automatically. Make `casepingo.com` the primary domain, and set `casepingo.app` and `www.casepingo.com` to redirect to it. Use `https://casepingo.com` as `NEXT_PUBLIC_SITE_URL`.
+
 ## 1. Email sender (Resend recommended)
 
 Supabase's built-in sender only reaches your own team, so real users need this for sign-up emails and alerts.
 
 1. Create a Resend account for the company at https://resend.com.
-2. **Domains → Add domain.** Add the domain you'll send from and create the DNS records it shows (SPF/DKIM). Wait until it reads **Verified**.
+2. **Domains → Add domain.** Add `casepingo.com` and create the DNS records it shows (SPF/DKIM) in Vercel → Domains → DNS. Wait until it reads **Verified**.
 3. **API Keys → Create.** Copy the key; it's the SMTP password.
 4. SMTP settings for everything below:
    - Host `smtp.resend.com`, port `465`, user `resend`, password = the API key.
-   - From: `ImmigrationCaseTracker <alerts@your-domain.com>`.
+   - From: `CasePingo <alerts@casepingo.com>`.
 
 **Supabase sign-up and reset emails:** in Supabase → **Project Settings → Authentication → SMTP Settings**, turn on custom SMTP with the same details.
 
 ## 2. Inngest (background jobs): a new app, not Scanvio's
 
-1. At https://www.inngest.com, create a **new account or organization** for ImmigrationCaseTracker.
+1. At https://www.inngest.com, create a **new account or organization** for CasePingo.
 2. You'll copy two keys from it: the **Event key** (Manage → Event keys) and the **Signing key** (Manage → Signing key).
-3. The app registers itself as `immigration-case-tracker` when you sync it (step 5).
+3. The app registers itself as `casepingo` when you sync it (step 5).
 
 ## 3. Vercel project (new)
 
@@ -47,7 +51,7 @@ Set these in Vercel → Project → Settings → **Environment Variables**. Use 
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://<project-ref>.supabase.co` | No |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_…` | No |
 | `SUPABASE_SECRET_KEY` | `sb_secret_…` | **Yes** |
-| `NEXT_PUBLIC_SITE_URL` | The **stable** production address, e.g. `https://app.your-domain.com` (no trailing slash) | No |
+| `NEXT_PUBLIC_SITE_URL` | `https://casepingo.com` (the stable production address, no trailing slash) | No |
 | `ENCRYPTION_KEY` | **The same key as your local `.env`.** Receipts already stored were encrypted with it | **Yes** |
 | `USCIS_ENV` | `sandbox` | No |
 | `USCIS_CLIENT_ID` / `USCIS_CLIENT_SECRET` | Sandbox credentials | **Yes** |

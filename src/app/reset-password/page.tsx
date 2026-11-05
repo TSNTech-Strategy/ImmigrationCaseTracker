@@ -7,7 +7,7 @@ import { ResetForm } from "./reset-form";
 // (Cache Components: allowed to block instead of prerendering a shell).
 export const instant = false;
 
-export const metadata: Metadata = { title: "Set a new password · ImmigrationCaseTracker" };
+export const metadata: Metadata = { title: "Set a new password · CasePingo" };
 
 // Reached from the emailed reset link, which signs the user in first.
 export default async function ResetPasswordPage() {
