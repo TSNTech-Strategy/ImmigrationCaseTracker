@@ -35,18 +35,20 @@ model User {
   /// Same id as the Supabase Auth user (auth.users.id). Supabase Auth owns
   /// passwords, email verification, sessions and MFA; this table holds our
   /// profile and is created on the user's first authenticated request.
-  id            String    @id
-  email         String    @unique
-  name          String?
+  id               String    @id
+  email            String    @unique
+  name             String?
   /// "en" | "es" — UI language and which USCIS status text to show first.
-  locale        String    @default("en")
+  locale           String    @default("en")
   /// Set when the user turns on two-factor (TOTP) through our settings page;
   /// cleared when they turn it off. The server requires an aal2 session for
   /// these users. Authoritative — unlike the client-editable session cookie.
-  mfaEnrolledAt DateTime?
-  plan          Plan      @default(FREE)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  mfaEnrolledAt    DateTime?
+  plan             Plan      @default(FREE)
+  /// Stripe customer for Premium billing (Step 8). Never a card or bank detail.
+  stripeCustomerId String?   @unique
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   notificationPreference NotificationPreference?
   memberships            FirmMembership[]
@@ -59,6 +61,7 @@ model User {
   notificationDeliveries NotificationDelivery[]
   auditLogs              AuditLog[]
   deletionRequests       DeletionRequest[]
+  subscriptions          Subscription[]
 }
 
 model NotificationPreference {
@@ -85,15 +88,19 @@ enum FirmRole {
 }
 
 model Firm {
-  id          String     @id @default(cuid())
-  name        String
-  status      FirmStatus @default(ACTIVE)
-  /// Plan limit on tracked cases (Firm Starter = 100). Billing sets this later.
-  caseLimit   Int        @default(100)
-  /// End of the free trial (14 days, 10 cases). Null once on a paid plan.
-  trialEndsAt DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id               String     @id @default(cuid())
+  name             String
+  status           FirmStatus @default(ACTIVE)
+  /// Case limit: the trial's 10, then the paid plan's (Firm Solo 50, Firm 300).
+  caseLimit        Int        @default(10)
+  /// End of the free trial (14 days, 10 cases).
+  trialEndsAt      DateTime?
+  /// Paid plan, set from Stripe. Null = no active subscription (trial or lapsed).
+  plan             FirmPlan?
+  /// Stripe customer for the firm's billing (Step 8).
+  stripeCustomerId String?    @unique
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   memberships      FirmMembership[]
   invitations      FirmInvitation[]
@@ -101,6 +108,12 @@ model Firm {
   cases            TrackedCase[]
   auditLogs        AuditLog[]
   deletionRequests DeletionRequest[]
+  subscriptions    Subscription[]
+}
+
+enum FirmPlan {
+  SOLO
+  FIRM
 }
 
 model FirmMembership {
@@ -202,6 +215,9 @@ model TrackedCase {
   nickname         String?
 
   trackingStatus TrackingStatus @default(ACTIVE)
+  /// Why tracking is paused: "plan_limit" (over the Free plan's 1 case; resumes
+  /// on upgrade) or null (paused by the owner or consent).
+  pausedReason   String?
 
   // Latest known USCIS state (status texts are USCIS's public wording).
   formType            String?
@@ -402,4 +418,44 @@ model DeletionRequest {
   completedAt    DateTime?
 
   @@index([status, requestedAt])
+}
+
+enum BillingProduct {
+  PREMIUM
+  FIRM_SOLO
+  FIRM
+}
+
+/// A Stripe subscription, mirrored from Stripe webhooks (Stripe stays the
+/// source of truth; this row is re-synced from the API on every event).
+/// Exactly one of userId / firmId is set (CHECK constraint in SQL).
+model Subscription {
+  id                   String         @id @default(cuid())
+  stripeSubscriptionId String         @unique
+  stripeCustomerId     String
+  userId               String?
+  user                 User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  firmId               String?
+  firm                 Firm?          @relation(fields: [firmId], references: [id], onDelete: SetNull)
+  product              BillingProduct
+  /// "month" | "year"
+  interval             String
+  /// Stripe status: active, trialing, past_due, canceled, unpaid, incomplete...
+  status               String
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean        @default(false)
+  /// When the subscription first became past_due (grace period start).
+  pastDueSince         DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([firmId])
+}
+
+/// Stripe webhook events already processed (idempotency). Ids only.
+model StripeEvent {
+  id          String   @id
+  type        String
+  processedAt DateTime @default(now())
 }

@@ -4,6 +4,7 @@ import { isValidReceiptNumber, maskReceiptNumber, normalizeReceiptNumber } from 
 import { protectReceipt, receiptDigestOf } from "@/lib/cases/receipt-store";
 import { FIRM_CONSENT_VERSION, type FirmConsentBasis } from "./consent";
 import { findFirmContext, type FirmContext } from "./service";
+import { firmChecksAllowed } from "@/lib/billing/entitlements";
 
 /**
  * Bulk-add a firm's cases from a CSV file, in two steps:
@@ -70,8 +71,8 @@ export const IMPORT_TEMPLATE =
 export function createFirmImportService({ db, now = () => new Date() }: { db: PrismaClient; now?: () => Date }) {
   async function plan(ctx: FirmContext, text: string, defaults: ImportDefaults): Promise<{ ok: true; rows: Resolved[] } | Fail> {
     if (Buffer.byteLength(text, "utf8") > IMPORT_MAX_BYTES) return fail("That file is too large. Split it into files of up to 200 cases.");
-    if (ctx.firm.trialEndsAt && ctx.firm.trialEndsAt <= now()) {
-      return fail("Your free trial has ended, so new cases can't be added yet. Paid plans are coming soon.");
+    if (!firmChecksAllowed(ctx.firm, now())) {
+      return fail("Your free trial has ended. Choose a plan in Firm → Billing to add cases.");
     }
     const table = parseCsv(text);
     if (table.length < 2) return fail("The file needs a header row and at least one case.");

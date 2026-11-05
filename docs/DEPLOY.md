@@ -67,7 +67,7 @@ Deploy. Environment changes apply only to new deployments, so redeploy after cha
 
 ## 5. Connect Inngest to the deployment
 
-In Inngest → **Apps → Sync new app**, enter `https://<your-production-domain>/api/inngest`. Alternatively, install the Inngest integration from the Vercel Marketplace on **this** project only. You should see three functions: `schedule-case-checks`, `check-case`, `notify-status-change`.
+In Inngest → **Apps → Sync new app**, enter `https://<your-production-domain>/api/inngest`. Alternatively, install the Inngest integration from the Vercel Marketplace on **this** project only. You should see four functions: `schedule-case-checks`, `check-case`, `notify-status-change`, `billing-reconcile`. Re-sync after a deploy that adds functions (Inngest → Apps → CasePingo → **Resync**).
 
 Scheduled checks run **only on the production deployment**. Previews share the production database, so they never start their own polling.
 
@@ -84,6 +84,31 @@ In Supabase → **Authentication → URL Configuration**:
 3. Add `EAC9999103402`. It's checked immediately (sandbox).
 4. In Inngest → Runs, `schedule-case-checks` runs every 15 minutes, and `check-case` runs when a case is due.
 5. In Supabase → Table Editor → `CaseCheckRun`, rows appear with `trigger = SCHEDULED`.
+
+## 8. Billing (Stripe)
+
+Use a **new Stripe account for CasePingo** (same login is fine: Stripe → account menu → **New account**), never Scanvio's. Start in **test mode**: nothing is charged and test cards work.
+
+1. **Business details.** In the CasePingo account, fill in the business profile for TSN TECH & STRATEGY NETWORK LLC (name, support email, statement descriptor, e.g. `CASEPINGO`).
+2. **Stripe Tax.** Tax → **Get started**: add the business address, then a **registration** for each state where you collect sales tax (ask your accountant which). Checkout adds tax on top of the listed price.
+3. **Keys → local `.env`.** Developers → API keys, test mode: copy the **Secret key** (`sk_test_…`) into your local `.env` as `STRIPE_SECRET_KEY`. Never paste it into chat.
+4. **Run the setup once** (safe to re-run; it updates rather than duplicates):
+   ```bash
+   npm run stripe:setup
+   ```
+   It creates the 3 products and 4 prices (Premium $3.99/mo and $29/yr, Firm Solo $39/mo, Firm $99/mo), the founding-firm coupon (50% off for 12 months, 25 firms), the customer portal (cancel at period end, change card or plan) and the webhook for `https://casepingo.com/api/stripe/webhook`. It prints the webhook's **signing secret** once.
+5. **Vercel** → casepingo → Settings → Environment Variables, **Production only** (previews share the production database, so they must not take payments):
+
+   | Variable | Value | Secret? |
+   |---|---|---|
+   | `STRIPE_SECRET_KEY` | The same `sk_test_…` key | **Yes** |
+   | `STRIPE_WEBHOOK_SECRET` | The `whsec_…` printed by the setup | **Yes** |
+
+   Then **redeploy**. Paid plans appear only when `STRIPE_SECRET_KEY` is set.
+6. **Renewal reminder.** Settings → Billing → **Subscriptions and emails**: set *Upcoming renewal events* to **7 days**, and turn on Stripe's emails for failed payments and expiring cards.
+7. **Test** with card `4242 4242 4242 4242`, any future date, any CVC: Settings → Get Premium → pay → back on Settings it says "Premium is on". Then Manage billing → cancel → it shows when Premium ends.
+
+**Going live** (only when you're ready to charge): switch Stripe to live mode, repeat steps 3–5 with the live key (`sk_live_…`) and the new webhook secret, and redeploy.
 
 ## Local development
 

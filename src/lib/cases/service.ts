@@ -18,6 +18,7 @@ import {
 import { InvalidReceiptError, protectReceipt, revealReceipt } from "./receipt-store";
 import { redactSnapshot } from "@/lib/uscis/text";
 import { checkIntervalMs, formatUsd, PLAN_LIMITS, PRICES } from "@/lib/plans";
+import { firmChecksAllowed } from "@/lib/billing/entitlements";
 
 /**
  * Everything a signed-in individual can do with their own cases.
@@ -57,6 +58,7 @@ export const caseViewSelect = {
   receiptMasked: true,
   nickname: true,
   trackingStatus: true,
+  pausedReason: true,
   formType: true,
   statusTitleEn: true,
   statusTitleEs: true,
@@ -225,6 +227,13 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
     const t = now();
 
     if (c.trackingStatus !== "ACTIVE") return { status: "paused", message: "Tracking is paused for this case." };
+
+    if (c.firmId) {
+      const firm = await db.firm.findUnique({ where: { id: c.firmId }, select: { plan: true, trialEndsAt: true, status: true } });
+      if (!firm || !firmChecksAllowed(firm, t)) {
+        return { status: "paused", message: "Your firm's free trial has ended. Choose a plan in Firm → Billing to turn checks back on." };
+      }
+    }
 
     const consent = await db.caseConsent.findFirst({ where: { caseId: c.id, withdrawnAt: null }, select: { id: true } });
     if (!consent) return { status: "no_consent", message: "This case has no active consent, so it isn't checked." };

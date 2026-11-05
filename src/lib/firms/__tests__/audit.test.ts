@@ -131,5 +131,7 @@ describe.skipIf(!url)("firm activity log", () => {
     const logged = await db.auditLog.findFirstOrThrow({ where: { firmId: f.firm.id, action: "audit.exported" } });
     expect(logged.metadata).toEqual({ rows: 2, category: null });
     expect(describeAudit("audit.exported", { rows: 2 }, "")).toBe("Exported the activity log (2 entries)");
+    expect(describeAudit("firm.plan_changed", { from: null, to: "SOLO", caseLimit: 50 }, "")).toBe("Plan changed to Firm Solo (50 cases)");
+    expect(describeAudit("firm.plan_changed", { from: "FIRM", to: null, caseLimit: 10 }, "")).toBe("Paid plan ended (was Firm)");
   });
 });

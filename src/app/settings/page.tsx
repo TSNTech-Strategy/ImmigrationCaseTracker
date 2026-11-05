@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PLAN_LIMITS, PRICES, describeCadence, formatUsd } from "@/lib/plans";
+import { PlanSection } from "./plan-section";
 import { AlertsForm, DeleteAccountForm, MfaDisable, MfaSetup, PasswordForm, ProfileForm } from "./forms";
 
 export const metadata: Metadata = { title: "Settings · CasePingo" };
@@ -22,8 +22,9 @@ function Section({ id, title, children, danger }: { id: string; title: string; c
   );
 }
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }: PageProps<"/settings">) {
   const user = await requireUser("/settings");
+  const sp = await searchParams;
   const prefs = await prisma.notificationPreference.findUnique({ where: { userId: user.id } });
   const plan = (await prisma.user.findUnique({ where: { id: user.id }, select: { plan: true } }))?.plan ?? "FREE";
 
@@ -43,15 +44,7 @@ export default async function SettingsPage() {
         <ProfileForm name={user.name ?? ""} locale={user.locale} />
       </Section>
       <Section id="plan-h" title="Plan">
-        <p>
-          <strong>{PLAN_LIMITS[plan].label}</strong>: up to {PLAN_LIMITS[plan].maxCases} {PLAN_LIMITS[plan].maxCases === 1 ? "case" : "cases"},
-          checked {describeCadence(plan)}.
-        </p>
-        {plan === "FREE" && (
-          <p className="text-sm text-[var(--muted)]">
-            Premium (up to 10 cases for your family, checked twice a day) is coming soon for {formatUsd(PRICES.premium.yearly)} a year.
-          </p>
-        )}
+        <PlanSection userId={user.id} plan={plan} billing={typeof sp.billing === "string" ? sp.billing : undefined} sessionId={typeof sp.session_id === "string" ? sp.session_id : undefined} />
       </Section>
       <Section id="alerts-h" title="Alerts">
         <AlertsForm emailOnChange={prefs?.emailOnChange ?? true} />

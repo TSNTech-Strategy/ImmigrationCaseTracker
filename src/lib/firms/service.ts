@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import type { Firm, FirmMembership, FirmRole, PrismaClient } from "@prisma/client";
 import type { EmailDriver } from "@/lib/email";
 import { firmInviteEmail } from "@/lib/email/templates";
+import { FIRM_PLANS } from "@/lib/plans";
 
 /**
  * Law-firm workspaces (CasePingo Pro): creation, team, invitations.
@@ -109,6 +110,17 @@ export function createFirmService({ db, mailer, siteUrl, now = () => new Date() 
       select: { id: true },
     });
     if (already) return fail("That person is already on your team.");
+
+    const maxUsers = ctx.firm.plan ? FIRM_PLANS[ctx.firm.plan].maxUsers : null;
+    if (maxUsers !== null) {
+      const [members, pending] = await Promise.all([
+        db.firmMembership.count({ where: { firmId: ctx.firm.id, revokedAt: null } }),
+        db.firmInvitation.count({ where: { firmId: ctx.firm.id, acceptedAt: null, revokedAt: null, expiresAt: { gt: now() }, NOT: { email } } }),
+      ]);
+      if (members + pending >= maxUsers) {
+        return fail(`${FIRM_PLANS[ctx.firm.plan!].label} includes ${maxUsers} team members. Switch to Firm in Billing for unlimited members.`);
+      }
+    }
 
     const token = randomBytes(32).toString("base64url");
     const t = now();

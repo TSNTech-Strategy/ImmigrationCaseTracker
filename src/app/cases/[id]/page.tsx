@@ -10,11 +10,15 @@ import { getUscisClient } from "@/lib/uscis";
 import { describeCadence } from "@/lib/plans";
 import { prisma } from "@/lib/db";
 import { RefreshButton, RemoveCaseForm } from "./case-actions";
+import { CheckThisCaseButton } from "@/app/billing/buttons";
 import { CaseStatusPanel, ObservedChanges, UscisHistory, USCIS_SOURCE_NOTE } from "@/components/case-status";
 
 export const metadata: Metadata = { title: "Case · CasePingo" };
 
-const NOTICES: Record<string, string> = { added: "Case added. We checked it with USCIS right away." };
+const NOTICES: Record<string, string> = {
+  added: "Case added. We checked it with USCIS right away.",
+  "now-checked": "Done. We'll check this case from now on; your other case is paused.",
+};
 
 export default async function CasePage({ params, searchParams }: PageProps<"/cases/[id]">) {
   const { id } = await params;
@@ -48,10 +52,27 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
         </p>
       )}
 
+      {c.pausedReason === "plan_limit" && (
+        <section aria-labelledby="paused-h" className="flex flex-col gap-3 rounded-xl border border-[var(--danger)] bg-[var(--surface)] p-5">
+          <h2 id="paused-h" className="font-semibold">
+            This case is paused
+          </h2>
+          <p className="text-sm">
+            The Free plan checks 1 case automatically. Your history is kept. Check this case instead of your other one, or{" "}
+            <Link href="/settings#plan-h" className="underline underline-offset-2">
+              upgrade to Premium
+            </Link>{" "}
+            to check up to 10.
+          </p>
+          <div>
+            <CheckThisCaseButton caseId={c.id} />
+          </div>
+        </section>
+      )}
       <CaseStatusPanel
         c={c}
         es={es}
-        actions={<RefreshButton caseId={c.id} />}
+        actions={c.trackingStatus === "ACTIVE" ? <RefreshButton caseId={c.id} /> : undefined}
         footnote={<>We check automatically {describeCadence(plan)} and email you when the status changes. {USCIS_SOURCE_NOTE}</>}
       />
       <ObservedChanges events={c.events} es={es} />

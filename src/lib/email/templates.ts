@@ -83,3 +83,31 @@ export function firmInviteEmail(p: {
     ].join("\n"),
   };
 }
+
+/** Our own reminder before a yearly renewal (the billing promise on the pricing page). */
+export function renewalReminderEmail(p: {
+  to: string;
+  name: string | null;
+  planName: string;
+  amount: string;
+  renewsOn: Date;
+  manageUrl: string;
+}): EmailMessage {
+  const day = p.renewsOn.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
+  return {
+    to: p.to,
+    subject: `Your ${p.planName} plan renews on ${day}`,
+    body: [
+      `Hi${p.name ? ` ${p.name}` : ""},`,
+      "",
+      `This is a reminder that your yearly ${p.planName} plan renews on ${day}, for ${p.amount}.`,
+      "",
+      "Nothing to do if you'd like to keep it. To cancel or change your plan, open:",
+      p.manageUrl,
+      "",
+      "If you cancel, you keep your plan until the end of the period you paid for. Your cases and history stay.",
+      "",
+      "CasePingo is an independent service, not affiliated with USCIS or DHS, and does not provide legal advice.",
+    ].join("\n"),
+  };
+}
