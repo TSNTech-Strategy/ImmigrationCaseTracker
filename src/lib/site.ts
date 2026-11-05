@@ -3,7 +3,8 @@
 export const SITE = {
   /** Public brand. (The USCIS developer app and the repo keep the name ImmigrationCaseTracker.) */
   name: "CasePingo",
-  tagline: "Your USCIS case. We'll ping you when it moves.",
+  /** Official tagline (brand kit v1). */
+  tagline: "Never Miss a Case Update",
   /** Primary domain once purchased; the live address comes from NEXT_PUBLIC_SITE_URL. */
   domain: "casepingo.com",
   company: "TSN TECH & STRATEGY NETWORK LLC",

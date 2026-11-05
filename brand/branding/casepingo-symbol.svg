@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<!-- file folder silhouette -->
+<path d="M232 343 C232 318 253 297 279 297 H401 C423 297 436 302 452 320 L495 365 H744 C780 365 807 392 807 428 V709 C807 749 778 776 738 776 H272 C232 776 202 747 202 709 V388 C202 362 214 348 232 343 Z" fill="#FFFFFF"/>
+<!-- folder inner inset gives a recognizable file -->
+<path d="M282 449 H697" stroke="#C8E2FA" stroke-width="20" stroke-linecap="round" />
+<path d="M290 538 H608" stroke="#2B689F" stroke-width="27" stroke-linecap="round" />
+<path d="M290 603 H569" stroke="#2B689F" stroke-width="27" stroke-linecap="round" />
+<path d="M290 668 H481" stroke="#2B689F" stroke-width="27" stroke-linecap="round" />
+<!-- red notification badge with white border -->
+<circle cx="759" cy="314" r="127" fill="#FFFFFF"/>
+<circle cx="759" cy="314" r="108" fill="#E43B53"/>
+<!-- white notification bell -->
+<path d="M758 248 C721 248 701 273 701 309 V340 C701 352 696 361 684 372 C680 376 682 384 689 386 H828 C836 386 838 376 831 370 C819 361 817 351 817 339 V306 C817 272 796 248 758 248 Z" fill="#FFFFFF"/>
+<circle cx="759" cy="246" r="13" fill="#FFFFFF"/>
+<path d="M740 396 C746 417 773 424 785 396" stroke="#FFFFFF" stroke-width="14" fill="none" stroke-linecap="round" />
+</svg>

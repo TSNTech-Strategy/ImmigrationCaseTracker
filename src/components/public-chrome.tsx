@@ -1,14 +1,13 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { SITE } from "@/lib/site";
+import { Logo } from "./logo";
 
 export function PublicHeader() {
   return (
     <header className="border-b border-[var(--border)] bg-[var(--surface)]">
       <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <Link href="/" className="font-semibold tracking-tight">
-          {SITE.name}
-        </Link>
+        <Logo />
         <nav aria-label="Main" className="flex flex-wrap items-center gap-4 text-sm">
           <Link href="/how-it-works" className="hover:underline underline-offset-2">How it works</Link>
           <Link href="/pricing" className="hover:underline underline-offset-2">Pricing</Link>

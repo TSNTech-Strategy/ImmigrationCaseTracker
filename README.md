@@ -1,6 +1,6 @@
 # CasePingo
 
-*Your USCIS case. We'll ping you when it moves.*
+*Never Miss a Case Update.*
 
 > Brand: **CasePingo** (casepingo.com). This repository and the USCIS developer-portal app keep the name **ImmigrationCaseTracker**.
 
@@ -64,3 +64,7 @@ USCIS, encryption and (later) Stripe/SMTP secrets are **server-only environment 
 - `AuditLog`, `DeletionRequest`, `NotificationPreference` and `NotificationDelivery` (idempotent alerts) are also included.
 - Row Level Security is enabled on every table, and Supabase's `anon`/`authenticated` API roles are revoked. The app reaches the data only through Prisma on the server.
 - Migrations run automatically on production deploys (`scripts/migrate-on-deploy.mjs`), but not on previews, same as Scanvio.
+
+## Brand assets (`brand/`)
+
+The official CasePingo kit (v1): logos, the iOS 1024 icon, Android adaptive and Play Store icons, web favicons and PWA icons, and the 1200×630 social image. Colours: navy `#0A2345`, blue `#1758A8`, red `#E43B53`. The website uses them via `src/app/{favicon.ico,icon.png,apple-icon.png,opengraph-image.png}`, `src/app/manifest.ts` and `public/brand/`. The iOS and Android files are for the Expo app (Step 9). See `brand/README.md`.

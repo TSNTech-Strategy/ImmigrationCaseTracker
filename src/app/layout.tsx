@@ -13,8 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CasePingo · USCIS case tracker",
+  title: "CasePingo · Never miss a case update",
   description: "CasePingo: track your USCIS case and get an alert when it changes. Not affiliated with USCIS or DHS.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://casepingo.com"),
+  applicationName: "CasePingo",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

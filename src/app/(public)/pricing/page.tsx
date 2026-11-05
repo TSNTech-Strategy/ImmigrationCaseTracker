@@ -23,11 +23,11 @@ const PLANS = [
     soon: true,
   },
   {
-    name: "Firm Starter",
+    name: "CasePingo Pro",
     price: "$99",
     period: "/month",
     note: "14-day free trial",
-    for: "Immigration law firms",
+    for: "Immigration law firms · Firm Starter",
     features: ["Up to 100 authorized client cases", "Staff accounts and roles", "CSV import", "Audit trail and export"],
     soon: true,
   },
