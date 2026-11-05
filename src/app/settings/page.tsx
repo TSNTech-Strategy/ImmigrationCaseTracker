@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PLAN_LIMITS, describeCadence } from "@/lib/plans";
+import { PLAN_LIMITS, PRICES, describeCadence, formatUsd } from "@/lib/plans";
 import { AlertsForm, DeleteAccountForm, MfaDisable, MfaSetup, PasswordForm, ProfileForm } from "./forms";
 
 export const metadata: Metadata = { title: "Settings · CasePingo" };
@@ -47,7 +47,11 @@ export default async function SettingsPage() {
           <strong>{PLAN_LIMITS[plan].label}</strong>: up to {PLAN_LIMITS[plan].maxCases} {PLAN_LIMITS[plan].maxCases === 1 ? "case" : "cases"},
           checked {describeCadence(plan)}.
         </p>
-        {plan === "FREE" && <p className="text-sm text-[var(--muted)]">Premium (up to 10 cases, checked twice a day) is coming soon.</p>}
+        {plan === "FREE" && (
+          <p className="text-sm text-[var(--muted)]">
+            Premium (up to 10 cases for your family, checked twice a day) is coming soon for {formatUsd(PRICES.premium.yearly)} a year.
+          </p>
+        )}
       </Section>
       <Section id="alerts-h" title="Alerts">
         <AlertsForm emailOnChange={prefs?.emailOnChange ?? true} />

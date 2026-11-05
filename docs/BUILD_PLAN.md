@@ -77,7 +77,7 @@ Each step is small enough to review on its own before the next one starts.
 - Tested end to end (stand-in auth server): QR set-up, wrong codes rejected, pages/API blocked until the code is entered (HTTP 307 / 401), turn off, password change, account deletion.
 
 ### Step 6 — Automatic checks, alerts, deploy (code ✅ · deploy pending)
-- Plans (decided Nov 5): **Free** 1 case, checked daily, email alerts · **Premium** 10 cases, twice daily ($5.99/mo or $49/yr, coming soon) · **Firm Starter** $99/mo after a 14-day trial. `User.plan`; set by hand until billing.
+- Plans: **Free** 1 case, checked daily, email alerts · **Premium** 10 cases, twice daily. `User.plan`; set by hand until billing. Launch prices (revised Nov 5 after a competitor review): see Step 8.
 - Inngest (ICT's own app, not Scanvio's): every 15 min find due cases (active consent required) → one `check-case` per case, throttled to 3 USCIS calls/second, evenly spaced (sandbox spike arrest: 1 call per 200 ms) → `notify-status-change` emails the owner once per change (idempotent), in their language, masked receipt only.
 - Circuit breaker pauses ticks when USCIS calls fail in bulk; duplicate/late events never cause extra calls; scheduled jobs never run on preview deployments.
 - Email via SMTP (Resend recommended), console in development — same structure as Scanvio.
@@ -93,7 +93,19 @@ Each step is small enough to review on its own before the next one starts.
 - Cross-firm isolation tests and an audit log entry for every change.
 
 ### Step 8 — Billing + admin
-- Stripe Checkout/Billing, signed idempotent webhooks, entitlements (Free 1 case / Premium / Firm Starter 100 cases).
+- **Launch prices** (Nov 5, 2026; single source `src/lib/plans.ts`):
+
+  | Plan | Price | Includes |
+  |---|---|---|
+  | Free | $0 | 1 case, daily checks, email alerts |
+  | Premium | $3.99/mo or **$29/yr** (≈ $2.41/mo) | 10 cases (family), twice-daily checks |
+  | Firm Solo | $39/mo | 50 cases, 2 users |
+  | Firm | $99/mo | 300 cases, unlimited users |
+
+  Firms: 14-day free trial (10 cases, no card). Founding offer: first 25 firms get 50% off for 12 months.
+  Why: competitors charge $9.99–$14.99/mo; the cheapest major yearly plan we found was $29.99 (Lawfully $14.99/mo; Case Tracker for USCIS $12.99/mo or $39.99/yr; Silent Case Tracker $9.99/mo or $29.99/yr). Many users are new immigrants on tight budgets, and USCIS's own account sends free updates, so we aim to be the most affordable paid option and keep a real Free plan. Firm case-management suites cost about $55–$120 per user per month; we're one focused tool at a flat firm price.
+- **Billing promise** (on the pricing page, must be honoured in Step 8): cancel in Settings in two clicks; an email before every yearly renewal; no hidden fees; on cancel, keep Premium to the end of the paid period, then drop to Free with cases kept.
+- Stripe Checkout/Billing, signed idempotent webhooks, entitlements from `PLAN_LIMITS` / `FIRM_PLANS` (Firm Solo user cap enforced on invite), founding-firm coupon.
 - `/admin`: sanitized job metrics, failed syncs, deletion requests (as in Scanvio's `ADMIN_EMAILS`).
 
 ### Step 9 — Mobile (Expo)
