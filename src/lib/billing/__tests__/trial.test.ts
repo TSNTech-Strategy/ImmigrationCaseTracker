@@ -41,6 +41,10 @@ describe.skipIf(!url)("Free plan and Premium trial", () => {
   const cases = createCaseService({ db, uscis, now, env: {} });
   const users: string[] = [];
   const tag = randomUUID().slice(0, 8);
+  // Fingerprints outlive test accounts by design, so each run uses fresh receipt numbers.
+  const rnd = () => `IOE${String(Math.floor(Math.random() * 1e10)).padStart(10, "0")}`;
+  const shared = rnd();
+  const freeReceipt = rnd();
   const mkUser = async (email = `t-${randomUUID()}@test.dev`) => {
     const id = randomUUID();
     await db.user.create({ data: { id, email, name: "Trial" } });
@@ -73,26 +77,27 @@ describe.skipIf(!url)("Free plan and Premium trial", () => {
   it("ends a trial when the receipt number already had a trial on another account", async () => {
     const first = await mkUser();
     await trial.grantNewAccountTrial(first.id, first.email);
-    expect(await cases.addCase(first.id, { receipt: "IOE0000000777", basis: "SELF" })).toMatchObject({ ok: true });
+    expect(await cases.addCase(first.id, { receipt: shared, basis: "SELF" })).toMatchObject({ ok: true });
     // The same person removing and re-adding their own case keeps the trial.
     const c = await db.trackedCase.findFirstOrThrow({ where: { ownerUserId: first.id } });
     await cases.removeCase(first.id, c.id);
-    expect(await cases.addCase(first.id, { receipt: "IOE0000000777", basis: "SELF" })).toMatchObject({ ok: true });
+    expect(await cases.addCase(first.id, { receipt: shared, basis: "SELF" })).toMatchObject({ ok: true });
     expect((await db.user.findUniqueOrThrow({ where: { id: first.id } })).plan).toBe("PREMIUM");
 
     const second = await mkUser(`other-${tag}@test.dev`);
     await trial.grantNewAccountTrial(second.id, second.email);
-    expect(await cases.addCase(second.id, { receipt: "IOE0000000777", basis: "SELF" })).toMatchObject({ ok: true });
+    expect(await cases.addCase(second.id, { receipt: shared, basis: "SELF" })).toMatchObject({ ok: true });
     const s = await db.user.findUniqueOrThrow({ where: { id: second.id } });
     expect(s.plan).toBe("FREE");
     expect(s.trialEndsAt!.getTime()).toBeLessThanOrEqual(clock.getTime());
     expect(await db.trialLedger.count({ where: { key: { startsWith: "receipt:" } } })).toBeGreaterThan(0);
-    expect(JSON.stringify(await db.trialLedger.findMany())).not.toMatch(/0000000777|@/);
+    expect(JSON.stringify(await db.trialLedger.findMany())).not.toContain(shared.slice(3));
+    expect(JSON.stringify(await db.trialLedger.findMany())).not.toMatch(/@/);
   });
 
   it("Free: no automatic checks, no alerts, 3 manual checks a day with an upgrade message", async () => {
     const u = await mkUser();
-    const added = await cases.addCase(u.id, { receipt: "IOE0000000888", basis: "SELF" });
+    const added = await cases.addCase(u.id, { receipt: freeReceipt, basis: "SELF" });
     if (!added.ok) throw new Error();
     days(2);
     expect(await findDueCaseIds(db, clock)).not.toContain(added.caseId);
