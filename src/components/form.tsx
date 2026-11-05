@@ -44,7 +44,7 @@ export function Field({
             setEditedAfter(serverError);
             onChange?.(e);
           }}
-          className={`w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] aria-[invalid=true]:border-[var(--danger)] ${isPassword ? "pr-11" : ""}`}
+          className={`w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-base outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] aria-[invalid=true]:border-[var(--danger)] ${isPassword ? "pr-11" : ""}`}
           {...input}
           type={isPassword && reveal ? "text" : input.type}
         />
@@ -81,7 +81,7 @@ export function SubmitButton({ children, pendingText }: { children: ReactNode; p
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-[var(--accent)] px-4 py-2.5 font-medium text-[var(--accent-fg)] hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:opacity-60"
+      className="rounded-xl bg-[var(--accent)] px-4 py-2.5 font-semibold text-[var(--accent-fg)] shadow-sm hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:opacity-60"
     >
       {pending ? (pendingText ?? "Please wait…") : children}
     </button>
