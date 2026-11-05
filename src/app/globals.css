@@ -1,46 +1,246 @@
 @import "tailwindcss";
 
+/*
+ * CasePingo design tokens (brand kit v1: navy #0A2345, blue #1758A8, red #E43B53).
+ * Neutrals lean slightly toward the brand navy. Three theme states:
+ * - no data-theme: follows the device (prefers-color-scheme)
+ * - data-theme="light" / "dark": the visitor's choice from the day/night toggle
+ * Every component reads these tokens, so both themes stay consistent.
+ */
 :root {
-  --background: #f7f7f5;
-  --foreground: #1a1a1a;
+  --background: #f5f7fb;
+  --foreground: #0f1b2d;
   --surface: #ffffff;
-  --border: #d9d9d4;
-  --muted: #5f5f5a;
+  --surface-2: #eef2f8; /* subtle bands, table heads */
+  --border: #dce3ee;
+  --muted: #56637a;
   --accent: #1758a8; /* brand blue */
+  --accent-hover: #10478c;
+  --accent-soft: #e6effb;
   --accent-fg: #ffffff;
-  --brand-ink: #0a2345; /* brand navy */
-  --brand-red: #e43b53; /* brand red accent (logo / large marks) */
+  --brand-ink: #0a2345; /* brand navy: headings, logo */
+  --brand-red: #e43b53; /* logo and large marks */
   --brand-red-text: #b8233a; /* same hue, 4.5:1+ for small text */
   --danger: #b42318;
   --success: #1e7a43;
+  --success-soft: #e7f5ec;
+  --shadow: 0 1px 2px rgb(15 27 45 / 0.06), 0 8px 24px -12px rgb(15 27 45 / 0.18);
+  --is-dark: 0; /* drives the day/night toggle animation */
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #111213;
-    --foreground: #ececec;
-    --surface: #1b1c1e;
-    --border: #34363a;
-    --muted: #a3a3a0;
-    --accent: #7fa8e0;
-    --accent-fg: #0d1520;
-    --brand-ink: #ececec;
+  :root:not([data-theme="light"]) {
+    --background: #0a1220;
+    --foreground: #e7edf6;
+    --surface: #111b2e;
+    --surface-2: #0e1727;
+    --border: #23324b;
+    --muted: #9aa9c1;
+    --accent: #6ea8ff;
+    --accent-hover: #93bfff;
+    --accent-soft: #15284a;
+    --accent-fg: #07101f;
+    --brand-ink: #f1f5fb;
     --brand-red: #ff6b7d;
     --brand-red-text: #ff8b98;
     --danger: #f2877d;
     --success: #6fcf97;
+    --success-soft: #11291c;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.7);
+    --is-dark: 1;
+    color-scheme: dark;
   }
+}
+
+:root[data-theme="dark"] {
+  --background: #0a1220;
+  --foreground: #e7edf6;
+  --surface: #111b2e;
+  --surface-2: #0e1727;
+  --border: #23324b;
+  --muted: #9aa9c1;
+  --accent: #6ea8ff;
+  --accent-hover: #93bfff;
+  --accent-soft: #15284a;
+  --accent-fg: #07101f;
+  --brand-ink: #f1f5fb;
+  --brand-red: #ff6b7d;
+  --brand-red-text: #ff8b98;
+  --danger: #f2877d;
+  --success: #6fcf97;
+  --success-soft: #11291c;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.7);
+  --is-dark: 1;
+  color-scheme: dark;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-jakarta), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-body {
-  background: var(--background);
+/* Base styles live in the base layer so utility classes (e.g. text-white) can override them. */
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-jakarta), system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  h1,
+  h2 {
+    color: var(--brand-ink);
+    letter-spacing: -0.02em;
+  }
+}
+
+::selection {
+  background: var(--accent-soft);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Smooth colour change when the theme flips (not on first paint, not for reduced motion). */
+.theme-ready body,
+.theme-ready header,
+.theme-ready footer,
+.theme-ready section,
+.theme-ready main {
+  transition:
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    color 0.35s ease;
+}
+
+/* ---- Day / night toggle ---------------------------------------------------- */
+.theme-toggle {
+  position: relative;
+  display: inline-flex;
+  width: 3.5rem;
+  height: 1.875rem;
+  flex: none;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  background: linear-gradient(180deg, #7cc0ff 0%, #4a97f0 100%);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.25);
+  cursor: pointer;
+}
+.theme-toggle::before {
+  /* night sky fades in over the day sky */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #0b1a3a 0%, #1f2d5c 100%);
+  opacity: var(--is-dark);
+  transition: opacity 0.5s ease;
+}
+.theme-toggle .tt-cloud,
+.theme-toggle .tt-star {
+  position: absolute;
+  border-radius: 999px;
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+.theme-toggle .tt-cloud {
+  background: #fff;
+  opacity: calc(1 - var(--is-dark));
+  transform: translateY(calc(var(--is-dark) * 0.6rem));
+}
+.theme-toggle .tt-cloud.c1 {
+  width: 0.95rem;
+  height: 0.42rem;
+  right: 0.55rem;
+  top: 0.95rem;
+}
+.theme-toggle .tt-cloud.c2 {
+  width: 0.6rem;
+  height: 0.32rem;
+  right: 1.25rem;
+  top: 0.55rem;
+  opacity: calc(0.85 - var(--is-dark));
+}
+.theme-toggle .tt-star {
+  width: 0.16rem;
+  height: 0.16rem;
+  background: #fff;
+  opacity: var(--is-dark);
+  transform: translateY(calc((1 - var(--is-dark)) * -0.5rem));
+}
+.theme-toggle .tt-star.s1 {
+  left: 0.55rem;
+  top: 0.45rem;
+}
+.theme-toggle .tt-star.s2 {
+  left: 1.05rem;
+  top: 1.15rem;
+  width: 0.12rem;
+  height: 0.12rem;
+}
+.theme-toggle .tt-star.s3 {
+  left: 1.5rem;
+  top: 0.6rem;
+  width: 0.1rem;
+  height: 0.1rem;
+}
+.theme-toggle .tt-knob {
+  position: absolute;
+  top: 0.1875rem;
+  left: 0.1875rem;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 999px;
+  transform: translateX(calc(var(--is-dark) * 1.625rem)) rotate(calc(var(--is-dark) * 220deg));
+  transition: transform 0.55s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.theme-toggle .tt-sun,
+.theme-toggle .tt-moon {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  transition: opacity 0.45s ease;
+}
+.theme-toggle .tt-sun {
+  background: radial-gradient(circle at 35% 35%, #fff4b0 0%, #ffd43b 45%, #f6a609 100%);
+  box-shadow: 0 0 0.5rem rgb(255 212 59 / 0.85);
+  opacity: calc(1 - var(--is-dark));
+}
+.theme-toggle .tt-moon {
+  background:
+    radial-gradient(circle at 30% 35%, #c5cddb 0 0.14rem, transparent 0.15rem),
+    radial-gradient(circle at 62% 64%, #c5cddb 0 0.2rem, transparent 0.21rem),
+    radial-gradient(circle at 66% 28%, #c5cddb 0 0.09rem, transparent 0.1rem),
+    radial-gradient(circle at 40% 40%, #ffffff 0%, #e3e8f1 70%);
+  box-shadow: 0 0 0.45rem rgb(227 232 241 / 0.6);
+  opacity: var(--is-dark);
+}
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle *,
+  .theme-toggle::before,
+  .theme-ready body,
+  .theme-ready header,
+  .theme-ready footer,
+  .theme-ready section,
+  .theme-ready main {
+    transition: none !important;
+  }
 }

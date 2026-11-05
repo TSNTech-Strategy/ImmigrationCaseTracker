@@ -38,7 +38,7 @@ const INDIVIDUAL: Card[] = [
     price: formatUsd(PRICES.premium.yearly),
     period: "/year",
     note: `That's ${perMonth(PRICES.premium.yearly)} a month. Or ${formatUsd(PRICES.premium.monthly)} month to month.`,
-    features: ["Up to 10 cases for the whole family", "Checked automatically twice a day", "Email alerts (push and text coming)", "Everything in Free"],
+    features: ["Up to 10 cases for the whole family", "Checked automatically twice a day", "Email alerts now; phone push alerts when the app launches", "Everything in Free"],
     highlight: true,
     paid: { label: "Get Premium", href: "/settings#plan-h" },
   },
@@ -67,28 +67,44 @@ function PlanCard({ p: card }: { p: Card }) {
   const p = billingEnabled() && card.paid ? { ...card, cta: card.paid } : card;
   return (
     <li
-      className={`flex flex-col gap-4 rounded-xl border bg-[var(--surface)] p-6 ${p.highlight ? "border-2 border-[var(--accent)]" : "border-[var(--border)]"}`}
+      className={`relative flex flex-col gap-5 rounded-2xl border bg-[var(--surface)] p-7 ${p.highlight ? "border-2 border-[var(--accent)] shadow-[var(--shadow)]" : "border-[var(--border)]"}`}
     >
+      {p.highlight && (
+        <span className="absolute -top-3 left-7 rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-semibold text-[var(--accent-fg)]">Best value</span>
+      )}
       <div>
-        <h3 className="text-lg font-semibold">{p.name}</h3>
+        <h3 className="text-lg font-bold">{p.name}</h3>
         <p className="text-sm text-[var(--muted)]">{p.for}</p>
       </div>
       <p>
-        <span className="text-3xl font-semibold">{p.price}</span>
+        <span className="text-4xl font-extrabold tracking-tight">{p.price}</span>
         <span className="text-[var(--muted)]">{p.period}</span>
         {p.note && <span className="mt-1 block text-sm text-[var(--muted)]">{p.note}</span>}
       </p>
-      <ul className="flex flex-1 flex-col gap-1.5 text-sm">
+      <ul className="flex flex-1 flex-col gap-2.5 text-sm">
         {p.features.map((f) => (
-          <li key={f}>✓ {f}</li>
+          <li key={f} className="flex gap-2.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="mt-px flex-none text-[var(--success)]" aria-hidden="true">
+              <path d="M5 12l5 5L20 7" />
+            </svg>
+            {f}
+          </li>
         ))}
       </ul>
       {p.cta ? (
-        <Link href={p.cta.href} className="rounded-md bg-[var(--accent)] px-4 py-2 text-center font-medium text-[var(--accent-fg)]">
+        <Link
+          href={p.cta.href}
+          className={`rounded-xl px-4 py-3 text-center font-semibold ${p.highlight ? "bg-[var(--accent)] text-[var(--accent-fg)] hover:bg-[var(--accent-hover)]" : "border border-[var(--border)] hover:bg-[var(--surface-2)]"}`}
+        >
           {p.cta.label}
         </Link>
       ) : (
-        <p className="rounded-md border border-dashed border-[var(--border)] px-3 py-2 text-center text-sm text-[var(--muted)]">Coming soon</p>
+        <p className="rounded-xl border border-dashed border-[var(--border)] px-3 py-3 text-center text-sm text-[var(--muted)]">
+          Coming soon.{" "}
+          <Link href="/signup" className="font-semibold text-[var(--accent)] hover:underline">
+            Start free today
+          </Link>
+        </p>
       )}
     </li>
   );
@@ -96,40 +112,42 @@ function PlanCard({ p: card }: { p: Card }) {
 
 export default function Pricing() {
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-14">
-      <div className="flex max-w-2xl flex-col gap-3">
-        <h1 className="text-3xl font-semibold tracking-tight">Simple, affordable pricing</h1>
-        <p className="text-[var(--muted)]">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-14 px-4 py-16">
+      <div className="flex max-w-2xl flex-col gap-4">
+        <p className="text-sm font-semibold uppercase tracking-[0.08em] text-[var(--accent)]">Pricing</p>
+        <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">Simple, affordable pricing</h1>
+        <p className="text-lg leading-relaxed text-[var(--muted)]">
           Track one case free, forever. Premium covers your whole family for less than a cup of coffee a month. You pay for the
           convenience, never for access to anyone&apos;s immigration information.
         </p>
       </div>
 
-      <section aria-labelledby="individuals-h" className="flex flex-col gap-4">
-        <h2 id="individuals-h" className="text-xl font-semibold">
+      <section aria-labelledby="individuals-h" className="flex flex-col gap-6">
+        <h2 id="individuals-h" className="text-2xl font-bold">
           For individuals and families
         </h2>
-        <ul className="grid gap-4 md:grid-cols-2">
+        <ul className="grid gap-6 md:grid-cols-2">
           {INDIVIDUAL.map((p) => (
             <PlanCard key={p.name} p={p} />
           ))}
         </ul>
       </section>
 
-      <section aria-labelledby="firms-h" className="flex flex-col gap-4">
+      <section id="firms" aria-labelledby="firms-h" className="flex scroll-mt-24 flex-col gap-6">
         <div className="flex flex-col gap-1">
-          <h2 id="firms-h" className="text-xl font-semibold">
+          <h2 id="firms-h" className="text-2xl font-bold">
             For immigration law firms (CasePingo Pro)
           </h2>
           <p className="text-sm text-[var(--muted)]">
             Every firm starts with a {TRIAL_DAYS}-day free trial for up to {TRIAL_CASE_LIMIT} cases. No card needed.
           </p>
         </div>
-        <p className="rounded-xl border border-[var(--brand-red)] bg-[var(--surface)] px-4 py-3 text-sm">
+        <p className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--brand-red)] bg-[var(--surface)] px-5 py-4 text-sm">
+          <span className="rounded-full bg-[var(--brand-red)] px-2.5 py-0.5 text-xs font-bold text-white">Launch offer</span>
           <strong>Founding firm offer:</strong> the first {FOUNDING_FIRM_OFFER.firms} firms get {FOUNDING_FIRM_OFFER.percentOff}% off for
           their first {FOUNDING_FIRM_OFFER.months} months.
         </p>
-        <ul className="grid gap-4 md:grid-cols-2">
+        <ul className="grid gap-6 md:grid-cols-2">
           {FIRMS.map((p) => (
             <PlanCard key={p.name} p={p} />
           ))}
@@ -137,11 +155,11 @@ export default function Pricing() {
         <p className="text-sm text-[var(--muted)]">Larger firms: higher volumes and onboarding are available by quote.</p>
       </section>
 
-      <section aria-labelledby="promise-h" className="flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 text-sm">
-        <h2 id="promise-h" className="text-lg font-semibold">
+      <section aria-labelledby="promise-h" className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-7 text-sm">
+        <h2 id="promise-h" className="text-xl font-bold">
           Our billing promise
         </h2>
-        <ul className="list-disc space-y-1 pl-5">
+        <ul className="grid gap-2 pl-5 sm:grid-cols-2 [&>li]:list-disc">
           <li>Cancel any time from Settings, in two clicks. No phone calls, no forms.</li>
           <li>We email you before every yearly renewal, so you&apos;re never surprised by a charge.</li>
           <li>No hidden fees. Prices are in US dollars, and include all features listed.</li>

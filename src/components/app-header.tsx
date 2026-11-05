@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { signOutAction } from "@/app/(auth)/actions";
 import { Logo } from "./logo";
+import { ThemeToggle } from "./theme-toggle";
 
 export function AppHeader({ email, isAdmin = false }: { email: string; isAdmin?: boolean }) {
   return (
-    <header className="border-b border-[var(--border)] bg-[var(--surface)]">
+    <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <Logo href="/cases" />
         <nav aria-label="Account" className="flex items-center gap-4 text-sm">
@@ -23,8 +24,9 @@ export function AppHeader({ email, isAdmin = false }: { email: string; isAdmin?:
             </Link>
           )}
           <span className="hidden text-[var(--muted)] md:inline">{email}</span>
+          <ThemeToggle />
           <form action={signOutAction}>
-            <button type="submit" className="rounded-md border border-[var(--border)] px-3 py-1.5">
+            <button type="submit" className="rounded-lg border border-[var(--border)] px-3 py-1.5 font-medium hover:bg-[var(--surface-2)]">
               Sign out
             </button>
           </form>
