@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { AssistantChat } from "@/components/assistant-chat";
 import { assistantDeps, assistantStatus } from "@/lib/assistant";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { FEATURES } from "@/lib/features";
 
 export const metadata: Metadata = { title: "Assistant · CasePingo" };
 
 /** The CasePingo assistant. With ?case=<id>, questions are about that case (form and status only). */
 export default async function AssistantPage({ searchParams }: PageProps<"/assistant">) {
+  // Switched off for now (see src/lib/features.ts): old links land on My cases.
+  if (!FEATURES.assistant) redirect("/cases");
   const user = await requireUser("/assistant");
   const status = await assistantStatus(assistantDeps(), user);
   const { case: caseId } = await searchParams;

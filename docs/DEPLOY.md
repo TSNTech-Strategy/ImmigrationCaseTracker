@@ -115,6 +115,8 @@ Use a **new Stripe account for CasePingo** (same login is fine: Stripe → accou
 
 The assistant answers with Anthropic's Claude (model `claude-opus-5-5`), grounded in CasePingo's own guides. Until a key is set, the Assistant pages say it "isn't available yet".
 
+**It's switched off for now.** To bring it back, set `assistant: true` in both `src/lib/features.ts` (website) and `mobile/src/lib/features.ts` (app), then follow the steps below. While it's off, nothing is sent to Anthropic and no key is needed.
+
 1. **API key.** In the Anthropic Console (https://console.anthropic.com/): create an organization for CasePingo (separate from Scanvio's), add billing, then **API keys → Create key** named `casepingo-production`. Never paste it into chat.
 2. **Spend limit.** Console → Settings → Limits: set a monthly spend limit you're comfortable with. Each question costs roughly one to two cents (the ~12k-token guide is cached between questions); daily limits per person are in `PLAN_LIMITS.assistantPerDay` (Free 5, Premium 50).
 3. **Vercel** → casepingo → Settings → Environment Variables, **Production** (add Preview too only if you want to try it on previews; they count against the same key):
