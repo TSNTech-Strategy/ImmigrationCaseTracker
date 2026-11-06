@@ -41,6 +41,7 @@ const L = {
   visaBulletin: { label: { en: "Visa Bulletin", es: "Boletín de Visas" }, url: "/visa-bulletin" },
   processingGuide: { label: { en: "How to read processing times", es: "Cómo leer los tiempos de procesamiento" }, url: "/resources/processing-times" },
   faq: { label: { en: "Frequently asked questions", es: "Preguntas frecuentes" }, url: "/resources/faq" },
+  civicsTest: { label: { en: "Practice the civics test (official questions)", es: "Practique el examen de cívica (preguntas oficiales)" }, url: "/civics-test" },
 } satisfies Record<string, ResourceLink>;
 
 export const RESOURCES: Resource[] = [
@@ -163,7 +164,7 @@ export const RESOURCES: Resource[] = [
         ],
       },
     ],
-    links: [L.citizenship, L.contactCenter, L.statusLibrary],
+    links: [L.civicsTest, L.citizenship, L.contactCenter, L.statusLibrary],
   },
   {
     slug: "news",

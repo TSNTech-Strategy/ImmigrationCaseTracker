@@ -5,7 +5,7 @@ import { RESOURCES, resourcePath, STATUS_LIBRARY_CARD } from "@/lib/resources";
 export const metadata: Metadata = {
   title: "Resources: guides for your USCIS case · CasePingo",
   description:
-    "Plain-language guides for your USCIS case: what your status means, how to read processing times, interviews, official news, the Visa Bulletin and common questions.",
+    "Plain-language guides for your USCIS case: what your status means, how to read processing times, interviews, civics test practice, official news, the Visa Bulletin and common questions.",
   alternates: { canonical: "/resources" },
 };
 
@@ -25,6 +25,12 @@ export default function ResourcesPage() {
         {RESOURCES.slice(0, 2).map((r) => (
           <ResourceCard key={r.slug} href={resourcePath(r.slug)} icon={r.icon} title={r.title.en} summary={r.summary.en} />
         ))}
+        <ResourceCard
+          href="/civics-test"
+          icon={{ md: "school", tint: "purple" }}
+          title="Civics test practice"
+          summary="USCIS's official questions: a mock test with the real pass and fail rules, or one section at a time."
+        />
         <ResourceCard
           href="/visa-bulletin"
           icon={{ md: "calendar_month", tint: "blue" }}

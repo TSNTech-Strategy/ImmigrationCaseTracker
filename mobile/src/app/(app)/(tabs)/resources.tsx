@@ -143,8 +143,13 @@ export default function ResourcesTab() {
               <HubCard slug="library" title={data.statusLibrary.title[lang]} summary={data.statusLibrary.summary[lang]} onPress={() => router.push("/guide")} />
             </FadeInDown>
           )}
+          {data && (
+            <FadeInDown delay={stagger(1, 60)}>
+              <HubCard slug="civics" title={t.civicsTitle} summary={t.civicsSummary} onPress={() => router.push("/civics")} />
+            </FadeInDown>
+          )}
           {resources.map((r, i) => (
-            <FadeInDown key={r.slug} delay={stagger(i + 1, 60)}>
+            <FadeInDown key={r.slug} delay={stagger(i + 2, 60)}>
               <HubCard slug={r.slug} title={r.title[lang]} summary={r.summary[lang]} onPress={() => router.push(`/resources/${r.slug}`)} />
             </FadeInDown>
           ))}

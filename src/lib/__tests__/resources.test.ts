@@ -29,7 +29,7 @@ describe("resource center", () => {
   });
 
   it("links only to official https pages or to pages of this site that exist", () => {
-    const internal = new Set(["/status-guide", "/visa-bulletin", "/how-it-works", "/pricing", ...RESOURCES.map((r) => resourcePath(r.slug))]);
+    const internal = new Set(["/status-guide", "/visa-bulletin", "/civics-test", "/how-it-works", "/pricing", ...RESOURCES.map((r) => resourcePath(r.slug))]);
     const links = RESOURCES.flatMap((r) => [...r.links, ...(r.faq ?? []).flatMap((f) => f.links ?? [])]);
     for (const l of links) {
       if (l.url.startsWith("/")) expect(internal.has(l.url), l.url).toBe(true);

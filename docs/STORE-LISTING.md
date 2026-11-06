@@ -26,6 +26,7 @@ Keep "USCIS" out of the app name: it can read as government affiliation. It's fi
 > • The full history: every change we've seen, plus the history USCIS reports
 > • Scan your receipt notice with the camera to add a case. It's read on your phone; the photo isn't uploaded
 > • Your form, the office that received your case, and a link to USCIS's official processing times
+> • Practice the citizenship civics test with USCIS's official questions: a mock test with the real pass and fail rules, or one section at a time, with the questions read aloud
 > • Up to 10 family cases in one place (Premium)
 > • Receipt numbers encrypted, and your account deletable in the app at any time
 >
@@ -49,6 +50,7 @@ Purchases: the app sells nothing. Before 9C, re-check Apple's current US rules o
 5. Spanish: the same screen in Spanish
 6. Settings: alerts only on status changes, two-factor sign-in, delete account
 7. (optional) Add a case: "Scan your receipt notice" with the number filled in
+8. (optional) Civics test practice: a question with four choices and "Listen", or the "You passed" result
 
 Caption ideas: "Know what your status means", "Celebrate the approval", "Your whole family's cases", "En español también", "No ads. No tracking."
 

@@ -6,7 +6,7 @@ import { Logo } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
 
 /**
- * Signed-in header. Places on the left (My cases, Visa Bulletin, and Firm for firm members),
+ * Signed-in header. Places on the left (My cases, Visa Bulletin, Civics test, and Firm for firm members),
  * account tools on the right: the theme toggle and an account menu
  * ("Welcome, <name>") holding settings, plan, firm workspace, admin and sign out.
  * On phones the places move to a second row so nothing wraps awkwardly.
@@ -16,6 +16,7 @@ export async function AppHeader({ user }: { user: { id: string; name: string | n
   const places = [
     { href: "/cases", label: "My cases" },
     { href: "/bulletin", label: "Visa Bulletin" },
+    { href: "/civics", label: "Civics test" },
     ...(firmMember ? [{ href: "/firm", label: "Firm" }] : []),
   ];
   return (

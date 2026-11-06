@@ -38,6 +38,7 @@ const LOOK: Record<string, { glyph: Glyph; tint: Tint }> = {
   faq: { glyph: { ios: "questionmark.circle", md: "help", fallback: "?" }, tint: "red" },
   "how-casepingo-helps": { glyph: { ios: "sparkles", md: "auto_awesome", fallback: "✦" }, tint: "navy" },
   contact: { glyph: { ios: "bubble.left", md: "chat_bubble", fallback: "✉" }, tint: "green" },
+  civics: { glyph: { ios: "graduationcap", md: "school", fallback: "🎓" }, tint: "navy" },
 };
 export const resourceLook = (slug: string) => LOOK[slug] ?? LOOK.library;
 
@@ -46,6 +47,7 @@ export function appRouteFor(url: string): string | null {
   if (url === "/status-guide") return "/guide";
   if (url.startsWith("/status-guide/")) return `/guide/${url.slice("/status-guide/".length)}`;
   if (url === "/visa-bulletin") return "/bulletin";
+  if (url === "/civics-test") return "/civics";
   if (url.startsWith("/resources/")) return url;
   return null;
 }
