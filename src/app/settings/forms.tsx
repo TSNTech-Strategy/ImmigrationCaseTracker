@@ -2,9 +2,7 @@
 
 import { useActionState } from "react";
 import { Field, FormMessage, SubmitButton, type FormState } from "@/components/form";
-import { AREA_LABEL, AREAS, CATEGORIES } from "@/lib/visa-bulletin/model";
 import {
-  bulletinWatchAction,
   changePasswordAction,
   confirmMfaEnrollAction,
   deleteAccountAction,
@@ -174,86 +172,6 @@ export function DeleteAccountForm() {
         >
           Delete my account
         </button>
-      </div>
-    </form>
-  );
-}
-
-export function BulletinWatchForm({
-  watch,
-  alerts,
-  note = true,
-}: {
-  watch: { category: string; area: string; chart: string } | null;
-  alerts: boolean;
-  /** The line about alerts (off where the page already says it). */
-  note?: boolean;
-}) {
-  const [state, action] = useActionState<FormState, FormData>(bulletinWatchAction, {});
-  const select = "w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2";
-  // After a save React resets the form to the menus' first defaults; keying the menus on the saved
-  // choice rebuilds them with it, so they keep showing what was saved.
-  const saved = watch ? `${watch.category}:${watch.area}:${watch.chart}` : "none";
-  return (
-    <form action={action} className="flex flex-col gap-4">
-      <FormMessage state={state} />
-      <div key={saved} className="grid gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1.5 text-sm font-medium sm:col-span-2">
-          Category
-          <select name="category" defaultValue={watch?.category ?? "F2A"} className={select}>
-            <optgroup label="Family-sponsored">
-              {CATEGORIES.filter((c) => c.kind === "family").map((c) => (
-                <option key={c.key} value={c.key}>
-                  {c.code}: {c.en}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Employment-based">
-              {CATEGORIES.filter((c) => c.kind === "employment").map((c) => (
-                <option key={c.key} value={c.key}>
-                  {c.code}: {c.en}
-                </option>
-              ))}
-            </optgroup>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1.5 text-sm font-medium">
-          Country of chargeability
-          <select name="area" defaultValue={watch?.area ?? "ALL"} className={select}>
-            {AREAS.map((a) => (
-              <option key={a} value={a}>
-                {AREA_LABEL[a].en}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1.5 text-sm font-medium">
-          Chart to show first
-          <select name="chart" defaultValue={watch?.chart ?? "final"} className={select}>
-            <option value="final">Final action dates</option>
-            <option value="filing">Dates for filing</option>
-          </select>
-        </label>
-      </div>
-      {note && (
-        <p className="text-sm text-[var(--muted)]">
-          {alerts
-            ? "We email you (and notify the app) when this category moves in a new bulletin."
-            : "Premium emails you when this category moves in a new bulletin. On the Free plan, your category still shows first on your Visa Bulletin page and in the app."}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-3">
-        <SubmitButton pendingText="Saving…">Save category</SubmitButton>
-        {watch && (
-          <button
-            type="submit"
-            name="intent"
-            value="stop"
-            className="rounded-md border border-[var(--border)] px-4 py-2 font-medium hover:bg-[var(--surface-2)]"
-          >
-            Stop following
-          </button>
-        )}
       </div>
     </form>
   );

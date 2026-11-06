@@ -1,21 +1,14 @@
 /**
- * The U.S. Department of State's monthly Visa Bulletin, as CasePingo stores it.
- *
- * Four charts: final action dates and dates for filing, for family-sponsored
- * and employment-based preferences. Each chart has a value per category and
- * chargeability area: "C" (current), "U" (unavailable) or a cut-off date.
+ * The U.S. Department of State's monthly Visa Bulletin: reference data for
+ * CasePingo's how-to-read guide. CasePingo doesn't copy the dates; people read
+ * them on the official page (STATE_BULLETIN_URL).
  */
 
-export const AREAS = ["ALL", "CHINA", "INDIA", "MEXICO", "PHILIPPINES"] as const;
-export type Area = (typeof AREAS)[number];
+/** The official bulletin, published by the U.S. Department of State every month. */
+export const STATE_BULLETIN_URL = "https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin.html";
 
-export const AREA_LABEL: Record<Area, { en: string; es: string }> = {
-  ALL: { en: "All other countries", es: "Todos los demás países" },
-  CHINA: { en: "China (mainland-born)", es: "China (nacidos en el continente)" },
-  INDIA: { en: "India", es: "India" },
-  MEXICO: { en: "Mexico", es: "México" },
-  PHILIPPINES: { en: "Philippines", es: "Filipinas" },
-};
+/** USCIS's monthly page saying which chart applies for adjustment of status. */
+export const USCIS_CHARTS_URL = "https://www.uscis.gov/green-card/green-card-processes-and-procedures/visa-availability-priority-dates/adjustment-of-status-filing-charts-from-the-visa-bulletin";
 
 export type Kind = "family" | "employment";
 
@@ -38,45 +31,3 @@ export const CATEGORIES: CategoryInfo[] = [
   { key: "EB5H", kind: "employment", code: "EB-5 HU", en: "Investors, high-unemployment set-aside (10%)", es: "Inversionistas, reserva de alto desempleo (10%)" },
   { key: "EB5I", kind: "employment", code: "EB-5 Infra", en: "Investors, infrastructure set-aside (2%)", es: "Inversionistas, reserva de infraestructura (2%)" },
 ];
-
-export const CATEGORY_KEYS = CATEGORIES.map((c) => c.key);
-export const categoryInfo = (key: string) => CATEGORIES.find((c) => c.key === key) ?? null;
-
-/** One value in a chart. Dates are "YYYY-MM-DD". */
-export type Cell = { t: "C" } | { t: "U" } | { t: "D"; date: string };
-
-export type Chart = Record<string, Partial<Record<Area, Cell>>>;
-
-export const CHART_KEYS = ["familyFinal", "familyFiling", "employmentFinal", "employmentFiling"] as const;
-export type ChartKey = (typeof CHART_KEYS)[number];
-export type Charts = Partial<Record<ChartKey, Chart>>;
-
-/** Which of the two charts a person follows. */
-export type ChartType = "final" | "filing";
-export const chartKey = (kind: Kind, type: ChartType): ChartKey => `${kind}${type === "final" ? "Final" : "Filing"}` as ChartKey;
-
-export function cellFor(charts: Charts | null | undefined, category: string, area: Area, type: ChartType): Cell | null {
-  const info = categoryInfo(category);
-  if (!info || !charts) return null;
-  return charts[chartKey(info.kind, type)]?.[category]?.[area] ?? null;
-}
-
-const MONTHS_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const MONTHS_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-
-/** "2026-12" → "December 2026" / "diciembre de 2026". */
-export function monthLabel(month: string, lang: "en" | "es" = "en") {
-  const [y, m] = month.split("-").map(Number);
-  return lang === "es" ? `${MONTHS_ES[m - 1]} de ${y}` : `${MONTHS_EN[m - 1]} ${y}`;
-}
-
-export const MONTH_NAMES_EN = MONTHS_EN;
-
-/** "C" → "Current", "U" → "Unavailable", a date → "Jan 1, 2024" (or Spanish). */
-export function formatCell(cell: Cell | null | undefined, lang: "en" | "es" = "en") {
-  if (!cell) return "—";
-  if (cell.t === "C") return lang === "es" ? "Vigente" : "Current";
-  if (cell.t === "U") return lang === "es" ? "No disponible" : "Unavailable";
-  const [y, m, d] = cell.date.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(lang === "es" ? "es-US" : "en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
-}
