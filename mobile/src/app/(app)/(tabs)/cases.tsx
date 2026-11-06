@@ -5,7 +5,7 @@ import { Banner, Body, Button, Card, Screen, Small } from "../../../components/u
 import { CaseCard, FilterChips, IconButton, LargeHeader, SearchField, caseTitles } from "../../../components/cases";
 import { FlagStripe, StarBurst, StarsMark, dismissApproval, dismissedApprovals, takeUnplayed } from "../../../components/celebration";
 import { FeatureRow, TwoToneTitle, type Glyph, type Tint } from "../../../components/feature";
-import { FadeInDown, stagger } from "../../../components/motion";
+import { FadeInDown, stagger, useSpotlight } from "../../../components/motion";
 import { api, ApiError, type CaseSummary, type StatusCategory } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { timeAgo, trialDaysLeft } from "../../../lib/i18n";
@@ -35,6 +35,8 @@ export default function Cases() {
   const [filter, setFilter] = useState<StatusCategory | "all">("all");
   const [checking, setChecking] = useState(false);
   const [note, setNote] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+  // First-case screen: a highlight walks down the three features.
+  const spot = useSpotlight(EMPTY_FEATURES.length);
 
   const load = useCallback(async () => {
     try {
@@ -177,7 +179,7 @@ export default function Cases() {
               </View>
               {EMPTY_FEATURES.map((f, i) => (
                 <FadeInDown key={f.key} delay={stagger(i, 120, 150)}>
-                  <FeatureRow glyph={f.glyph} tint={f.tint} title={t.emptyFeatures[f.key].title} text={t.emptyFeatures[f.key].text} drop={stagger(i, 120, 280)} />
+                  <FeatureRow glyph={f.glyph} tint={f.tint} title={t.emptyFeatures[f.key].title} text={t.emptyFeatures[f.key].text} drop={stagger(i, 120, 280)} active={spot === i} />
                 </FadeInDown>
               ))}
               <FadeInDown delay={stagger(3, 120, 150)} style={{ gap: space(3) }}>

@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AccessibilityInfo, Animated, Easing, Platform, type StyleProp, type ViewStyle } from "react-native";
 
 /**
@@ -66,3 +67,39 @@ export function DropIn({ children, delay = 0 }: { children: ReactNode; delay?: n
 
 /** Delay for the n-th item of a list, capped so long lists don't wait. */
 export const stagger = (index: number, step = 80, start = 0, max = 6) => start + Math.min(index, max) * step;
+
+/**
+ * A highlight that walks down a list: -1 while the entrance plays, then 0, 1, 2…
+ * every `every` ms, looping. Runs only while the screen is showing.
+ * With Reduce Motion on, the first item stays highlighted and nothing moves.
+ */
+export function useSpotlight(count: number, { every = 2800, startAfter = 1400 }: { every?: number; startAfter?: number } = {}) {
+  const reduce = useReduceMotion();
+  const [index, setIndex] = useState(-1);
+  useFocusEffect(
+    useCallback(() => {
+      if (reduce !== false || count < 2) return;
+      let loop: ReturnType<typeof setInterval> | undefined;
+      const start = setTimeout(() => {
+        setIndex((i) => (i < 0 ? 0 : (i + 1) % count));
+        loop = setInterval(() => setIndex((i) => (i + 1) % count), every);
+      }, startAfter);
+      return () => {
+        clearTimeout(start);
+        if (loop) clearInterval(loop);
+      };
+    }, [reduce, count, every, startAfter]),
+  );
+  return reduce ? 0 : index;
+}
+
+/** 0 → 1 when `active` turns on (and back), eased, for opacity and scale. */
+export function useHighlight(active: boolean) {
+  const [progress] = useState(() => new Animated.Value(active ? 1 : 0));
+  useEffect(() => {
+    const anim = Animated.timing(progress, { toValue: active ? 1 : 0, duration: 340, easing: Easing.out(Easing.quad), useNativeDriver: nativeDriver });
+    anim.start();
+    return () => anim.stop();
+  }, [active, progress]);
+  return progress;
+}

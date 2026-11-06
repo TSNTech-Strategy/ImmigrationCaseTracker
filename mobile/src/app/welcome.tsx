@@ -2,7 +2,7 @@ import { router } from "expo-router";
 import { View } from "react-native";
 import { Body, Button, Logo, Screen, Small } from "../components/ui";
 import { FeatureCard, LangSwitch, TwoToneTitle, type Glyph, type Tint } from "../components/feature";
-import { FadeInDown, stagger } from "../components/motion";
+import { FadeInDown, stagger, useSpotlight } from "../components/motion";
 import { useAuth } from "../lib/auth";
 import { space } from "../lib/theme";
 
@@ -16,6 +16,8 @@ const FEATURES: { key: "receipt" | "alerts" | "guide" | "privacy"; glyph: Glyph;
 /** First screen before sign-in: what CasePingo does, in English or Spanish. */
 export default function Welcome() {
   const { t, lang, setGuestLang } = useAuth();
+  // After the cards drop in, a highlight walks down them, one every ~3 seconds.
+  const spot = useSpotlight(FEATURES.length);
   return (
     <Screen edges={["top", "bottom"]}>
       <View style={{ gap: space(6), paddingTop: space(2) }}>
@@ -32,7 +34,7 @@ export default function Welcome() {
         <View style={{ gap: space(3) }}>
           {FEATURES.map((f, i) => (
             <FadeInDown key={f.key} delay={stagger(i, 110, 160)}>
-              <FeatureCard glyph={f.glyph} tint={f.tint} title={t.features[f.key].title} text={t.features[f.key].text} drop={stagger(i, 110, 300)} highlight={i === 0} />
+              <FeatureCard glyph={f.glyph} tint={f.tint} title={t.features[f.key].title} text={t.features[f.key].text} drop={stagger(i, 110, 300)} active={spot === i} />
             </FadeInDown>
           ))}
         </View>
