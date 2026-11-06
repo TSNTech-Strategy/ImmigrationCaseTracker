@@ -1,9 +1,12 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Platform, View } from "react-native";
-import { Banner, Body, Button, Card, H1, H2, Loading, Row, Screen, Small } from "../../../components/ui";
+import { Alert, Platform, Pressable, Text, View } from "react-native";
+import { Banner, Body, Button, Card, H1, H2, Loading, Row, Screen, Small, StatusPill, Timeline } from "../../../components/ui";
+import { CongratsCard, StarBurst, takeUnplayed } from "../../../components/celebration";
 import { api, ApiError, type CaseDetail } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
+import { config } from "../../../lib/config";
 import { formatDate } from "../../../lib/i18n";
 import { font, space, useTheme } from "../../../lib/theme";
 
@@ -17,6 +20,19 @@ function confirm(message: string, ok: string, cancel: string): Promise<boolean> 
   );
 }
 
+function Label({ children }: { children: string }) {
+  return <Small style={{ textTransform: "uppercase", letterSpacing: 0.6, fontWeight: "600", fontSize: 12 }}>{children}</Small>;
+}
+
+function LinkText({ title, onPress }: { title: string; onPress: () => void }) {
+  const { c } = useTheme();
+  return (
+    <Pressable accessibilityRole="link" onPress={onPress} hitSlop={6} style={{ alignSelf: "flex-start" }}>
+      <Text style={{ color: c.accent, fontWeight: "600", fontSize: 15 }}>{title} ↗</Text>
+    </Pressable>
+  );
+}
+
 export default function CaseScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, lang, me } = useAuth();
@@ -25,11 +41,14 @@ export default function CaseScreen() {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   const [busy, setBusy] = useState<"check" | "remove" | "switch" | null>(null);
+  const [burst, setBurst] = useState(0);
 
   const load = useCallback(async () => {
     try {
       const r = await api<{ case: CaseDetail }>(`/api/v1/cases/${id}`);
       setCs(r.case);
+      // First time this phone sees the approval: stars and a little buzz.
+      if (r.case.celebration && (await takeUnplayed([r.case.id])).length > 0) setBurst(Date.now());
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e));
     }
@@ -46,6 +65,9 @@ export default function CaseScreen() {
   const desc = (es ? cs.statusDescriptionEs : cs.statusDescriptionEn) ?? cs.statusDescriptionEn;
   const paused = cs.pausedReason === "plan_limit";
   const free = me?.plan.id === "FREE";
+  const guide = cs.guide ? cs.guide[lang] : null;
+  const officeName = cs.office?.name ? cs.office.name[lang] : null;
+  const history = cs.uscisHistory ?? [];
 
   async function checkNow() {
     setBusy("check");
@@ -62,93 +84,144 @@ export default function CaseScreen() {
   }
 
   return (
-    <Screen>
-      <Stack.Screen options={{ title: cs.nickname ?? cs.receiptMasked }} />
-      <View style={{ gap: space(1) }}>
-        <H1>{cs.nickname ?? cs.receiptMasked}</H1>
-        <Small style={font.mono}>
-          {cs.formType ? `${cs.formType} · ` : ""}
-          {cs.receiptMasked}
-        </Small>
-      </View>
-
-      {paused && (
-        <Card style={{ borderColor: c.danger }}>
-          <Body style={{ fontWeight: "700" }}>{t.pausedPlan}</Body>
-          <Button
-            title={t.checkInstead}
-            variant="secondary"
-            loading={busy === "switch"}
-            onPress={async () => {
-              setBusy("switch");
-              try {
-                await api(`/api/v1/cases/${id}/check-instead`, { method: "POST" });
-                await load();
-              } finally {
-                setBusy(null);
-              }
-            }}
-          />
-        </Card>
-      )}
-
-      <Card>
-        <Small style={{ textTransform: "uppercase", letterSpacing: 0.6, fontWeight: "600" }}>{t.currentStatus}</Small>
-        <H2 style={{ fontSize: 22 }}>{title}</H2>
-        {desc && <Body>{desc.replace(/<[^>]+>/g, "")}</Body>}
-        <View style={{ gap: space(3), marginTop: space(2) }}>
-          <Row label={t.lastChecked} value={formatDate(cs.lastCheckedAt, lang, t.never)} />
-          <Row label={t.lastChange} value={formatDate(cs.lastChangeObservedAt, lang, t.noneYet)} />
+    <View style={{ flex: 1 }}>
+      <Screen>
+        <Stack.Screen options={{ title: cs.nickname ?? cs.receiptMasked }} />
+        <View style={{ gap: space(1) }}>
+          <H1>{cs.nickname ?? cs.receiptMasked}</H1>
+          <Small style={font.mono}>
+            {cs.formType ? `${cs.formType} · ` : ""}
+            {cs.receiptMasked}
+          </Small>
         </View>
-        {!paused && <Button title={busy === "check" ? t.checking : t.checkNow} onPress={checkNow} loading={busy === "check"} />}
-        {note && <Banner tone={note.tone}>{note.text}</Banner>}
-        <Small>{free ? t.freePlan : t.premiumPlan} {t.uscisSource}</Small>
-      </Card>
 
-      <H2>{t.changesSeen}</H2>
-      {cs.events.length === 0 ? (
-        <Small>{t.nothingYet}</Small>
-      ) : (
-        <Card>
-          {cs.events.map((e) => (
-            <View key={e.id} style={{ gap: 2, paddingVertical: space(1) }}>
-              <Body style={{ fontWeight: "600" }}>{(es ? e.statusTitleEs : e.statusTitleEn) ?? e.statusTitleEn}</Body>
-              <Small>{formatDate(e.firstObservedAt, lang, "")}</Small>
-            </View>
-          ))}
-        </Card>
-      )}
+        {cs.celebration && (
+          <CongratsCard
+            title={t.congratsTitle}
+            body={t.congratsBody}
+            nextStep={cs.celebration.nextStep ? cs.celebration.nextStep[lang] : null}
+            approvedLine={t.approvedOn(formatDate(cs.celebration.approvedAt, lang, ""))}
+            replayLabel={t.celebrateAgain}
+            onReplay={() => setBurst(Date.now())}
+          />
+        )}
 
-      {cs.uscisHistory && cs.uscisHistory.length > 0 && (
-        <>
-          <H2>{t.uscisHistory}</H2>
-          <Card>
-            {cs.uscisHistory.map((h, i) => (
-              <View key={i} style={{ gap: 2, paddingVertical: space(1) }}>
-                <Body>{(es ? h.textEs : h.textEn) ?? h.textEn ?? "—"}</Body>
-                {h.date?.raw && <Small>{h.date.raw}</Small>}
-              </View>
-            ))}
+        {paused && (
+          <Card style={{ borderColor: c.danger }}>
+            <Body style={{ fontWeight: "700" }}>{t.pausedPlan}</Body>
+            <Button
+              title={t.checkInstead}
+              variant="secondary"
+              loading={busy === "switch"}
+              onPress={async () => {
+                setBusy("switch");
+                try {
+                  await api(`/api/v1/cases/${id}/check-instead`, { method: "POST" });
+                  await load();
+                } finally {
+                  setBusy(null);
+                }
+              }}
+            />
           </Card>
-        </>
-      )}
+        )}
 
-      <Button
-        title={t.remove}
-        variant="danger"
-        loading={busy === "remove"}
-        onPress={async () => {
-          if (!(await confirm(t.removeConfirm, t.remove, t.cancel))) return;
-          setBusy("remove");
-          try {
-            await api(`/api/v1/cases/${id}`, { method: "DELETE" });
-            router.replace("/cases");
-          } finally {
-            setBusy(null);
-          }
-        }}
-      />
-      <Small style={{ textAlign: "center" }}>{t.disclaimer}</Small>
-    </Screen>
+        <Card>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space(2), flexWrap: "wrap" }}>
+            <Label>{t.currentStatus}</Label>
+            <StatusPill category={cs.category} label={t.category[cs.category]} />
+          </View>
+          <H2 style={{ fontSize: 22 }}>{title}</H2>
+          {desc && <Body>{desc.replace(/<[^>]+>/g, "")}</Body>}
+
+          {guide && cs.guide && (
+            <View style={{ backgroundColor: c.surface2, borderRadius: 10, padding: space(3), gap: space(3), marginTop: space(1) }}>
+              <View style={{ gap: 2 }}>
+                <Label>{t.whatItMeans}</Label>
+                <Body>{guide.meaning}</Body>
+              </View>
+              <View style={{ gap: 2 }}>
+                <Label>{t.whatsNext}</Label>
+                <Body>{guide.next}</Body>
+              </View>
+              {guide.todo && (
+                <View style={{ gap: 2 }}>
+                  <Label>{t.whatYouCanDo}</Label>
+                  <Body>{guide.todo}</Body>
+                </View>
+              )}
+              <Small style={{ fontSize: 12 }}>{t.guideNote}</Small>
+              <LinkText title={t.moreAboutStatus} onPress={() => WebBrowser.openBrowserAsync(`${config.apiUrl}${cs.guide!.path}`)} />
+            </View>
+          )}
+
+          <View style={{ gap: space(3), marginTop: space(2) }}>
+            <Row label={t.lastChecked} value={formatDate(cs.lastCheckedAt, lang, t.never)} />
+            <Row label={t.lastChange} value={formatDate(cs.lastChangeObservedAt, lang, t.noneYet)} />
+          </View>
+          {!paused && <Button title={busy === "check" ? t.checking : t.checkNow} onPress={checkNow} loading={busy === "check"} />}
+          {note && <Banner tone={note.tone}>{note.text}</Banner>}
+          <Small>{free ? t.freePlan : t.premiumPlan} {t.uscisSource}</Small>
+        </Card>
+
+        {(cs.form || cs.office) && (
+          <Card>
+            {cs.form && <Row label={t.form} value={cs.form.name ? `${cs.form.code} · ${cs.form.name[lang]}` : cs.form.code} />}
+            {cs.office && <Row label={t.receivedAt} value={officeName ? `${officeName} (${cs.office.code})` : t.officeCode(cs.office.code)} />}
+            <View style={{ gap: space(1), marginTop: space(1) }}>
+              <Label>{t.howLong}</Label>
+              <Small>{t.processingHint(cs.form?.code ?? null, officeName)}</Small>
+              <LinkText title={t.processingTimes} onPress={() => WebBrowser.openBrowserAsync(cs.processingTimesUrl)} />
+            </View>
+          </Card>
+        )}
+
+        <H2>{t.changesSeen}</H2>
+        {cs.events.length === 0 ? (
+          <Small>{t.nothingYet}</Small>
+        ) : (
+          <Timeline
+            items={cs.events.map((e) => ({
+              key: e.id,
+              title: (es ? e.statusTitleEs : e.statusTitleEn) ?? e.statusTitleEn ?? "—",
+              meta: formatDate(e.firstObservedAt, lang, ""),
+              category: e.category,
+            }))}
+          />
+        )}
+
+        {history.length > 0 && (
+          <>
+            <H2>{t.uscisHistory}</H2>
+            <Timeline
+              items={history.map((h, i) => ({
+                key: String(i),
+                title: (es ? h.textEs : h.textEn) ?? h.textEn ?? "—",
+                meta: h.date?.raw ?? undefined,
+                category: h.category,
+              }))}
+            />
+          </>
+        )}
+
+        <Button
+          title={t.remove}
+          variant="danger"
+          loading={busy === "remove"}
+          onPress={async () => {
+            if (!(await confirm(t.removeConfirm, t.remove, t.cancel))) return;
+            setBusy("remove");
+            try {
+              await api(`/api/v1/cases/${id}`, { method: "DELETE" });
+              router.replace("/cases");
+            } finally {
+              setBusy(null);
+            }
+          }}
+        />
+        <Small style={{ textAlign: "center" }}>{t.disclaimer}</Small>
+      </Screen>
+      <StarBurst playKey={burst} />
+    </View>
   );
 }

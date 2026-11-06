@@ -6,8 +6,13 @@
 export type StatusCategory = "progress" | "action" | "done" | "stop" | "none";
 
 const RULES: [RegExp, StatusCategory][] = [
-  [/denied|rejected|terminated|revoked|withdrawal acknowledged|abandon|was returned|not approved/i, "stop"],
-  [/request for (additional )?evidence|rfe|intent to (deny|revoke)|response to .* (was )?received|biometrics appointment was scheduled|interview was scheduled|fingerprint .* scheduled|was mailed .* notice/i, "action"],
+  // Checked first: wording that contains "denied"/"received" but isn't a decision or a to-do.
+  [/expedite request|response to .*request for evidence was received|request to reschedule/i, "progress"],
+  [/denied|rejected|terminated|revoked|withdrawal acknowledg|abandon|was returned|being returned|not approved|case closed/i, "stop"],
+  [
+    /request for (additional |initial )?evidence|\brfe\b|intent to (deny|revoke)|notice explaining uscis actions|biometrics appointment was scheduled|interview was scheduled|fingerprint .* scheduled|was mailed .* notice/i,
+    "action",
+  ],
   [/approved|approval|card was (mailed|delivered|picked up)|card is being produced|oath ceremony|welcome notice|document was mailed|was delivered|naturaliz/i, "done"],
   [/received|being (actively )?reviewed|fingerprint|transferred|updated|reopened|ready to be scheduled|scheduled|in process|was sent/i, "progress"],
 ];

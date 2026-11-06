@@ -75,6 +75,37 @@ describe.skipIf(!url)("mobile API", () => {
     expect(body(await api.listCases(u)).cases).toHaveLength(0);
   });
 
+  it("explains the status, names the form and office, and flags an approval we saw happen", async () => {
+    const u = await mkUser();
+    title = "Case Was Received";
+    const caseId = body(await add(u, "LIN9999103411")).caseId as string;
+    let detail = body(await api.getCase(u, caseId)).case;
+    expect(detail).toMatchObject({
+      category: "progress",
+      guide: { slug: "case-was-received", path: "/status-guide/case-was-received" },
+      office: { code: "LIN", name: { en: "Nebraska Service Center" } },
+      processingTimesUrl: "https://egov.uscis.gov/processing-times/",
+      celebration: null,
+      events: [{ category: "progress" }],
+    });
+    expect(detail.guide.es.meaning).toContain("USCIS tiene su solicitud");
+    expect(body(await api.listCases(u)).cases[0]).toMatchObject({ category: "progress", recentApprovalAt: null });
+
+    title = "Case Was Approved";
+    clock = new Date(clock.getTime() + 11 * 60_000);
+    expect(await api.refreshCase(u, caseId)).toMatchObject({ status: 200 });
+    detail = body(await api.getCase(u, caseId)).case;
+    expect(detail).toMatchObject({ category: "done", guide: { slug: "case-was-approved" }, celebration: { approvedAt: clock } });
+    expect(detail.celebration.nextStep.en).toBeTruthy();
+    expect(body(await api.listCases(u)).cases[0]).toMatchObject({ category: "done", recentApprovalAt: clock });
+
+    // The congratulations card goes away after 30 days.
+    clock = new Date(clock.getTime() + 31 * 86_400_000);
+    expect(body(await api.getCase(u, caseId)).case.celebration).toBeNull();
+    expect(body(await api.listCases(u)).cases[0].recentApprovalAt).toBeNull();
+    title = "Case Was Received";
+  });
+
   it("returns the profile and plan, and updates language and alerts with strict validation", async () => {
     const u = await mkUser("FREE");
     expect(body(await api.me(u))).toMatchObject({ locale: "es", plan: { id: "FREE", maxCases: 1 }, alerts: { email: true, push: false } });

@@ -24,6 +24,7 @@
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0",
     "bcryptjs": "^3.0.3",
+    "canvas-confetti": "^1.9.4",
     "inngest": "^4.26.2",
     "next": "16.4.5",
     "nodemailer": "^7.0.13",
@@ -35,6 +36,7 @@
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.2",
     "@types/react": "^19",

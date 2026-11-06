@@ -47,6 +47,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
         <PlanSection userId={user.id} plan={plan} billing={typeof sp.billing === "string" ? sp.billing : undefined} sessionId={typeof sp.session_id === "string" ? sp.session_id : undefined} />
       </Section>
       <Section id="alerts-h" title="Alerts">
+        <p className="text-sm text-[var(--muted)]">Case alerts go out only when a status changes. We never send daily reminders or ads.</p>
         <AlertsForm emailOnChange={prefs?.emailOnChange ?? true} />
       </Section>
       <Section id="security-h" title="Two-factor sign-in">

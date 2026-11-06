@@ -6,6 +6,10 @@ import { CONSENT_FOOTNOTE, CONSENT_STATEMENT_VERSION, INDIVIDUAL_CONSENT_OPTIONS
 import { createEntitlements } from "@/lib/billing/entitlements";
 import { isExpoPushToken } from "@/lib/push";
 import { PLAN_LIMITS, describeCadence } from "@/lib/plans";
+import { statusCategory } from "@/lib/status-category";
+import { findStatusGuide, guidePath, guideText } from "@/lib/status-guide";
+import { PROCESSING_TIMES_URL, approvalNextStep, formInfo, receivingOffice, recentApprovalAt } from "@/lib/case-insights";
+import { recentApprovals } from "@/lib/cases/approvals";
 
 /**
  * The mobile app's API (/api/v1/*), as plain functions so they can be tested
@@ -120,24 +124,40 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
     const { uscisHistory: _omit, ...listSelect } = caseViewSelect;
     void _omit;
     const rows = await db.trackedCase.findMany({ where: { ownerUserId: userId }, select: listSelect, orderBy: { createdAt: "desc" } });
-    return ok({ cases: rows });
+    const approvals = await recentApprovals(db, rows, now());
+    return ok({
+      cases: rows.map((r) => ({ ...r, category: statusCategory(r.statusTitleEn), recentApprovalAt: approvals.get(r.id) ?? null })),
+    });
   }
 
   async function getCase(userId: string, caseId: string): Promise<ApiResult> {
     const c = await cases.getCase(userId, caseId);
     if (!c) return err(404, "not_found", "Case not found.");
     const consent = c.consents.find((x) => !x.withdrawnAt) ?? null;
+    const guide = findStatusGuide(c.statusTitleEn);
+    const approvedAt = recentApprovalAt(c.statusTitleEn, c.events, now());
+    const history = Array.isArray(c.uscisHistory) ? (c.uscisHistory as { textEn?: string | null }[]) : null;
     return ok({
       case: {
-        ...Object.fromEntries(Object.entries(c).filter(([k]) => k !== "consents" && k !== "events")),
+        ...Object.fromEntries(Object.entries(c).filter(([k]) => k !== "consents" && k !== "events" && k !== "uscisHistory")),
+        category: statusCategory(c.statusTitleEn),
+        uscisHistory: history && history.map((h) => ({ ...h, category: statusCategory(h?.textEn) })),
         events: c.events.map((e) => ({
           id: e.id,
           statusTitleEn: e.statusTitleEn,
           statusTitleEs: e.statusTitleEs,
           uscisReportedRaw: e.uscisReportedRaw,
           firstObservedAt: e.firstObservedAt,
+          category: statusCategory(e.statusTitleEn),
         })),
         consent: consent && { basis: consent.basis, capturedAt: consent.capturedAt },
+        // Plain-language help, sent from the server so wording can improve without an app release.
+        guide: guide && { slug: guide.slug, path: guidePath(guide), en: guideText(guide, "en"), es: guideText(guide, "es") },
+        form: formInfo(c.formType),
+        office: receivingOffice(c.receiptMasked),
+        processingTimesUrl: PROCESSING_TIMES_URL,
+        // Set while CasePingo saw this case become approved recently: the app shows a congratulations card.
+        celebration: approvedAt && { approvedAt, nextStep: approvalNextStep(c.formType, c.statusTitleEn) },
       },
     });
   }

@@ -6,6 +6,8 @@ import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { caseService } from "@/lib/cases";
 import { getUscisClient } from "@/lib/uscis";
+import { recentApprovals } from "@/lib/cases/approvals";
+import { ApprovalBanners } from "@/components/approval-celebration";
 
 export const metadata: Metadata = { title: "My cases · CasePingo" };
 
@@ -23,6 +25,8 @@ export default async function CasesPage({ searchParams }: PageProps<"/cases">) {
   const preferEs = user.locale === "es";
   const account = await prisma.user.findUnique({ where: { id: user.id }, select: { plan: true, trialEndsAt: true } });
   const now = new Date();
+  const approvals = await recentApprovals(prisma, cases, now);
+  const approved = cases.filter((c) => approvals.has(c.id)).map((c) => ({ id: c.id, name: c.nickname ?? c.receiptMasked, href: `/cases/${c.id}` }));
   const trialDays = account?.trialEndsAt && account.trialEndsAt > now ? Math.ceil((account.trialEndsAt.getTime() - now.getTime()) / 86_400_000) : 0;
 
   return (
@@ -34,6 +38,7 @@ export default async function CasesPage({ searchParams }: PageProps<"/cases">) {
         </Link>
       </div>
       <ModeBanner mode={mode} />
+      {approved.length > 0 && <ApprovalBanners cases={approved} es={preferEs} />}
       {trialDays > 0 ? (
         <p className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm">
           <span>
