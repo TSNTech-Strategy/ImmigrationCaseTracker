@@ -11,12 +11,12 @@ v1: personal cases only, no buying in the app (upgrades happen on casepingo.com)
 | Tabs (system tab bar: floating glass on iOS 26): Cases, Bulletin, Status guide, Settings | `src/app/(app)/(tabs)/_layout.tsx` |
 | My cases: Check all, add, search, filters by kind of status, cards with progress line and "New" badge | `src/app/(app)/(tabs)/cases.tsx`, `src/components/cases.tsx` |
 | Add a case (with consent), case details (progress line, rename, guide, form and office, timelines, congratulations) | `src/app/(app)/cases/` |
-| Visa Bulletin: your category (both charts and how they moved), the full chart by kind, chart and country; a picker for your category | `src/app/(app)/(tabs)/bulletin.tsx`, `src/app/(app)/bulletin/watch.tsx` |
+| Visa Bulletin: opens the official State Department and USCIS pages in the in-app browser, with a short guide to reading them and the list of categories | `src/app/(app)/(tabs)/bulletin.tsx`, `src/lib/bulletin.ts` |
 | Status guide: searchable list and one screen per status | `src/app/(app)/(tabs)/guide.tsx`, `src/app/(app)/guide/[slug].tsx` |
 | Settings: name, language, email and push alerts, plan, sign out, delete account, version | `src/app/(app)/(tabs)/settings.tsx` |
 
 - Sign-in is stored encrypted, with its key in the iPhone keychain or Android Keystore (`src/lib/secure-storage.ts`).
-- Push alerts: the app asks permission after sign-in and registers the phone's Expo push token (`src/lib/push.ts`). Tapping an alert opens the case, or the Bulletin tab for a Visa Bulletin alert.
+- Push alerts: the app asks permission after sign-in and registers the phone's Expo push token (`src/lib/push.ts`). Tapping an alert opens the case.
 - Motion (`src/components/motion.tsx`): screens slide gently into place and feature icons drop in, once; then a highlight walks down the feature cards (`useSpotlight`, only while the screen is showing). With Reduce Motion on, nothing moves and the first card stays lit. Style pieces (tinted icon tiles, feature rows, two-tone titles, language switch) are in `src/components/feature.tsx`.
 - Lint with `npm run lint` (Expo's ESLint config in `eslint.config.js`) and typecheck with `npm run typecheck`.
 - Icons are SF Symbols on iPhone and Material Symbols on Android (`expo-symbols`). "New" badges are remembered on the phone only (`src/lib/seen.ts`).

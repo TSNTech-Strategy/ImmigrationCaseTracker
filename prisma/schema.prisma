@@ -503,6 +503,8 @@ model TrialLedger {
 
 /// One month's Visa Bulletin, imported by an admin (the State Department site
 /// blocks automated downloads, so an admin pastes the published bulletin).
+/// Not used since Nov 2026: CasePingo links to the State Department's bulletin instead of importing it.
+/// Kept (empty) so nothing is dropped; remove with a migration once that's settled.
 model VisaBulletin {
   id           String   @id @default(cuid())
   /// "2026-12": the month the bulletin is for.
@@ -518,6 +520,7 @@ model VisaBulletin {
 
 /// The Visa Bulletin category a person follows: shown first in the app, and
 /// alerted when it moves (Premium), once per bulletin month.
+/// Not used since Nov 2026 (see VisaBulletin). Kept so no saved choices are dropped.
 model VisaBulletinWatch {
   id                String   @id @default(cuid())
   userId            String   @unique

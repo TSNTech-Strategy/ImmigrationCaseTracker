@@ -10,13 +10,12 @@ import { useTheme } from "../lib/theme";
 function Shell() {
   const { c, isDark } = useTheme();
 
-  // Tapping a notification opens that case, or the Visa Bulletin tab for bulletin alerts.
+  // Tapping a "Case update" notification opens that case.
   useEffect(() => {
     if (Platform.OS === "web") return;
     const sub = Notifications.addNotificationResponseReceivedListener((r) => {
-      const data = r.notification.request.content.data;
-      if (data?.screen === "bulletin") router.push("/bulletin");
-      else if (typeof data?.caseId === "string" && data.caseId) router.push(`/cases/${data.caseId}`);
+      const caseId = r.notification.request.content.data?.caseId;
+      if (typeof caseId === "string" && caseId) router.push(`/cases/${caseId}`);
     });
     return () => sub.remove();
   }, []);

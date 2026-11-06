@@ -111,16 +111,6 @@ Use a **new Stripe account for CasePingo** (same login is fine: Stripe → accou
 
 **Going live** (only when you're ready to charge): switch Stripe to live mode, repeat steps 3–5 with the live key (`sk_live_…`) and the new webhook secret, and redeploy.
 
-## 9. Visa Bulletin (each month)
-
-The State Department publishes the Visa Bulletin around the middle of each month, for the month after. Its site blocks automated downloads, so an admin copies it in (about 2 minutes):
-
-1. Sign in with an `ADMIN_EMAILS` account (two-factor on) and open **`/admin/visa-bulletin`** (also linked from `/admin`).
-2. Open the new bulletin from the [State Department's Visa Bulletin page](https://travel.state.gov/content/travel/en/legal/visa-law0/visa-bulletin.html), view its page source (right-click → View Page Source, or Ctrl+U / ⌥⌘U), select all and copy. Copying the visible page also works.
-3. Paste it, add the bulletin's link, press **Preview** and compare a few values with the page. Then **Save**. Saving the newest month emails and notifies Premium people whose category moved, once per month.
-
-**First time:** import the current month and the month before it (either order), so the site and the app can show how dates moved. The tables are created by the production deploy (previews skip migrations, so a preview's Settings page errors until the change is merged).
-
 ## Local development
 
 ```bash

@@ -24,7 +24,6 @@ export default function AppLayout() {
       <Stack.Screen name="cases/new" options={{ title: t.addCase, presentation: "modal" }} />
       <Stack.Screen name="cases/[id]" options={{ title: "" }} />
       <Stack.Screen name="guide/[slug]" options={{ title: "" }} />
-      <Stack.Screen name="bulletin/watch" options={{ title: t.pickTitle, presentation: "modal" }} />
     </Stack>
   );
 }

@@ -20,9 +20,6 @@ Used by the Expo app in `mobile/` (Step 9B). Personal cases only; law-firm featu
 | POST | `/api/v1/cases/:id/check-instead` | Free plan: check this paused case instead |
 | POST | `/api/v1/devices` | `{token: "ExponentPushToken[…]", platform: "ios"\|"android", appVersion?}`: turns push alerts on |
 | DELETE | `/api/v1/devices` | `{token}`: stop pushes to this phone (sign-out) |
-| GET | `/api/v1/visa-bulletin` | The latest Visa Bulletin, ready to show (no sign-in needed; with a token it also returns the person's category). See below |
-| PUT | `/api/v1/visa-bulletin/watch` | `{category, area, chart: "final"\|"filing"}`: follow a category → `{watch}`. 400 `invalid` |
-| DELETE | `/api/v1/visa-bulletin/watch` | Stop following → `{watch: null}` |
 
 **Case fields added for the status guide and the approval moment:**
 
@@ -40,16 +37,3 @@ Used by the Expo app in `mobile/` (Step 9B). Personal cases only; law-firm featu
 Only approvals CasePingo watched happen count (an approved status after an earlier one), so adding a case that was already approved doesn't trigger the celebration. The guide text comes from the server, so its wording can improve without an app release.
 
 **Push alerts:** when a personal case's status changes, the owner's active phones get a push through Expo's push service (title "Case update", body "label: status", data `{caseId}`), in their language, with the masked receipt only. Each (status change, person) is pushed once. Tokens Expo reports as dead are switched off.
-
-**Visa Bulletin:** `GET /api/v1/visa-bulletin` returns `{bulletin, catalog, watch, alerts, links}`.
-
-| Field | Meaning |
-|---|---|
-| `bulletin` | `null` until the first month is imported. Otherwise `{month: "2026-12", label: {en, es}, previousMonth, sourceUrl, importedAt, rows}`. `rows` holds up to four charts (`familyFinal`, `familyFiling`, `employmentFinal`, `employmentFiling`), each a list of `{category, code, en, es, cells}`; `cells` maps an area (`ALL`, `CHINA`, `INDIA`, `MEXICO`, `PHILIPPINES`) to `{value: {en, es}, move}` |
-| `move` | `null` for the first month on record, else `{tone: "good"\|"bad"\|"neutral", changed, en, es}`, e.g. "Moved ahead 3 months", "Now current", "No change" (`changed: false`). Worded on the server, so the app and the website say the same thing |
-| `catalog` | The 15 categories `{key, kind: "family"\|"employment", code, en, es}` and the 5 areas `{key, en, es}` |
-| `watch` | `{category, area, chart}` the person follows, or `null` (always `null` without sign-in) |
-| `alerts` | Whether the person's plan gets alerts (Premium) |
-| `links` | `{bulletin, uscisCharts}`: the official bulletin and USCIS's page saying which chart applies this month |
-
-**Visa Bulletin alerts:** when an admin saves a month that is the newest on record, Premium people whose category moved on either chart get an email (if email alerts are on) and a push (if push alerts are on; data `{screen: "bulletin"}`, which opens the Bulletin tab). Once per person per month.

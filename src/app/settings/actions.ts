@@ -9,8 +9,6 @@ import { performAccountDeletion } from "@/lib/auth/delete-account";
 import { authErrorMessage } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { visaBulletinService } from "@/lib/visa-bulletin";
-import { isValidWatch } from "@/lib/visa-bulletin/service";
 
 const NOT_SIGNED_IN: FormState = { error: "Your session has expired. Please sign in again." };
 const newPassword = z
@@ -161,21 +159,4 @@ export async function deleteAccountAction(_prev: FormState, formData: FormData):
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
   redirect("/?notice=account-deleted");
-}
-
-/** Follow a Visa Bulletin category (or stop following). */
-export async function bulletinWatchAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const user = await getCurrentUser();
-  if (!user) return NOT_SIGNED_IN;
-  const svc = visaBulletinService();
-  if (formData.get("intent") === "stop") {
-    await svc.removeWatch(user.id);
-    refresh();
-    return { success: "You're no longer following a Visa Bulletin category." };
-  }
-  const watch = { category: formData.get("category"), area: formData.get("area"), chart: formData.get("chart") };
-  if (!isValidWatch(watch)) return { error: "Choose a category, a country and a chart." };
-  await svc.setWatch(user.id, watch);
-  refresh();
-  return { success: "Saved. You're following this category." };
 }

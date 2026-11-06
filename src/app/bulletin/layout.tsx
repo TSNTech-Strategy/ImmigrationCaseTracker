@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { AppFooter, AppHeader } from "@/components/app-header";
 import { requireUser } from "@/lib/auth/session";
 
-// The Visa Bulletin for signed-in people: their own category first.
+// The Visa Bulletin for signed-in people: the official links and how to read them.
 export const instant = false;
 
 export default async function BulletinLayout({ children }: { children: ReactNode }) {
