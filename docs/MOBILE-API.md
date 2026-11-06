@@ -7,6 +7,7 @@ Used by the Expo app in `mobile/` (Step 9B). Personal cases only; law-firm featu
 | Method | Path | What it does |
 |---|---|---|
 | GET | `/api/v1/config` | Consent wording and version, receipt hint (no sign-in needed) |
+| GET | `/api/v1/resources` | The resource center for the Resources tab: `{statusLibrary, resources: [{slug, title, summary, intro, sections, faq?, links}], contactEmail}` in English and Spanish; links are official pages or website paths (`/status-guide`, `/visa-bulletin`, `/resources/…`) the app maps to its own screens; `contactEmail` is `null` until `NEXT_PUBLIC_CONTACT_EMAIL` is set (no sign-in needed) |
 | GET | `/api/v1/guide` | The status guide for the app's Status guide tab: `{stageCount, entries: [{slug, heading, wordings, category, stage, path, en, es}]}` (no sign-in needed) |
 | GET | `/api/v1/me` | Profile, plan, case counts, alert settings |
 | PATCH | `/api/v1/me` | `{name?, locale?: "en"\|"es", emailOnChange?, pushOnChange?}` |

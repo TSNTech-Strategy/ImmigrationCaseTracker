@@ -1,8 +1,8 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Banner, Loading, Screen, Small } from "../../../components/ui";
-import { LargeHeader, SearchField } from "../../../components/cases";
+import { Banner, Body, Loading, Screen, Small } from "../../../components/ui";
+import { SearchField } from "../../../components/cases";
 import { Icon } from "../../../components/icon";
 import { FadeInDown, stagger } from "../../../components/motion";
 import { ApiError, type GuideEntry, type StatusCategory } from "../../../lib/api";
@@ -12,7 +12,8 @@ import { radius, space, useTheme } from "../../../lib/theme";
 
 const GROUPS: StatusCategory[] = ["progress", "action", "done", "stop"];
 
-export default function GuideTab() {
+/** The status library (opened from Resources): every common USCIS status, grouped, with a search. */
+export default function StatusLibrary() {
   const { t, lang } = useAuth();
   const { c } = useTheme();
   const [entries, setEntries] = useState<GuideEntry[] | null>(null);
@@ -31,8 +32,8 @@ export default function GuideTab() {
   const shown = (entries ?? []).filter(match);
 
   return (
-    <Screen tab>
-      <LargeHeader title={t.guideTitle} subtitle={t.guideSubtitle} />
+    <Screen>
+      <Body muted>{t.guideSubtitle}</Body>
       {error && <Banner tone="danger">{error}</Banner>}
       <SearchField value={query} onChangeText={setQuery} placeholder={t.searchStatuses} />
       {GROUPS.map((cat, gi) => {

@@ -44,7 +44,7 @@ export default function GuideEntryScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: t.tabGuide }} />
+      <Stack.Screen options={{ title: t.statusLibrary }} />
       <StatusPill category={entry.category} label={t.category[entry.category]} />
       <H1>{entry.heading}</H1>
       {entry.stage !== null && (
