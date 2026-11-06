@@ -15,7 +15,7 @@ export default function NewCasePage() {
       </Link>
       <h1 className="text-2xl font-semibold tracking-tight">Add a case</h1>
       <ModeBanner mode={getUscisClient().mode} />
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6">
         <AddCaseForm options={INDIVIDUAL_CONSENT_OPTIONS} footnote={CONSENT_FOOTNOTE} />
       </div>
     </>

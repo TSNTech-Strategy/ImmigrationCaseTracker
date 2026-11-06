@@ -17,7 +17,7 @@ const ago = (d: Date | null, now: Date) => {
 function Tile({ label, value, note, tone }: { label: string; value: string; note?: string; tone?: "ok" | "warn" | "bad" }) {
   const color = tone === "bad" ? "text-[var(--danger)]" : tone === "ok" ? "text-[var(--success)]" : "";
   return (
-    <div className="flex flex-col gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+    <div className="flex flex-col gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
       <dt className="text-sm text-[var(--muted)]">{label}</dt>
       <dd className={`text-2xl font-semibold tabular-nums ${color}`}>{value}</dd>
       {note && <dd className="text-xs text-[var(--muted)]">{note}</dd>}
@@ -31,7 +31,7 @@ export default async function AdminPage() {
     return (
       <>
         <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
-        <p className="rounded-xl border border-[var(--danger)] bg-[var(--surface)] p-5">
+        <p className="rounded-lg border border-[var(--danger)] bg-[var(--surface)] p-5">
           Turn on two-factor sign-in in{" "}
           <Link href="/settings#security-h" className="underline underline-offset-2">
             Settings
@@ -79,7 +79,7 @@ export default async function AdminPage() {
           <Tile label="Last scheduled check" value={ago(o.uscis.lastScheduledAt, now)} tone={schedulerQuiet ? "bad" : "ok"} />
           <Tile label="Cases overdue > 1 h" value={String(o.uscis.overdue)} tone={o.uscis.overdue > 0 ? "bad" : "ok"} />
         </dl>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm">
           <p className="mb-2 font-medium">Check results, last 24 hours</p>
           {o.uscis.outcomes24h.length === 0 ? (
             <p className="text-[var(--muted)]">No checks in the last 24 hours.</p>
@@ -107,7 +107,7 @@ export default async function AdminPage() {
           <Tile label="Failed" value={String(o.notifications.failed7)} tone={o.notifications.failed7 > 0 ? "bad" : "ok"} />
         </dl>
         {o.notifications.recentFailures.length > 0 && (
-          <ul className="flex flex-col divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm">
+          <ul className="flex flex-col divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm">
             {o.notifications.recentFailures.map((f) => (
               <li key={f.id} className="flex flex-col gap-0.5 p-3">
                 <span>
@@ -130,7 +130,7 @@ export default async function AdminPage() {
           <Tile label="Firms" value={String(o.people.firms)} note={`Solo ${o.people.firmSolo} · Firm ${o.people.firmFirm} · trial ${o.people.trialFirms} · lapsed ${o.people.lapsedFirms}`} />
           <Tile label="Cases" value={String(o.people.individualCases + o.people.firmCases)} note={`${o.people.individualCases} personal · ${o.people.firmCases} firm · ${o.people.pausedCases} paused`} />
         </dl>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm">
           <p className="mb-2 font-medium">Subscriptions</p>
           {o.billing.byStatus.length === 0 ? (
             <p className="text-[var(--muted)]">No subscriptions yet.</p>
@@ -163,9 +163,9 @@ export default async function AdminPage() {
           Open deletion requests
         </h2>
         {deletions.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-[var(--border)] p-5 text-center text-sm text-[var(--muted)]">None. Every request has been handled.</p>
+          <p className="rounded-lg border border-dashed border-[var(--border)] p-5 text-center text-sm text-[var(--muted)]">None. Every request has been handled.</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+          <ul className="flex flex-col divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] bg-[var(--surface)]">
             {deletions.map((d) => (
               <li key={d.id} className="flex flex-col gap-3 p-4 md:flex-row md:items-start md:justify-between">
                 <div className="flex flex-col gap-0.5 text-sm">

@@ -45,7 +45,7 @@ export async function PlanSection({ userId, plan: planIn, billing, sessionId }: 
         {describeCadence(plan)}.
       </p>
       {trialActive && (
-        <p className="rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm">
+        <p className="rounded-lg border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm">
           Free Premium trial until {day(acct!.trialEndsAt!)}. After that your account moves to Free (no automatic checks or alerts) unless you
           subscribe.
         </p>

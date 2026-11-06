@@ -23,7 +23,7 @@ export default async function NewFirmCasePage({ searchParams }: PageProps<"/firm
       <h1 className="text-2xl font-semibold tracking-tight">Add a client&apos;s case</h1>
       <ModeBanner mode={getUscisClient().mode} />
       {data.clients.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center">
+        <p className="rounded-lg border border-dashed border-[var(--border)] p-6 text-center">
           Add a client first, then add their case.{" "}
           <Link href="/firm/clients" className="underline underline-offset-2">
             Add a client

@@ -99,8 +99,55 @@
   h1,
   h2 {
     color: var(--brand-ink);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.015em;
   }
+  /* Public pages use the serif for headlines; the signed-in app stays in the sans for density. */
+  .serif-headings h1,
+  .serif-headings h2 {
+    font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Status categories (USCIS wording grouped by what it means for the person). */
+:root {
+  --st-progress: #1758a8;
+  --st-progress-bg: #e6effb;
+  --st-action: #9a5b00;
+  --st-action-bg: #fdf1dc;
+  --st-done: #1e7a43;
+  --st-done-bg: #e7f5ec;
+  --st-stop: #b42318;
+  --st-stop-bg: #fdecea;
+  --st-none: #56637a;
+  --st-none-bg: #eef2f8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --st-progress: #8dbbff;
+    --st-progress-bg: #15284a;
+    --st-action: #f5c26b;
+    --st-action-bg: #3a2a0c;
+    --st-done: #6fcf97;
+    --st-done-bg: #11291c;
+    --st-stop: #f2877d;
+    --st-stop-bg: #3a1714;
+    --st-none: #9aa9c1;
+    --st-none-bg: #16223a;
+  }
+}
+:root[data-theme="dark"] {
+  --st-progress: #8dbbff;
+  --st-progress-bg: #15284a;
+  --st-action: #f5c26b;
+  --st-action-bg: #3a2a0c;
+  --st-done: #6fcf97;
+  --st-done-bg: #11291c;
+  --st-stop: #f2877d;
+  --st-stop-bg: #3a1714;
+  --st-none: #9aa9c1;
+  --st-none-bg: #16223a;
 }
 
 ::selection {

@@ -117,7 +117,7 @@ export function ImportForm({ maxRows }: { maxRows: number }) {
               </span>
             )}
           </p>
-          <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+          <div className="overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)]">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-[var(--border)] text-[var(--muted)]">
                 <tr>

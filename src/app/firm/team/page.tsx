@@ -30,7 +30,7 @@ export default async function TeamPage() {
         <h2 id="members-h" className="text-lg font-semibold">
           Members
         </h2>
-        <ul className="flex flex-col divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+        <ul className="flex flex-col divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] bg-[var(--surface)]">
           {members.map((m) => {
             const isSelf = m.userId === user.id;
             const canRemove = isSelf || myRole === "OWNER" || (myRole === "ADMIN" && m.role === "STAFF");
@@ -57,7 +57,7 @@ export default async function TeamPage() {
       </section>
 
       {canManage && (
-        <section aria-labelledby="invite-h" className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+        <section aria-labelledby="invite-h" className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <h2 id="invite-h" className="text-lg font-semibold">
             Invite someone
           </h2>
@@ -74,7 +74,7 @@ export default async function TeamPage() {
           <h2 id="pending-h" className="text-lg font-semibold">
             Pending invitations
           </h2>
-          <ul className="flex flex-col divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+          <ul className="flex flex-col divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] bg-[var(--surface)]">
             {invitations.map((i) => (
               <li key={i.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>

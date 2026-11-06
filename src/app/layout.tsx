@@ -1,11 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { Geist_Mono, Plus_Jakarta_Sans, Source_Serif_4 } from "next/font/google";
 import { THEME_INIT_SCRIPT } from "@/components/theme-toggle";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin", "latin-ext"],
+  display: "swap",
+});
+
+/** Headlines: a classic serif reads as established and trustworthy (no "startup template" look). */
+const serif = Source_Serif_4({
+  variable: "--font-serif",
+  subsets: ["latin", "latin-ext"],
+  weight: ["600", "700"],
   display: "swap",
 });
 
@@ -31,7 +39,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // suppressHydrationWarning: the theme script may set data-theme before React loads.
-    <html lang="en" className={`${jakarta.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="en" className={`${jakarta.variable} ${serif.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>

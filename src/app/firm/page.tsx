@@ -40,7 +40,7 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
           <li>Roles: Owner, Admin and Staff.</li>
           <li>Your personal cases stay private and separate from the firm.</li>
         </ul>
-        <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <h2 className="mb-4 text-lg font-semibold">Create your firm workspace</h2>
           <CreateFirmForm />
         </section>
@@ -92,7 +92,7 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
 function Stat({ label, value, href, note }: { label: string; value: string; href: string; note?: string }) {
   // dl > div > dt/dd stays valid HTML; the link covers the whole card.
   return (
-    <div className="relative rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 focus-within:border-[var(--accent)] hover:border-[var(--accent)]">
+    <div className="relative rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 focus-within:border-[var(--accent)] hover:border-[var(--accent)]">
       <dt className="text-sm text-[var(--muted)]">{label}</dt>
       <dd className="text-2xl font-semibold">
         <Link href={href} className="after:absolute after:inset-0 focus-visible:outline-none">

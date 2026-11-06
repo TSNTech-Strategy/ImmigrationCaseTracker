@@ -84,11 +84,11 @@ export default async function AuditPage({ searchParams }: PageProps<"/firm/audit
       </form>
 
       {data.entries.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center text-sm text-[var(--muted)]">
+        <p className="rounded-lg border border-dashed border-[var(--border)] p-6 text-center text-sm text-[var(--muted)]">
           No activity matches these filters.
         </p>
       ) : (
-        <ol className="flex flex-col divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+        <ol className="flex flex-col divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] bg-[var(--surface)]">
           {data.entries.map((e) => (
             <li key={e.id} className="flex flex-col gap-0.5 p-4 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
               <p>

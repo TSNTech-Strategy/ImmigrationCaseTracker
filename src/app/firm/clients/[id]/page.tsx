@@ -49,7 +49,7 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
         <FirmCaseList cases={client.cases.map((c) => ({ ...c, client: null }))} empty="No cases for this client yet." />
       </section>
 
-      <section aria-labelledby="client-details-h" className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+      <section aria-labelledby="client-details-h" className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <h2 id="client-details-h" className="text-lg font-semibold">
           Client details
         </h2>
@@ -60,7 +60,7 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
       </section>
 
       {canArchive && (
-        <section aria-labelledby="archive-h" className="flex flex-col gap-2 rounded-xl border border-[var(--border)] p-5">
+        <section aria-labelledby="archive-h" className="flex flex-col gap-2 rounded-lg border border-[var(--border)] p-5">
           <h2 id="archive-h" className="text-lg font-semibold">
             {client.archivedAt ? "Restore" : "Archive"}
           </h2>
