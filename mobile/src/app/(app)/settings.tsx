@@ -8,10 +8,11 @@ import { useAuth } from "../../lib/auth";
 import { config } from "../../lib/config";
 import { trialDaysLeft } from "../../lib/i18n";
 import { registerForPush } from "../../lib/push";
+import { useRefreshOnForeground } from "../../lib/use-refresh";
 import { space, useTheme } from "../../lib/theme";
 
 export default function Settings() {
-  const { t, me, setMe, signOut } = useAuth();
+  const { t, me, setMe, signOut, refreshMe } = useAuth();
   const { c } = useTheme();
   const [name, setName] = useState(me?.name ?? "");
   const [note, setNote] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
@@ -19,6 +20,7 @@ export default function Settings() {
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => setName(me?.name ?? ""), [me?.name]);
+  useRefreshOnForeground(refreshMe);
   if (!me) return null;
 
   async function patch(body: Partial<{ name: string; locale: "en" | "es"; emailOnChange: boolean; pushOnChange: boolean }>) {

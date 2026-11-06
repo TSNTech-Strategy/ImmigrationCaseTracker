@@ -13,6 +13,7 @@ v1: personal cases only, no buying in the app (upgrades happen on casepingo.com)
 
 - Sign-in is stored encrypted, with its key in the iPhone keychain or Android Keystore (`src/lib/secure-storage.ts`).
 - Push alerts: the app asks permission after sign-in and registers the phone's Expo push token (`src/lib/push.ts`). Tapping an alert opens the case.
+- Stays in step with the website (same account, same data on the server): screens reload when opened, when you pull down, and when you come back to the app (`src/lib/use-refresh.ts`; only the screen that's showing, at most every 15 seconds).
 - No secrets in the app: only public values (`EXPO_PUBLIC_*`).
 
 ## Settings

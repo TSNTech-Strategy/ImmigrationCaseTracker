@@ -6,6 +6,7 @@ import { FlagStripe, StarBurst, StarsMark, dismissApproval, dismissedApprovals, 
 import { api, ApiError, type CaseSummary } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { formatDate, trialDaysLeft } from "../../../lib/i18n";
+import { useRefreshOnForeground } from "../../../lib/use-refresh";
 import { font, radius, space, useTheme } from "../../../lib/theme";
 
 export default function Cases() {
@@ -36,6 +37,7 @@ export default function Cases() {
       load();
     }, [load]),
   );
+  useRefreshOnForeground(load);
 
   const days = trialDaysLeft(me?.plan.trialEndsAt ?? null);
   const approvals = dismissed ? (cases ?? []).filter((x) => x.recentApprovalAt && !dismissed.includes(x.id)) : [];
