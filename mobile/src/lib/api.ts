@@ -76,6 +76,9 @@ export type CaseSummary = {
   lastCheckOutcome: string | null;
   createdAt: string;
   category: StatusCategory;
+  /** Step on the progress line (0–3), null before the first check. */
+  stage: number | null;
+  form: { code: string; name: Bilingual | null } | null;
   /** Set while CasePingo saw this case become approved in the last 30 days. */
   recentApprovalAt: string | null;
 };
@@ -88,7 +91,6 @@ export type CaseDetail = Omit<CaseSummary, "recentApprovalAt"> & {
   events: { id: string; statusTitleEn: string | null; statusTitleEs: string | null; uscisReportedRaw: string | null; firstObservedAt: string; category: StatusCategory }[];
   consent: { basis: string; capturedAt: string } | null;
   guide: { slug: string; path: string; en: GuideText; es: GuideText } | null;
-  form: { code: string; name: Bilingual | null } | null;
   office: { code: string; name: Bilingual | null } | null;
   processingTimesUrl: string;
   celebration: { approvedAt: string; nextStep: Bilingual | null } | null;
@@ -97,4 +99,15 @@ export type AppConfig = {
   consent: { version: string; options: { basis: "SELF" | "AUTHORIZED_BY_APPLICANT"; label: string; statement: string }[]; footnote: string };
   receiptHint: string;
   uscisCaseStatusUrl: string;
+};
+
+export type GuideEntry = {
+  slug: string;
+  heading: string;
+  wordings: string[];
+  category: StatusCategory;
+  stage: number | null;
+  path: string;
+  en: GuideText;
+  es: GuideText;
 };

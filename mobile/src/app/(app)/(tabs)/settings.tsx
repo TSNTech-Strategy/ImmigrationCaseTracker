@@ -1,15 +1,17 @@
+import Constants from "expo-constants";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import { Platform, Switch, Text, View } from "react-native";
-import { Banner, Body, Button, Card, Choice, Field, H2, Screen, Small } from "../../components/ui";
-import { api, ApiError, type Me } from "../../lib/api";
-import { useAuth } from "../../lib/auth";
-import { config } from "../../lib/config";
-import { trialDaysLeft } from "../../lib/i18n";
-import { registerForPush } from "../../lib/push";
-import { useRefreshOnForeground } from "../../lib/use-refresh";
-import { space, useTheme } from "../../lib/theme";
+import { Banner, Body, Button, Card, Choice, Field, H2, Screen, Small } from "../../../components/ui";
+import { LargeHeader } from "../../../components/cases";
+import { api, ApiError, type Me } from "../../../lib/api";
+import { useAuth } from "../../../lib/auth";
+import { config } from "../../../lib/config";
+import { trialDaysLeft } from "../../../lib/i18n";
+import { registerForPush } from "../../../lib/push";
+import { useRefreshOnForeground } from "../../../lib/use-refresh";
+import { space, useTheme } from "../../../lib/theme";
 
 export default function Settings() {
   const { t, me, setMe, signOut, refreshMe } = useAuth();
@@ -34,7 +36,8 @@ export default function Settings() {
 
   const days = trialDaysLeft(me.plan.trialEndsAt);
   return (
-    <Screen>
+    <Screen tab>
+      <LargeHeader title={t.settings} />
       {note && <Banner tone={note.tone}>{note.text}</Banner>}
 
       <H2>{t.profile}</H2>
@@ -128,6 +131,7 @@ export default function Settings() {
           }}
         />
       </Card>
+      <Small style={{ textAlign: "center" }}>{t.version(Constants.expoConfig?.version ?? "1.0.0")}</Small>
     </Screen>
   );
 }

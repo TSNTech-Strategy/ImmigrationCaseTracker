@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CELEBRATION_WINDOW_DAYS, approvalNextStep, formInfo, observedApprovalAt, receivingOffice, recentApprovalAt } from "../case-insights";
+import { CELEBRATION_WINDOW_DAYS, STAGE_COUNT, approvalNextStep, caseStage, formInfo, observedApprovalAt, receivingOffice, recentApprovalAt } from "../case-insights";
 
 const day = (n: number) => new Date(Date.UTC(2026, 9, n, 12));
 const ev = (title: string, n: number) => ({ statusTitleEn: title, firstObservedAt: day(n) });
@@ -61,5 +61,24 @@ describe("approvalNextStep", () => {
     expect(approvalNextStep("I-485", "Card Was Mailed To Me")?.en).toContain("Postal Service");
     expect(approvalNextStep("I-999", "Case Was Approved")?.en).toContain("approval notice");
     expect(approvalNextStep(null, null)).toBeNull();
+  });
+});
+
+describe("caseStage", () => {
+  it("places each status on the four-step line", () => {
+    expect(caseStage("Case Was Received")).toBe(0);
+    expect(caseStage("Request for Additional Evidence Was Sent")).toBe(1);
+    expect(caseStage("Case Was Transferred And A New Office Has Jurisdiction")).toBe(1);
+    expect(caseStage("Case Was Approved")).toBe(2);
+    expect(caseStage("Case Was Denied")).toBe(2);
+    expect(caseStage("Card Was Delivered To Me By The Post Office")).toBe(3);
+    expect(caseStage("Oath Ceremony Was Scheduled")).toBe(3);
+    expect(caseStage("Some New USCIS Wording")).toBe(1);
+    expect(caseStage(null)).toBeNull();
+  });
+  it("covers every guide entry", async () => {
+    const { STATUS_GUIDE } = await import("../status-guide");
+    for (const g of STATUS_GUIDE) expect(caseStage(g.title), g.slug).toBeGreaterThanOrEqual(0);
+    expect(STAGE_COUNT).toBe(4);
   });
 });

@@ -2,14 +2,17 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Platform, Pressable, Text, View } from "react-native";
-import { Banner, Body, Button, Card, H1, H2, Loading, Row, Screen, Small, StatusPill, Timeline } from "../../../components/ui";
+import { Banner, Body, Button, Card, Field, H1, H2, Loading, Row, Screen, Small, StatusPill, Timeline } from "../../../components/ui";
 import { CongratsCard, StarBurst, takeUnplayed } from "../../../components/celebration";
+import { CaseSubline, Stepper, caseTitles } from "../../../components/cases";
+import { Icon } from "../../../components/icon";
+import { markSeen } from "../../../lib/seen";
 import { api, ApiError, type CaseDetail } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { config } from "../../../lib/config";
 import { formatDate } from "../../../lib/i18n";
 import { useRefreshOnForeground } from "../../../lib/use-refresh";
-import { font, space, useTheme } from "../../../lib/theme";
+import { space, useTheme } from "../../../lib/theme";
 
 function confirm(message: string, ok: string, cancel: string): Promise<boolean> {
   if (Platform.OS === "web") return Promise.resolve(globalThis.confirm?.(message) ?? true);
@@ -44,11 +47,13 @@ export default function CaseScreen() {
   const [busy, setBusy] = useState<"check" | "remove" | "switch" | null>(null);
   const [burst, setBurst] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [renaming, setRenaming] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       const r = await api<{ case: CaseDetail }>(`/api/v1/cases/${id}`);
       setCs(r.case);
+      await markSeen(r.case.id, r.case.lastChangeObservedAt);
       // First time this phone sees the approval: stars and a little buzz.
       if (r.case.celebration && (await takeUnplayed([r.case.id])).length > 0) setBurst(Date.now());
     } catch (e) {
@@ -71,6 +76,19 @@ export default function CaseScreen() {
   const guide = cs.guide ? cs.guide[lang] : null;
   const officeName = cs.office?.name ? cs.office.name[lang] : null;
   const history = cs.uscisHistory ?? [];
+  const names = caseTitles(cs, lang);
+  const stepLabel = cs.stage !== null ? t.stepOf(cs.stage + 1, 4, t.stages[cs.stage] ?? "") : undefined;
+
+  async function saveName() {
+    if (renaming === null) return;
+    try {
+      await api(`/api/v1/cases/${id}`, { method: "PATCH", body: { nickname: renaming.trim() || null } });
+      setRenaming(null);
+      await load();
+    } catch (e) {
+      setNote({ tone: "danger", text: e instanceof ApiError ? e.message : String(e) });
+    }
+  }
 
   async function checkNow() {
     setBusy("check");
@@ -96,14 +114,34 @@ export default function CaseScreen() {
           setRefreshing(false);
         }}
       >
-        <Stack.Screen options={{ title: cs.nickname ?? cs.receiptMasked }} />
-        <View style={{ gap: space(1) }}>
-          <H1>{cs.nickname ?? cs.receiptMasked}</H1>
-          <Small style={font.mono}>
-            {cs.formType ? `${cs.formType} · ` : ""}
-            {cs.receiptMasked}
-          </Small>
-        </View>
+        <Stack.Screen options={{ title: names.title }} />
+        {renaming === null ? (
+          <View style={{ gap: space(1) }}>
+            <H1>{names.title}</H1>
+            <CaseSubline mono={names.mono} text={names.text} />
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setRenaming(cs.nickname ?? "")}
+              hitSlop={6}
+              style={{ flexDirection: "row", alignItems: "center", gap: space(1.5), alignSelf: "flex-start", marginTop: space(1) }}
+            >
+              <Icon ios="pencil" md="edit" size={15} color={c.accent} fallback="✎" />
+              <Text style={{ color: c.accent, fontWeight: "600", fontSize: 15 }}>{t.rename}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Card>
+            <Field label={t.nickname} value={renaming} onChangeText={setRenaming} placeholder={t.renamePlaceholder} maxLength={60} autoFocus />
+            <View style={{ flexDirection: "row", gap: space(2) }}>
+              <View style={{ flex: 1 }}>
+                <Button title={t.cancel} variant="secondary" onPress={() => setRenaming(null)} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button title={t.save} onPress={saveName} />
+              </View>
+            </View>
+          </Card>
+        )}
 
         {cs.celebration && (
           <CongratsCard
@@ -142,6 +180,7 @@ export default function CaseScreen() {
             <StatusPill category={cs.category} label={t.category[cs.category]} />
           </View>
           <H2 style={{ fontSize: 22 }}>{title}</H2>
+          {cs.stage !== null && <Stepper stage={cs.stage} total={4} category={cs.category} label={stepLabel} />}
           {desc && <Body>{desc.replace(/<[^>]+>/g, "")}</Body>}
 
           {guide && cs.guide && (
