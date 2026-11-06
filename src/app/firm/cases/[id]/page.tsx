@@ -68,6 +68,7 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
       <CaseStatusPanel
         c={c}
         es={es}
+        guideCollapsed
         actions={active ? <FirmRefreshButton caseId={c.id} /> : undefined}
         footnote={
           <>

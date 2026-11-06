@@ -73,6 +73,7 @@ export default function Settings() {
           />
         </View>
         {!me.plan.alerts && <Small>{t.freePlan}</Small>}
+        <Small>{t.alertsNote}</Small>
       </Card>
 
       <H2>{t.plan}</H2>

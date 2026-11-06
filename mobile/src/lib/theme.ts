@@ -18,6 +18,16 @@ const light = {
   dangerSoft: "#FDECEA",
   success: "#1E7A43",
   successSoft: "#E7F5EC",
+  /** Status kinds, same as the website's --st-* tokens. */
+  st: {
+    progress: { fg: "#1758A8", bg: "#E6EFFB" },
+    action: { fg: "#9A5B00", bg: "#FDF1DC" },
+    done: { fg: "#1E7A43", bg: "#E7F5EC" },
+    stop: { fg: "#B42318", bg: "#FDECEA" },
+    none: { fg: "#56637A", bg: "#EEF2F8" },
+  },
+  /** Celebration stars: brand red and blue. */
+  stars: ["#E43B53", "#1758A8", "#5B8FD9"],
 };
 const dark: typeof light = {
   background: "#0A1220",
@@ -36,6 +46,14 @@ const dark: typeof light = {
   dangerSoft: "#3A1714",
   success: "#6FCF97",
   successSoft: "#11291C",
+  st: {
+    progress: { fg: "#8DBBFF", bg: "#15284A" },
+    action: { fg: "#F5C26B", bg: "#3A2A0C" },
+    done: { fg: "#6FCF97", bg: "#11291C" },
+    stop: { fg: "#F2877D", bg: "#3A1714" },
+    none: { fg: "#9AA9C1", bg: "#16223A" },
+  },
+  stars: ["#FF6B7D", "#6EA8FF", "#FFFFFF"],
 };
 export type Colors = typeof light;
 

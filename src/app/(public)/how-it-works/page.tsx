@@ -27,6 +27,11 @@ export default function HowItWorks() {
       <ul>
         <li>the current status, in English or Spanish, exactly as USCIS words it;</li>
         <li>
+          a plain-language note on what the status usually means and what tends to happen next (see the{" "}
+          <Link href="/status-guide">status guide</Link>);
+        </li>
+        <li>the form, the office that received it, and a link to USCIS&apos;s official processing times;</li>
+        <li>
           <strong>last checked</strong>: when we last asked USCIS;
         </li>
         <li>
@@ -45,7 +50,7 @@ export default function HowItWorks() {
       </p>
       <h2>What we are not</h2>
       <p>
-        {SITE.disclaimer} We show the status USCIS reports; we don&apos;t predict outcomes or processing times. For the official
+        {SITE.disclaimer} We show the status USCIS reports; we don&apos;t predict outcomes or processing times. For timing, we link to USCIS&apos;s own published processing times. For the official
         status, use{" "}
         <a href={SITE.uscisStatusUrl} target="_blank" rel="noopener noreferrer">
           USCIS Case Status Online

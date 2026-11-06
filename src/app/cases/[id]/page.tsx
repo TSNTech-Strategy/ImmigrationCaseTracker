@@ -12,6 +12,8 @@ import { prisma } from "@/lib/db";
 import { RefreshButton, RemoveCaseForm } from "./case-actions";
 import { CheckThisCaseButton } from "@/app/billing/buttons";
 import { CaseStatusPanel, ObservedChanges, UscisHistory, USCIS_SOURCE_NOTE } from "@/components/case-status";
+import { ApprovalCelebration } from "@/components/approval-celebration";
+import { approvalNextStep, recentApprovalAt } from "@/lib/case-insights";
 
 export const metadata: Metadata = { title: "Case · CasePingo" };
 
@@ -32,6 +34,8 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
   const consent = c.consents.find((x) => !x.withdrawnAt);
   const consentLabel = INDIVIDUAL_CONSENT_OPTIONS.find((o) => o.basis === consent?.basis)?.label;
   const plan = (await prisma.user.findUnique({ where: { id: user.id }, select: { plan: true } }))?.plan ?? "FREE";
+  const approvedAt = recentApprovalAt(c.statusTitleEn, c.events);
+  const nextStep = approvedAt ? approvalNextStep(c.formType, c.statusTitleEn) : null;
 
   return (
     <>
@@ -49,6 +53,10 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
         <p role="status" className="rounded-md border border-[var(--success)] px-3 py-2 text-sm text-[var(--success)]">
           {message}
         </p>
+      )}
+
+      {approvedAt && (
+        <ApprovalCelebration caseId={c.id} approvedAtIso={approvedAt.toISOString()} nextStep={nextStep ? nextStep[es ? "es" : "en"] : null} es={es} />
       )}
 
       {c.pausedReason === "plan_limit" && (

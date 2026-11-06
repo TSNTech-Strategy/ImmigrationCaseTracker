@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { font, radius, space, useTheme } from "../lib/theme";
+import type { StatusCategory } from "../lib/api";
 
 /** Shared building blocks: one look across every screen, light and dark. */
 
@@ -265,5 +266,41 @@ export function Loading() {
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.background }}>
       <ActivityIndicator color={c.accent} />
     </View>
+  );
+}
+
+/** Coloured label for the kind of status (USCIS's wording is shown next to it). */
+export function StatusPill({ category, label }: { category: StatusCategory; label: string }) {
+  const { c } = useTheme();
+  const { fg, bg } = c.st[category];
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: space(1.5), backgroundColor: bg, borderRadius: 6, paddingHorizontal: space(2), paddingVertical: space(0.75), alignSelf: "flex-start" }}>
+      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: fg }} />
+      <Text style={{ color: fg, fontSize: 12, fontWeight: "700" }}>{label}</Text>
+    </View>
+  );
+}
+
+/** Vertical timeline, newest first: a coloured dot per status kind joined by a line. */
+export function Timeline({ items }: { items: { key: string; title: string; meta?: string; category: StatusCategory }[] }) {
+  const { c } = useTheme();
+  return (
+    <Card style={{ gap: 0 }}>
+      {items.map((it, i) => {
+        const last = i === items.length - 1;
+        return (
+          <View key={it.key} style={{ flexDirection: "row", gap: space(3) }}>
+            <View style={{ width: 11, alignItems: "center" }}>
+              <View style={{ width: 11, height: 11, borderRadius: 6, marginTop: 6, backgroundColor: c.st[it.category].fg }} />
+              {!last && <View style={{ flex: 1, width: 1, marginTop: 3, backgroundColor: c.border }} />}
+            </View>
+            <View style={{ flex: 1, gap: 2, paddingBottom: last ? 0 : space(4) }}>
+              <Body style={{ fontWeight: i === 0 ? "700" : "500" }}>{it.title}</Body>
+              {it.meta ? <Small>{it.meta}</Small> : null}
+            </View>
+          </View>
+        );
+      })}
+    </Card>
   );
 }

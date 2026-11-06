@@ -15,4 +15,15 @@ describe("statusCategory", () => {
     expect(statusCategory("Case Rejected Because I Sent An Incorrect Fee")).toBe("stop");
     expect(statusCategory(null)).toBe("none");
   });
+
+  it("doesn't treat side requests or acknowledgements as decisions or to-dos", () => {
+    expect(statusCategory("Expedite Request Denied")).toBe("progress");
+    expect(statusCategory("Response To USCIS' Request For Evidence Was Received")).toBe("progress");
+    expect(statusCategory("Request to Reschedule My Appointment Was Received")).toBe("progress");
+    expect(statusCategory("Request for Initial Evidence Was Sent")).toBe("action");
+    expect(statusCategory("Notice Explaining USCIS Actions Was Mailed")).toBe("action");
+    expect(statusCategory("Withdrawal Acknowledgement Notice Was Sent")).toBe("stop");
+    expect(statusCategory("Card Is Being Returned to USCIS by Post Office")).toBe("stop");
+    expect(statusCategory("Oath Ceremony Was Scheduled")).toBe("done");
+  });
 });

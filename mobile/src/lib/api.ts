@@ -58,6 +58,10 @@ export type Me = {
   cases: { count: number; pausedByPlan: number };
   alerts: { email: boolean; push: boolean };
 };
+export type StatusCategory = "progress" | "action" | "done" | "stop" | "none";
+export type GuideText = { meaning: string; next: string; todo: string | null };
+type Bilingual = { en: string; es: string };
+
 export type CaseSummary = {
   id: string;
   receiptMasked: string;
@@ -71,15 +75,23 @@ export type CaseSummary = {
   lastChangeObservedAt: string | null;
   lastCheckOutcome: string | null;
   createdAt: string;
+  category: StatusCategory;
+  /** Set while CasePingo saw this case become approved in the last 30 days. */
+  recentApprovalAt: string | null;
 };
-export type CaseDetail = CaseSummary & {
+export type CaseDetail = Omit<CaseSummary, "recentApprovalAt"> & {
   statusDescriptionEn: string | null;
   statusDescriptionEs: string | null;
   uscisSubmittedRaw: string | null;
   uscisModifiedRaw: string | null;
-  uscisHistory: { date?: { raw?: string } | null; textEn?: string | null; textEs?: string | null }[] | null;
-  events: { id: string; statusTitleEn: string | null; statusTitleEs: string | null; uscisReportedRaw: string | null; firstObservedAt: string }[];
+  uscisHistory: { date?: { raw?: string } | null; textEn?: string | null; textEs?: string | null; category: StatusCategory }[] | null;
+  events: { id: string; statusTitleEn: string | null; statusTitleEs: string | null; uscisReportedRaw: string | null; firstObservedAt: string; category: StatusCategory }[];
   consent: { basis: string; capturedAt: string } | null;
+  guide: { slug: string; path: string; en: GuideText; es: GuideText } | null;
+  form: { code: string; name: Bilingual | null } | null;
+  office: { code: string; name: Bilingual | null } | null;
+  processingTimesUrl: string;
+  celebration: { approvedAt: string; nextStep: Bilingual | null } | null;
 };
 export type AppConfig = {
   consent: { version: string; options: { basis: "SELF" | "AUTHORIZED_BY_APPLICANT"; label: string; statement: string }[]; footnote: string };
