@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Banner, Loading, Screen, Small } from "../../../components/ui";
 import { LargeHeader, SearchField } from "../../../components/cases";
 import { Icon } from "../../../components/icon";
+import { FadeInDown, stagger } from "../../../components/motion";
 import { ApiError, type GuideEntry, type StatusCategory } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { loadGuide } from "../../../lib/guide";
@@ -34,11 +35,11 @@ export default function GuideTab() {
       <LargeHeader title={t.guideTitle} subtitle={t.guideSubtitle} />
       {error && <Banner tone="danger">{error}</Banner>}
       <SearchField value={query} onChangeText={setQuery} placeholder={t.searchStatuses} />
-      {GROUPS.map((cat) => {
+      {GROUPS.map((cat, gi) => {
         const items = shown.filter((e) => e.category === cat);
         if (items.length === 0) return null;
         return (
-          <View key={cat} style={{ gap: space(2) }}>
+          <FadeInDown key={cat} delay={stagger(gi, 90)} style={{ gap: space(2) }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: space(2), marginTop: space(1) }}>
               <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: c.st[cat].fg }} />
               <Text accessibilityRole="header" style={{ fontSize: 17, fontWeight: "700", color: c.heading }}>
@@ -73,7 +74,7 @@ export default function GuideTab() {
                 </Pressable>
               ))}
             </View>
-          </View>
+          </FadeInDown>
         );
       })}
       {entries && shown.length === 0 && <Small style={{ textAlign: "center" }}>{t.noMatches}</Small>}

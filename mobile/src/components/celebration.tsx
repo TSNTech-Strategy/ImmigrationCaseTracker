@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AccessibilityInfo, Animated, Easing, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { radius, space, useTheme } from "../lib/theme";
 import { Body, H2, Small } from "./ui";
@@ -114,7 +114,7 @@ function Star({ p, progress }: { p: Particle; progress: Animated.Value }) {
 export function StarBurst({ playKey }: { playKey: number }) {
   const { width, height } = useWindowDimensions();
   const { c } = useTheme();
-  const progress = useRef(new Animated.Value(0)).current;
+  const [progress] = useState(() => new Animated.Value(0));
   const [particles, setParticles] = useState<Particle[]>([]);
 
   useEffect(() => {

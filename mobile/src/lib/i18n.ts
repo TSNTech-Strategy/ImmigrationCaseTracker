@@ -133,6 +133,26 @@ const en = {
   hoursAgo: (n: number) => `${n} h ago`,
   yesterday: "yesterday",
   daysAgo: (n: number) => `${n} days ago`,
+  welcomeFirst: "Your USCIS case,",
+  welcomeSecond: "checked for you.",
+  features: {
+    receipt: { title: "Add your receipt", text: "Enter the number from your USCIS notice once." },
+    alerts: { title: "Get alerts when it changes", text: "We check with USCIS and tell you by email or notification." },
+    guide: { title: "Know what it means", text: "Plain-language explanations of every common status." },
+    privacy: { title: "Private by design", text: "Receipt numbers are encrypted. No ads, no tracking." },
+  },
+  emptyFirst: "Let's add your",
+  emptySecond: "first case",
+  emptyBody: "Add the receipt number from your USCIS notice to track it and keep every update in one place.",
+  emptyFeatures: {
+    updates: { title: "Every update, saved", text: "Each status change with its date, in one timeline." },
+    clear: { title: "Clear explanations", text: "What each status means and what usually comes next." },
+    secure: { title: "Private and secure", text: "Encrypted receipt numbers and two-factor sign-in." },
+  },
+  preferences: "Preferences",
+  account: "Account",
+  editName: "Edit name",
+  openWebsite: "Opens casepingo.com",
 };
 type Strings = typeof en;
 
@@ -268,6 +288,26 @@ const es: Strings = {
   hoursAgo: (n: number) => `hace ${n} h`,
   yesterday: "ayer",
   daysAgo: (n: number) => `hace ${n} días`,
+  welcomeFirst: "Su caso de USCIS,",
+  welcomeSecond: "nosotros lo revisamos.",
+  features: {
+    receipt: { title: "Agregue su recibo", text: "Ingrese una vez el número de su aviso de USCIS." },
+    alerts: { title: "Alertas cuando cambie", text: "Consultamos con USCIS y le avisamos por correo o notificación." },
+    guide: { title: "Entienda qué significa", text: "Explicaciones sencillas de cada estado común." },
+    privacy: { title: "Privado por diseño", text: "Los números de recibo se cifran. Sin anuncios ni rastreo." },
+  },
+  emptyFirst: "Agreguemos su",
+  emptySecond: "primer caso",
+  emptyBody: "Agregue el número de recibo de su aviso de USCIS para seguirlo y guardar cada actualización en un solo lugar.",
+  emptyFeatures: {
+    updates: { title: "Cada actualización, guardada", text: "Cada cambio de estado con su fecha, en una línea de tiempo." },
+    clear: { title: "Explicaciones claras", text: "Qué significa cada estado y qué suele seguir." },
+    secure: { title: "Privado y seguro", text: "Números de recibo cifrados y verificación en dos pasos." },
+  },
+  preferences: "Preferencias",
+  account: "Cuenta",
+  editName: "Editar nombre",
+  openWebsite: "Abre casepingo.com",
 };
 
 export type Lang = "en" | "es";

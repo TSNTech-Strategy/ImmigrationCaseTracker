@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Session } from "@supabase/supabase-js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, type Me } from "./api";
@@ -12,6 +13,8 @@ type AuthState = {
   needsMfa: boolean;
   me: Me | null;
   lang: Lang;
+  /** Before sign-in: the language picked on the welcome screen (the account's language wins after). */
+  setGuestLang: (lang: Lang) => void;
   t: ReturnType<typeof strings>;
   refreshMe: () => Promise<Me | null>;
   setMe: (me: Me) => void;
@@ -20,12 +23,24 @@ type AuthState = {
 };
 
 const Ctx = createContext<AuthState | null>(null);
+const LANG_KEY = "casepingo:lang";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [needsMfa, setNeedsMfa] = useState(false);
   const [me, setMe] = useState<Me | null>(null);
+  const [guestLang, setGuestLangState] = useState<Lang>(deviceLang());
+
+  useEffect(() => {
+    AsyncStorage.getItem(LANG_KEY)
+      .then((v) => (v === "en" || v === "es") && setGuestLangState(v))
+      .catch(() => {});
+  }, []);
+  const setGuestLang = useCallback((l: Lang) => {
+    setGuestLangState(l);
+    AsyncStorage.setItem(LANG_KEY, l).catch(() => {});
+  }, []);
 
   const checkMfa = useCallback(async () => {
     const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -74,10 +89,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMe(null);
   }, []);
 
-  const lang: Lang = me?.locale ?? deviceLang();
+  const lang: Lang = me?.locale ?? guestLang;
   const value = useMemo(
-    () => ({ ready, session, needsMfa, me, lang, t: strings(lang), refreshMe, setMe, checkMfa, signOut }),
-    [ready, session, needsMfa, me, lang, refreshMe, checkMfa, signOut],
+    () => ({ ready, session, needsMfa, me, lang, setGuestLang, t: strings(lang), refreshMe, setMe, checkMfa, signOut }),
+    [ready, session, needsMfa, me, lang, setGuestLang, refreshMe, checkMfa, signOut],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

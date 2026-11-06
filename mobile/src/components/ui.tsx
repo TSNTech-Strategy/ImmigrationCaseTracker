@@ -18,6 +18,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { font, radius, space, useTheme } from "../lib/theme";
 import type { StatusCategory } from "../lib/api";
+import { Icon } from "./icon";
+import type { Glyph } from "./feature";
 
 /** Shared building blocks: one look across every screen, light and dark. */
 
@@ -95,16 +97,23 @@ export function Button({
   variant = "primary",
   loading,
   disabled,
+  icon,
+  iconAfter,
 }: {
   title: string;
   onPress: () => void;
   variant?: "primary" | "secondary" | "danger";
   loading?: boolean;
   disabled?: boolean;
+  /** Icon before the label (e.g. a plus). */
+  icon?: Glyph;
+  /** Icon after the label (e.g. an arrow). */
+  iconAfter?: Glyph;
 }) {
   const { c } = useTheme();
   const primary = variant === "primary";
   const danger = variant === "danger";
+  const fg = primary ? c.onAccent : danger ? c.danger : c.text;
   return (
     <Pressable
       accessibilityRole="button"
@@ -112,9 +121,9 @@ export function Button({
       disabled={disabled || loading}
       onPress={onPress}
       style={({ pressed }) => ({
-        minHeight: 48,
-        borderRadius: radius.md,
-        paddingHorizontal: space(4),
+        minHeight: 52,
+        borderRadius: 16,
+        paddingHorizontal: space(5),
         alignItems: "center",
         justifyContent: "center",
         flexDirection: "row",
@@ -125,8 +134,9 @@ export function Button({
         borderColor: danger ? c.danger : c.border,
       })}
     >
-      {loading && <ActivityIndicator color={primary ? c.onAccent : c.text} />}
-      <Text style={{ fontSize: 16, fontWeight: "600", color: primary ? c.onAccent : danger ? c.danger : c.text }}>{title}</Text>
+      {loading ? <ActivityIndicator color={fg} /> : icon ? <Icon ios={icon.ios} md={icon.md} size={18} color={fg} fallback={icon.fallback} /> : null}
+      <Text style={{ fontSize: 17, fontWeight: "700", color: fg }}>{title}</Text>
+      {iconAfter && !loading ? <Icon ios={iconAfter.ios} md={iconAfter.md} size={18} color={fg} fallback={iconAfter.fallback} /> : null}
     </Pressable>
   );
 }
