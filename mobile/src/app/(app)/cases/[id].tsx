@@ -8,6 +8,7 @@ import { api, ApiError, type CaseDetail } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { config } from "../../../lib/config";
 import { formatDate } from "../../../lib/i18n";
+import { useRefreshOnForeground } from "../../../lib/use-refresh";
 import { font, space, useTheme } from "../../../lib/theme";
 
 function confirm(message: string, ok: string, cancel: string): Promise<boolean> {
@@ -42,6 +43,7 @@ export default function CaseScreen() {
   const [note, setNote] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   const [busy, setBusy] = useState<"check" | "remove" | "switch" | null>(null);
   const [burst, setBurst] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -56,6 +58,7 @@ export default function CaseScreen() {
   useEffect(() => {
     load();
   }, [load]);
+  useRefreshOnForeground(load);
 
   if (error && !cs) return <Screen><Banner tone="danger">{error}</Banner></Screen>;
   if (!cs) return <Loading />;
@@ -85,7 +88,14 @@ export default function CaseScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Screen>
+      <Screen
+        refreshing={refreshing}
+        onRefresh={async () => {
+          setRefreshing(true);
+          await load();
+          setRefreshing(false);
+        }}
+      >
         <Stack.Screen options={{ title: cs.nickname ?? cs.receiptMasked }} />
         <View style={{ gap: space(1) }}>
           <H1>{cs.nickname ?? cs.receiptMasked}</H1>
