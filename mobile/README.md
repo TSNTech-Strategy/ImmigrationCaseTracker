@@ -10,11 +10,12 @@ v1: personal cases only, no buying in the app (upgrades happen on casepingo.com)
 | Welcome (English/Español switch, feature cards), sign in, create account, forgot password, two-factor code | `src/app/welcome.tsx`, `sign-in.tsx`, `sign-up.tsx`, `forgot-password.tsx`, `mfa.tsx` |
 | Tabs (system tab bar: floating glass on iOS 26): Cases, Bulletin, Status guide, Settings | `src/app/(app)/(tabs)/_layout.tsx` |
 | My cases: Check all, add, search, filters by kind of status, cards with progress line and "New" badge | `src/app/(app)/(tabs)/cases.tsx`, `src/components/cases.tsx` |
-| Add a case (with consent), case details (progress line, rename, guide, form and office, timelines, congratulations) | `src/app/(app)/cases/` |
+| Add a case (with consent; scan the receipt notice or type the number), case details (progress line, rename, guide, form and office, timelines, congratulations) | `src/app/(app)/cases/` |
 | Visa Bulletin: opens the official State Department and USCIS pages in the in-app browser, with a short guide to reading them and the list of categories | `src/app/(app)/(tabs)/bulletin.tsx`, `src/lib/bulletin.ts` |
 | Status guide: searchable list and one screen per status | `src/app/(app)/(tabs)/guide.tsx`, `src/app/(app)/guide/[slug].tsx` |
 | Settings: name, language, email and push alerts, plan, sign out, delete account, version | `src/app/(app)/(tabs)/settings.tsx` |
 
+- **Scan a receipt notice** (Add a case, and the empty My cases screen): take a photo of the I-797 notice or choose one, and the receipt number is filled in. Text is read on the phone (`expo-text-extractor`: Apple Vision on iPhone, Google ML Kit on Android; `plugins/with-mlkit-ocr-model.js` has Google Play download the model at install), the number is found by `src/lib/receipt-scan.ts` (tested in the website's suite), and the photo copy is deleted straight after (`src/lib/scan.ts`). Nothing is uploaded. The person still checks the number and confirms consent. Needs a real build (EAS); Expo Go and the web preview don't have the text reader, so the scan buttons are hidden there.
 - Sign-in is stored encrypted, with its key in the iPhone keychain or Android Keystore (`src/lib/secure-storage.ts`).
 - Push alerts: the app asks permission after sign-in and registers the phone's Expo push token (`src/lib/push.ts`). Tapping an alert opens the case.
 - Motion (`src/components/motion.tsx`): screens slide gently into place and feature icons drop in, once; then a highlight walks down the feature cards (`useSpotlight`, only while the screen is showing). With Reduce Motion on, nothing moves and the first card stays lit. Style pieces (tinted icon tiles, feature rows, two-tone titles, language switch) are in `src/components/feature.tsx`.

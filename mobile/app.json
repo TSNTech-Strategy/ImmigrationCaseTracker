@@ -56,7 +56,16 @@
           "icon": "./assets/notification-icon.png",
           "color": "#1758A8"
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "CasePingo uses the camera to read the receipt number on your USCIS notice. The photo stays on your phone and isn't uploaded.",
+          "photosPermission": "CasePingo reads the receipt number from a photo of your USCIS notice that you choose. The photo stays on your phone and isn't uploaded.",
+          "microphonePermission": false
+        }
+      ],
+      "./plugins/with-mlkit-ocr-model"
     ],
     "experiments": {},
     "extra": {

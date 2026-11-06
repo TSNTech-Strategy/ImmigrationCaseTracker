@@ -12,6 +12,7 @@ import { timeAgo, trialDaysLeft } from "../../../lib/i18n";
 import { hasNewChange, seenChanges } from "../../../lib/seen";
 import { radius, space, useTheme } from "../../../lib/theme";
 import { useRefreshOnForeground } from "../../../lib/use-refresh";
+import { canScanReceipts } from "../../../lib/scan";
 
 const FILTER_ORDER: StatusCategory[] = ["action", "progress", "done", "stop", "none"];
 
@@ -184,6 +185,14 @@ export default function Cases() {
               ))}
               <FadeInDown delay={stagger(3, 120, 150)} style={{ gap: space(3) }}>
                 <Button title={t.addFirstCase} onPress={() => router.push("/cases/new")} icon={{ ios: "plus", md: "add", fallback: "+" }} />
+                {canScanReceipts && (
+                  <Button
+                    title={t.scanTitle}
+                    variant="secondary"
+                    onPress={() => router.push("/cases/new?scan=camera")}
+                    icon={{ ios: "camera.viewfinder", md: "document_scanner", fallback: "▣" }}
+                  />
+                )}
                 <Small style={{ textAlign: "center" }}>{t.receiptWhere}</Small>
               </FadeInDown>
             </Card>

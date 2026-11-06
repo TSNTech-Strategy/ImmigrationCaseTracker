@@ -11,7 +11,7 @@ export const SITE = {
   /** Shown on legal pages. Set NEXT_PUBLIC_CONTACT_EMAIL once the company mailbox exists. */
   contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "[contact email — to be added]",
   /** Date the current legal drafts were written. */
-  legalUpdated: "November 5, 2026",
+  legalUpdated: "November 6, 2026",
   disclaimer:
     "CasePingo is an independent service. It is not affiliated with or endorsed by U.S. Citizenship and Immigration Services (USCIS) or the Department of Homeland Security (DHS), and it does not provide legal advice.",
   uscisStatusUrl: "https://egov.uscis.gov/",

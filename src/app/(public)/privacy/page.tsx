@@ -36,6 +36,10 @@ export default function Privacy() {
         </li>
       </ul>
       <p>We do not ask for passport numbers, A-numbers, documents or other immigration records.</p>
+      <p>
+        If you use the app&apos;s receipt scanner, the photo of your notice is read on your phone to find the receipt number. The photo
+        isn&apos;t sent to us, and the app deletes its own copy as soon as it has been read.
+      </p>
 
       <h2>How we use it</h2>
       <ul>
