@@ -12,7 +12,7 @@ function Section({ id, title, children, danger }: { id: string; title: string; c
   return (
     <section
       aria-labelledby={id}
-      className={`flex flex-col gap-4 rounded-xl border bg-[var(--surface)] p-6 ${danger ? "border-[var(--danger)]" : "border-[var(--border)]"}`}
+      className={`flex flex-col gap-4 rounded-lg border bg-[var(--surface)] p-6 ${danger ? "border-[var(--danger)]" : "border-[var(--border)]"}`}
     >
       <h2 id={id} className="text-lg font-semibold">
         {title}

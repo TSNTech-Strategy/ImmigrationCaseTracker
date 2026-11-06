@@ -42,7 +42,7 @@ export default async function FirmBillingPage({ searchParams }: PageProps<"/firm
     const current = firm.plan === key;
     const tooSmall = key === "SOLO" && (members > (p.maxUsers ?? Infinity) || cases > p.maxCases);
     return (
-      <li key={key} className={`flex flex-col gap-3 rounded-xl border bg-[var(--surface)] p-5 ${current ? "border-2 border-[var(--accent)]" : "border-[var(--border)]"}`}>
+      <li key={key} className={`flex flex-col gap-3 rounded-lg border bg-[var(--surface)] p-5 ${current ? "border-2 border-[var(--accent)]" : "border-[var(--border)]"}`}>
         <div className="flex items-baseline justify-between gap-2">
           <h3 className="text-lg font-semibold">{p.label}</h3>
           {current && <span className="rounded-full bg-[var(--accent)] px-2.5 py-0.5 text-xs font-medium text-[var(--accent-fg)]">Current plan</span>}
@@ -86,7 +86,7 @@ export default async function FirmBillingPage({ searchParams }: PageProps<"/firm
       )}
       {sp.billing === "cancelled" && <p className="text-sm text-[var(--muted)]">Checkout was cancelled. You haven&apos;t been charged.</p>}
 
-      <section aria-labelledby="status-h" className="flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+      <section aria-labelledby="status-h" className="flex flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <h2 id="status-h" className="text-lg font-semibold">
           Your plan
         </h2>
@@ -122,7 +122,7 @@ export default async function FirmBillingPage({ searchParams }: PageProps<"/firm
       </section>
 
       {!firm.plan && (
-        <p className="rounded-xl border border-[var(--brand-red)] bg-[var(--surface)] px-4 py-3 text-sm">
+        <p className="rounded-lg border border-[var(--brand-red)] bg-[var(--surface)] px-4 py-3 text-sm">
           <strong>Founding firm offer:</strong> the first {FOUNDING_FIRM_OFFER.firms} firms get {FOUNDING_FIRM_OFFER.percentOff}% off for their first{" "}
           {FOUNDING_FIRM_OFFER.months} months. Applied automatically at checkout while places last.
         </p>

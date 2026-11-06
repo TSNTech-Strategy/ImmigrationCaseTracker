@@ -72,7 +72,7 @@ function PlanCard({ p: card }: { p: Card }) {
   const p = billingEnabled() && card.paid ? { ...card, cta: card.paid } : card;
   return (
     <li
-      className={`relative flex flex-col gap-5 rounded-2xl border bg-[var(--surface)] p-7 ${p.highlight ? "border-2 border-[var(--accent)] shadow-[var(--shadow)]" : "border-[var(--border)]"}`}
+      className={`relative flex flex-col gap-5 rounded-xl border bg-[var(--surface)] p-7 ${p.highlight ? "border-2 border-[var(--accent)] shadow-[var(--shadow)]" : "border-[var(--border)]"}`}
     >
       {p.highlight && (
         <span className="absolute -top-3 left-7 rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-semibold text-[var(--accent-fg)]">Best value</span>
@@ -99,7 +99,7 @@ function PlanCard({ p: card }: { p: Card }) {
       {p.cta ? (
         <Link
           href={p.cta.href}
-          className={`rounded-xl px-4 py-3 text-center font-semibold ${p.highlight ? "bg-[var(--accent)] text-[var(--accent-fg)] hover:bg-[var(--accent-hover)]" : "border border-[var(--border)] hover:bg-[var(--surface-2)]"}`}
+          className={`rounded-lg px-4 py-3 text-center font-semibold ${p.highlight ? "bg-[var(--accent)] text-[var(--accent-fg)] hover:bg-[var(--accent-hover)]" : "border border-[var(--border)] hover:bg-[var(--surface-2)]"}`}
         >
           {p.cta.label}
         </Link>
@@ -147,7 +147,7 @@ export default function Pricing() {
             Every firm starts with a {TRIAL_DAYS}-day free trial for up to {TRIAL_CASE_LIMIT} cases. No card needed.
           </p>
         </div>
-        <p className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--brand-red)] bg-[var(--surface)] px-5 py-4 text-sm">
+        <p className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--brand-red)] bg-[var(--surface)] px-5 py-4 text-sm">
           <span className="rounded-full bg-[var(--brand-red)] px-2.5 py-0.5 text-xs font-bold text-white">Launch offer</span>
           <strong>Founding firm offer:</strong> the first {FOUNDING_FIRM_OFFER.firms} firms get {FOUNDING_FIRM_OFFER.percentOff}% off for
           their first {FOUNDING_FIRM_OFFER.months} months.
@@ -160,7 +160,7 @@ export default function Pricing() {
         <p className="text-sm text-[var(--muted)]">Larger firms: higher volumes and onboarding are available by quote.</p>
       </section>
 
-      <section aria-labelledby="promise-h" className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-7 text-sm">
+      <section aria-labelledby="promise-h" className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-7 text-sm">
         <h2 id="promise-h" className="text-xl font-bold">
           Our billing promise
         </h2>

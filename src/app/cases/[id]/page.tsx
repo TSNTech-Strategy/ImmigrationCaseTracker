@@ -41,8 +41,7 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">{c.nickname ?? c.receiptMasked}</h1>
         <p className="font-mono text-sm text-[var(--muted)]">
-          {c.formType ? `${c.formType} · ` : ""}
-          {c.receiptMasked}
+          {c.nickname ? `${c.formType ? `${c.formType} · ` : ""}${c.receiptMasked}` : (c.formType ?? "")}
         </p>
       </div>
       <ModeBanner mode={getUscisClient().mode} />
@@ -53,7 +52,7 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
       )}
 
       {c.pausedReason === "plan_limit" && (
-        <section aria-labelledby="paused-h" className="flex flex-col gap-3 rounded-xl border border-[var(--danger)] bg-[var(--surface)] p-5">
+        <section aria-labelledby="paused-h" className="flex flex-col gap-3 rounded-lg border border-[var(--danger)] bg-[var(--surface)] p-5">
           <h2 id="paused-h" className="font-semibold">
             This case is paused
           </h2>
@@ -101,7 +100,7 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
         )}
       </section>
 
-      <section aria-labelledby="remove-h" className="flex flex-col gap-3 rounded-xl border border-[var(--border)] p-6">
+      <section aria-labelledby="remove-h" className="flex flex-col gap-3 rounded-lg border border-[var(--border)] p-6">
         <h2 id="remove-h" className="text-lg font-semibold">
           Remove this case
         </h2>

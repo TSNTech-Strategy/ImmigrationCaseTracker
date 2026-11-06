@@ -50,8 +50,7 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
         </p>
         <h1 className="text-2xl font-semibold tracking-tight">{c.nickname ?? c.receiptMasked}</h1>
         <p className="font-mono text-sm text-[var(--muted)]">
-          {c.formType ? `${c.formType} · ` : ""}
-          {c.receiptMasked}
+          {c.nickname ? `${c.formType ? `${c.formType} · ` : ""}${c.receiptMasked}` : (c.formType ?? "")}
         </p>
       </div>
       <ModeBanner mode={getUscisClient().mode} />
@@ -79,7 +78,7 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
       <ObservedChanges events={c.events} es={es} />
       <UscisHistory history={c.uscisHistory} es={es} />
 
-      <section aria-labelledby="consent-h" className="flex flex-col gap-4 rounded-xl border border-[var(--border)] p-5">
+      <section aria-labelledby="consent-h" className="flex flex-col gap-4 rounded-lg border border-[var(--border)] p-5">
         <h2 id="consent-h" className="text-lg font-semibold">
           Consent record
         </h2>
@@ -107,7 +106,7 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
       </section>
 
       {canRemove && (
-        <section aria-labelledby="remove-h" className="flex flex-col gap-3 rounded-xl border border-[var(--border)] p-5">
+        <section aria-labelledby="remove-h" className="flex flex-col gap-3 rounded-lg border border-[var(--border)] p-5">
           <h2 id="remove-h" className="text-lg font-semibold">
             Remove this case
           </h2>

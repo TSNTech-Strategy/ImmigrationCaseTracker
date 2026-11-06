@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { CaseStatusEvent } from "@prisma/client";
 import { LocalTime } from "@/components/local-time";
 import { UscisText } from "@/components/uscis-text";
+import { StatusBadge, statusDotClass } from "@/components/status-badge";
 import { checkFailureMessage } from "@/lib/cases/policy";
 import type { CaseView } from "@/lib/cases/service";
 
@@ -13,11 +14,14 @@ export function CaseStatusPanel({ c, es, actions, footnote }: { c: CaseView; es:
   const secondary = { title: es ? c.statusTitleEn : c.statusTitleEs, desc: es ? c.statusDescriptionEn : c.statusDescriptionEs };
   const failed = c.lastCheckOutcome && c.lastCheckOutcome !== "ok";
   return (
-    <section aria-labelledby="status-h" className="flex flex-col gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
-      <h2 id="status-h" className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">
-        Current status
-      </h2>
-      <p className="text-2xl font-semibold">{primary.title ?? "Not checked yet"}</p>
+    <section aria-labelledby="status-h" className="flex flex-col gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="status-h" className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">
+          Current status
+        </h2>
+        <StatusBadge titleEn={c.statusTitleEn} es={es} />
+      </div>
+      <p className="text-2xl font-semibold leading-snug">{primary.title ?? "Not checked yet"}</p>
       {primary.desc && (
         <p className="leading-relaxed">
           <UscisText text={primary.desc} />
@@ -80,13 +84,17 @@ export function ObservedChanges({ events, es }: { events: CaseStatusEvent[]; es:
       {events.length === 0 ? (
         <p className="text-sm text-[var(--muted)]">Nothing yet.</p>
       ) : (
-        <ol className="flex flex-col gap-2 border-l border-[var(--border)] pl-4">
-          {events.map((e) => (
-            <li key={e.id} className="flex flex-col">
-              <span className="font-medium">{(es ? e.statusTitleEs : e.statusTitleEn) ?? e.statusTitleEn ?? "Status recorded"}</span>
-              <span className="text-xs text-[var(--muted)]">
-                First seen <LocalTime iso={e.firstObservedAt.toISOString()} />
-                {e.uscisReportedRaw ? ` · USCIS date ${e.uscisReportedRaw}` : ""}
+        <ol className="flex flex-col rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-4">
+          {events.map((e, i) => (
+            <li key={e.id} className="relative flex gap-4 pb-5 last:pb-0">
+              {i < events.length - 1 && <span className="absolute left-[5px] top-4 h-full w-px bg-[var(--border)]" aria-hidden="true" />}
+              <span className={`relative mt-1.5 h-[11px] w-[11px] flex-none rounded-full ring-4 ring-[var(--surface)] ${statusDotClass(e.statusTitleEn)}`} aria-hidden="true" />
+              <span className="flex flex-col">
+                <span className={i === 0 ? "font-semibold" : "font-medium"}>{(es ? e.statusTitleEs : e.statusTitleEn) ?? e.statusTitleEn ?? "Status recorded"}</span>
+                <span className="text-xs text-[var(--muted)]">
+                  First seen <LocalTime iso={e.firstObservedAt.toISOString()} />
+                  {e.uscisReportedRaw ? ` · USCIS date ${e.uscisReportedRaw}` : ""}
+                </span>
               </span>
             </li>
           ))}
@@ -104,7 +112,7 @@ export function UscisHistory({ history: raw, es }: { history: CaseView["uscisHis
       <h2 id="history-h" className="text-lg font-semibold">
         History reported by USCIS
       </h2>
-      <ol className="flex flex-col gap-2 border-l border-[var(--border)] pl-4">
+      <ol className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-4">
         {history.map((h, i) => (
           <li key={i} className="flex flex-col">
             <span className="font-medium">{(es ? h.textEs : h.textEn) ?? h.textEn ?? "—"}</span>

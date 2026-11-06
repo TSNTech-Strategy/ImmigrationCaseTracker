@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { LocalTime } from "@/components/local-time";
+import { CaseTable } from "@/components/case-table";
 import { ModeBanner } from "@/components/mode-banner";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
@@ -35,7 +35,7 @@ export default async function CasesPage({ searchParams }: PageProps<"/cases">) {
       </div>
       <ModeBanner mode={mode} />
       {trialDays > 0 ? (
-        <p className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm">
+        <p className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm">
           <span>
             <strong>Premium trial: {trialDays} day{trialDays === 1 ? "" : "s"} left.</strong> We check your cases automatically and email you when they change.
           </span>
@@ -45,7 +45,7 @@ export default async function CasesPage({ searchParams }: PageProps<"/cases">) {
         </p>
       ) : (
         account?.plan === "FREE" && (
-          <p className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm">
+          <p className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm">
             <span>Free plan: we don&apos;t check automatically or send alerts. Open your case and press Check now.</span>
             <Link href="/settings#plan-h" className="font-semibold text-[var(--accent)] hover:underline">
               Get automatic checks
@@ -60,42 +60,14 @@ export default async function CasesPage({ searchParams }: PageProps<"/cases">) {
       )}
 
       {cases.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[var(--border)] p-8 text-center">
+        <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] p-10 text-center">
           <p className="font-medium">You aren&apos;t tracking any cases yet.</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
             Add the receipt number from your USCIS notice (for example EAC9999103402) to start.
           </p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {cases.map((c) => {
-            const title = (preferEs ? c.statusTitleEs : c.statusTitleEn) ?? c.statusTitleEn;
-            return (
-              <li key={c.id}>
-                <Link
-                  href={`/cases/${c.id}`}
-                  className="flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 hover:border-[var(--accent)] focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="font-medium">{c.nickname ?? c.receiptMasked}</span>
-                    <span className="font-mono text-sm text-[var(--muted)]">
-                      {c.formType ? `${c.formType} · ` : ""}
-                      {c.receiptMasked}
-                    </span>
-                  </div>
-                  <span className="text-lg">{title ?? "Not checked yet"}</span>
-                  <span className="text-xs text-[var(--muted)]">
-                    Last checked <LocalTime iso={c.lastCheckedAt?.toISOString() ?? null} /> · Last change seen{" "}
-                    <LocalTime iso={c.lastChangeObservedAt?.toISOString() ?? null} fallback="none yet" />
-                  </span>
-                  {c.pausedReason === "plan_limit" && (
-                    <span className="text-xs font-medium text-[var(--danger)]">Paused: the Free plan checks 1 case. Open it to switch, or upgrade.</span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <CaseTable rows={cases} hrefBase="/cases" es={preferEs} />
       )}
     </>
   );

@@ -24,11 +24,11 @@ export default async function ClientsPage({ searchParams }: PageProps<"/firm/cli
       </div>
 
       {data.clients.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center text-sm text-[var(--muted)]">
+        <p className="rounded-lg border border-dashed border-[var(--border)] p-6 text-center text-sm text-[var(--muted)]">
           {showArchived ? "No archived clients." : "No clients yet. Add your first client below."}
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+        <ul className="flex flex-col divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] bg-[var(--surface)]">
           {data.clients.map((c) => (
             <li key={c.id}>
               <Link href={`/firm/clients/${c.id}`} className="flex flex-wrap items-baseline justify-between gap-2 p-4 hover:bg-[var(--background)]">
@@ -46,7 +46,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/firm/cli
       )}
 
       {!showArchived && (
-        <section aria-labelledby="add-client-h" className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+        <section aria-labelledby="add-client-h" className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <h2 id="add-client-h" className="text-lg font-semibold">
             Add a client
           </h2>
