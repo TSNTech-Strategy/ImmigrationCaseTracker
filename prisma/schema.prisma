@@ -67,6 +67,7 @@ model User {
   deletionRequests       DeletionRequest[]
   subscriptions          Subscription[]
   pushDevices            PushDevice[]
+  visaBulletinWatch      VisaBulletinWatch?
 }
 
 model NotificationPreference {
@@ -494,4 +495,41 @@ model TrialLedger {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Visa Bulletin (U.S. Department of State)
+// ---------------------------------------------------------------------------
+
+/// One month's Visa Bulletin, imported by an admin (the State Department site
+/// blocks automated downloads, so an admin pastes the published bulletin).
+model VisaBulletin {
+  id           String   @id @default(cuid())
+  /// "2026-12": the month the bulletin is for.
+  month        String   @unique
+  /// The official bulletin page, for people to check.
+  sourceUrl    String?
+  /// The four charts (src/lib/visa-bulletin/model.ts: Charts).
+  charts       Json
+  importedAt   DateTime @default(now())
+  /// Admin who imported it (kept even if that account is later deleted).
+  importedById String?
+}
+
+/// The Visa Bulletin category a person follows: shown first in the app, and
+/// alerted when it moves (Premium), once per bulletin month.
+model VisaBulletinWatch {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Category key, e.g. "F2A" or "EB2".
+  category          String
+  /// Chargeability area: ALL, CHINA, INDIA, MEXICO or PHILIPPINES.
+  area              String
+  /// The chart they look at first: "final" (final action dates) or "filing" (dates for filing).
+  chart             String   @default("final")
+  /// The last bulletin month we alerted them about.
+  lastNotifiedMonth String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

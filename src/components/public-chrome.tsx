@@ -7,6 +7,7 @@ import { ThemeToggle } from "./theme-toggle";
 const NAV = [
   { href: "/how-it-works", label: "How it works" },
   { href: "/status-guide", label: "Status guide" },
+  { href: "/visa-bulletin", label: "Visa Bulletin" },
   { href: "/pricing", label: "Pricing" },
   { href: "/pricing#firms", label: "For law firms" },
 ];
@@ -81,6 +82,7 @@ export function PublicFooter() {
           <p className="font-semibold">Product</p>
           <Link href="/how-it-works" className={link}>How it works</Link>
           <Link href="/status-guide" className={link}>Status guide</Link>
+          <Link href="/visa-bulletin" className={link}>Visa Bulletin</Link>
           <Link href="/pricing" className={link}>Pricing</Link>
           <Link href="/pricing#firms" className={link}>For law firms</Link>
         </nav>

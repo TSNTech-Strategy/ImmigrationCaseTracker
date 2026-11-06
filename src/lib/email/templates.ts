@@ -150,3 +150,57 @@ export function trialEndedEmail(p: { to: string; name: string | null; upgradeUrl
     ].join("\n"),
   };
 }
+
+type BulletinMove = {
+  to: string;
+  name: string | null;
+  locale: string;
+  month: string; // "December 2026" / "diciembre de 2026"
+  category: string; // "F2A · Spouses and children (under 21) of green card holders"
+  area: string; // "Mexico"
+  lines: string[]; // "Final action date: Feb 1, 2021 (moved ahead 2 months)"
+  pageUrl: string;
+  settingsUrl: string;
+};
+
+/** Plain-text alert when the person's Visa Bulletin category moved. */
+export function visaBulletinEmail(p: BulletinMove): EmailMessage {
+  const es = p.locale === "es";
+  const short = p.category.split(" · ")[0];
+  if (es) {
+    return {
+      to: p.to,
+      subject: `Boletín de Visas de ${p.month}: ${short} cambió`,
+      body: [
+        `Hola${p.name ? ` ${p.name}` : ""}:`,
+        "",
+        `Salió el Boletín de Visas de ${p.month}. Cambió su categoría ${p.category} (${p.area}):`,
+        "",
+        ...p.lines.map((l) => `• ${l}`),
+        "",
+        `Ver el boletín: ${p.pageUrl}`,
+        "",
+        "El Departamento de Estado publica el Boletín de Visas; USCIS indica cada mes qué tabla usar para el ajuste de estatus. CasePingo es un servicio independiente y no ofrece asesoría legal.",
+        "",
+        `Para dejar de recibir estos correos, cambie sus alertas en ${p.settingsUrl}`,
+      ].join("\n"),
+    };
+  }
+  return {
+    to: p.to,
+    subject: `${p.month} Visa Bulletin: ${short} moved`,
+    body: [
+      `Hi${p.name ? ` ${p.name}` : ""},`,
+      "",
+      `The ${p.month} Visa Bulletin is out, and your category ${p.category} (${p.area}) changed:`,
+      "",
+      ...p.lines.map((l) => `• ${l}`),
+      "",
+      `See the bulletin: ${p.pageUrl}`,
+      "",
+      "The Department of State publishes the Visa Bulletin; each month USCIS says which chart to use for adjustment of status. CasePingo is an independent service and does not provide legal advice.",
+      "",
+      `To stop these emails, change your alerts at ${p.settingsUrl}`,
+    ].join("\n"),
+  };
+}

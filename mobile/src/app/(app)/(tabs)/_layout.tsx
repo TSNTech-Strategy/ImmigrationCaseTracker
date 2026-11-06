@@ -14,6 +14,10 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Icon sf={{ default: "doc.text", selected: "doc.text.fill" }} md="description" />
         <NativeTabs.Trigger.Label>{t.tabCases}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="bulletin">
+        <NativeTabs.Trigger.Icon sf={{ default: "calendar", selected: "calendar" }} md="calendar_month" />
+        <NativeTabs.Trigger.Label>{t.tabBulletin}</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="guide">
         <NativeTabs.Trigger.Icon sf={{ default: "book", selected: "book.fill" }} md="menu_book" />
         <NativeTabs.Trigger.Label>{t.tabGuide}</NativeTabs.Trigger.Label>
