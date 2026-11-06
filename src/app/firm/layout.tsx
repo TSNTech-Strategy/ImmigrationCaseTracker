@@ -11,7 +11,7 @@ export default async function FirmLayout({ children }: { children: ReactNode }) 
   const ctx = await firmService().getContext(user.id);
   return (
     <>
-      <AppHeader name={user.name} email={user.email} isAdmin={user.isAdmin} />
+      <AppHeader user={user} />
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8">
         {ctx && <FirmNav firmName={ctx.firm.name} isManager={ctx.membership.role !== "STAFF"} />}
         {children}
