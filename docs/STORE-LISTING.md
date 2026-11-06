@@ -26,6 +26,7 @@ Keep "USCIS" out of the app name: it can read as government affiliation. It's fi
 > • The full history: every change we've seen, plus the history USCIS reports
 > • Scan your receipt notice with the camera to add a case. It's read on your phone; the photo isn't uploaded
 > • Your form, the office that received your case, and a link to USCIS's official processing times
+> • An assistant that answers questions about your status, interviews and the civics test, in English or Spanish (general information, not legal advice)
 > • Practice the citizenship civics test with USCIS's official questions: a mock test with the real pass and fail rules, or one section at a time, with the questions read aloud
 > • Up to 10 family cases in one place (Premium)
 > • Receipt numbers encrypted, and your account deletable in the app at any time
@@ -59,16 +60,17 @@ Caption ideas: "Know what your status means", "Celebrate the approval", "Your wh
 - **Tracking:** No. CasePingo doesn't track people across other companies' apps or websites, and has no ad SDKs.
 - **Data linked to the user, used only for App Functionality:**
   - Contact Info: email address (account), name (optional)
-  - User Content: other user content (receipt numbers and nicknames, encrypted at rest)
+  - User Content: other user content (receipt numbers and nicknames, encrypted at rest; questions typed into the assistant, sent to our AI provider, Anthropic, to answer them and not stored by CasePingo)
   - Identifiers: user ID; device ID (the push-notification token, only when alerts are on)
 - **Not collected:** location, contacts, browsing or search history, health, financial info (no purchases in the app), diagnostics or analytics SDKs, photos, audio.
 - **Camera and photos:** the receipt scanner reads a photo of the USCIS notice on the device (Apple Vision) to find the receipt number. The photo is never uploaded, so "Photos or Videos" stays Not collected; only the receipt number the person confirms is sent, as when typed.
 
 ## Google Play Data safety (draft answers)
 
-- Collected: personal info (email, name), other user-generated content (receipt numbers, nicknames), device or other IDs (push token).
+- Collected: personal info (email, name), other user-generated content (receipt numbers, nicknames, assistant questions), device or other IDs (push token).
 - Purpose: app functionality and account management only. Not used for advertising.
 - Shared: receipt numbers go to USCIS only to look up the status the user asked for. This is a user-initiated action, so per Google's definitions it's not "sharing"; confirm at 9C.
+- Assistant: questions go to our AI provider (Anthropic) only to write the answer the user asked for, as a service provider; CasePingo doesn't store them. Confirm the "shared" answer at 9C.
 - Camera / photos: used on the device only to read the receipt number from a notice (Google ML Kit, on-device); photos are not collected or shared.
 - Encrypted in transit: yes. Users can delete their account and data in the app (Settings → Delete account) and on the website. Deletion link for the listing: `https://casepingo.com/settings` (sign in, then Delete account), plus the support email.
 

@@ -18,7 +18,7 @@ describe("safeNextPath", () => {
 
 describe("route classification", () => {
   it("protects app areas", () => {
-    for (const p of ["/cases", "/cases/1", "/bulletin", "/civics", "/settings", "/firm/team", "/admin", "/reset-password"]) {
+    for (const p of ["/cases", "/cases/1", "/assistant", "/bulletin", "/civics", "/settings", "/firm/team", "/admin", "/reset-password"]) {
       expect(isProtectedPath(p)).toBe(true);
     }
     for (const p of ["/", "/login", "/casesx", "/privacy", "/auth/confirm", "/visa-bulletin", "/bulletins", "/civics-test"]) expect(isProtectedPath(p)).toBe(false);

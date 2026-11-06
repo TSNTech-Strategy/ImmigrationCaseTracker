@@ -313,6 +313,10 @@ export const RESOURCES: Resource[] = [
           { en: "Plain-language explanations of each status, in English and Spanish.", es: "Explicaciones sencillas de cada estado, en inglés y español." },
           { en: "A timeline of every change, plus the history USCIS reports.", es: "Una línea de tiempo de cada cambio, más el historial que reporta USCIS." },
           { en: "Up to 10 family cases in one place (Premium).", es: "Hasta 10 casos de la familia en un solo lugar (Premium)." },
+          {
+            en: "Civics test practice with USCIS's official questions, with the real pass and fail rules.",
+            es: "Práctica del examen de cívica con las preguntas oficiales de USCIS y las reglas reales para aprobar.",
+          },
         ],
       },
       {

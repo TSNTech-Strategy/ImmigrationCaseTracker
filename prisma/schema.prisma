@@ -68,6 +68,7 @@ model User {
   subscriptions          Subscription[]
   pushDevices            PushDevice[]
   visaBulletinWatch      VisaBulletinWatch?
+  assistantUsage         AssistantUsage[]
 }
 
 model NotificationPreference {
@@ -535,4 +536,23 @@ model VisaBulletinWatch {
   lastNotifiedMonth String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Assistant
+// ---------------------------------------------------------------------------
+
+/// How many assistant questions a person asked on a UTC day, for the plan's
+/// daily limit. Never the questions or answers: conversations aren't stored.
+/// Rows older than 30 days are deleted (src/lib/assistant/usage.ts).
+model AssistantUsage {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// UTC day, "2026-11-06".
+  day       String
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([userId, day])
+  @@index([day])
 }

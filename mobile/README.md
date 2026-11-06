@@ -8,12 +8,13 @@ v1: personal cases only, no buying in the app (upgrades happen on casepingo.com)
 | Screen | File |
 |---|---|
 | Welcome (English/Español switch, feature cards), sign in, create account, forgot password, two-factor code | `src/app/welcome.tsx`, `sign-in.tsx`, `sign-up.tsx`, `forgot-password.tsx`, `mfa.tsx` |
-| Tabs (system tab bar: floating glass on iOS 26): Cases, Bulletin, Resources, Settings | `src/app/(app)/(tabs)/_layout.tsx` |
+| Tabs (system tab bar: floating glass on iOS 26): Cases, Assistant, Bulletin, Resources, Settings | `src/app/(app)/(tabs)/_layout.tsx` |
 | My cases: Check all, add, search, filters by kind of status, cards with progress line and "New" badge | `src/app/(app)/(tabs)/cases.tsx`, `src/components/cases.tsx` |
 | Add a case (with consent; scan the receipt notice or type the number), case details (progress line, rename, guide, form and office, timelines, congratulations) | `src/app/(app)/cases/` |
 | Visa Bulletin: opens the official State Department and USCIS pages in the in-app browser, with a short guide to reading them and the list of categories | `src/app/(app)/(tabs)/bulletin.tsx`, `src/lib/bulletin.ts` |
 | Resources: one search over guides, questions and statuses; the status library, processing times, interviews, news and official updates, FAQ, how CasePingo helps, contact (content from `GET /api/v1/resources`) | `src/app/(app)/(tabs)/resources.tsx`, `src/app/(app)/resources/[slug].tsx`, `src/lib/resources.ts` |
 | Status library (opened from Resources): searchable list and one screen per status | `src/app/(app)/guide/index.tsx`, `src/app/(app)/guide/[slug].tsx` |
+| Assistant tab: chat that streams answers (`expo/fetch`) from `POST /api/v1/assistant`, suggestions, questions left today; "Ask the assistant" on a case asks about that case | `src/app/(app)/(tabs)/assistant.tsx`, `src/lib/assistant.ts` |
 | Civics test practice (opened from Resources and the interview guide): 2025 or 2008 test, 65/20, practice by section, mock test with the official pass/fail rules, Listen (`expo-speech`); questions from `GET /api/v1/civics` | `src/app/(app)/civics/index.tsx`, `src/app/(app)/civics/quiz.tsx`, `src/lib/civics.ts`, `src/lib/civics-quiz.ts` |
 | Settings: name, language, email and push alerts, plan, sign out, delete account, version | `src/app/(app)/(tabs)/settings.tsx` |
 

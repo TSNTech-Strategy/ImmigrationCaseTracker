@@ -6,7 +6,7 @@ import { Logo } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
 
 /**
- * Signed-in header. Places on the left (My cases, Visa Bulletin, Civics test, and Firm for firm members),
+ * Signed-in header. Places on the left (My cases, Assistant, Visa Bulletin, Civics test, and Firm for firm members),
  * account tools on the right: the theme toggle and an account menu
  * ("Welcome, <name>") holding settings, plan, firm workspace, admin and sign out.
  * On phones the places move to a second row so nothing wraps awkwardly.
@@ -15,13 +15,14 @@ export async function AppHeader({ user }: { user: { id: string; name: string | n
   const firmMember = Boolean(await prisma.firmMembership.findFirst({ where: { userId: user.id, revokedAt: null }, select: { id: true } }));
   const places = [
     { href: "/cases", label: "My cases" },
+    { href: "/assistant", label: "Assistant" },
     { href: "/bulletin", label: "Visa Bulletin" },
     { href: "/civics", label: "Civics test" },
     ...(firmMember ? [{ href: "/firm", label: "Firm" }] : []),
   ];
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-x-8 px-4 pt-2.5 sm:pb-0">
+      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 px-4 pt-2.5 sm:pb-0">
         <div className="py-1.5">
           <Logo href="/cases" />
         </div>

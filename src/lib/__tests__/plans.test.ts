@@ -15,6 +15,7 @@ describe("launch prices", () => {
   });
   it("matches the plan limits", () => {
     expect(PLAN_LIMITS.PREMIUM.maxCases).toBe(10);
+    expect(PLAN_LIMITS.FREE.assistantPerDay).toBeLessThan(PLAN_LIMITS.PREMIUM.assistantPerDay);
     expect(FIRM_PLANS.SOLO).toMatchObject({ maxCases: 50, maxUsers: 2 });
     expect(FIRM_PLANS.FIRM).toMatchObject({ maxCases: 300, maxUsers: null });
   });
