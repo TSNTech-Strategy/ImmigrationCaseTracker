@@ -16,7 +16,7 @@ v1: personal cases only, no buying in the app (upgrades happen on casepingo.com)
 
 - Sign-in is stored encrypted, with its key in the iPhone keychain or Android Keystore (`src/lib/secure-storage.ts`).
 - Push alerts: the app asks permission after sign-in and registers the phone's Expo push token (`src/lib/push.ts`). Tapping an alert opens the case.
-- Entrance motion (`src/components/motion.tsx`): screens slide gently into place and feature icons drop in, once, and not at all with Reduce Motion on. Style pieces (tinted icon tiles, feature rows, two-tone titles, language switch) are in `src/components/feature.tsx`.
+- Motion (`src/components/motion.tsx`): screens slide gently into place and feature icons drop in, once; then a highlight walks down the feature cards (`useSpotlight`, only while the screen is showing). With Reduce Motion on, nothing moves and the first card stays lit. Style pieces (tinted icon tiles, feature rows, two-tone titles, language switch) are in `src/components/feature.tsx`.
 - Lint with `npm run lint` (Expo's ESLint config in `eslint.config.js`) and typecheck with `npm run typecheck`.
 - Icons are SF Symbols on iPhone and Material Symbols on Android (`expo-symbols`). "New" badges are remembered on the phone only (`src/lib/seen.ts`).
 - Stays in step with the website (same account, same data on the server): screens reload when opened, when you pull down, and when you come back to the app (`src/lib/use-refresh.ts`; only the screen that's showing, at most every 15 seconds).

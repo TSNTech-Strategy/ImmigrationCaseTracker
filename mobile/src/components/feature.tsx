@@ -1,9 +1,9 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import type { AndroidSymbol, SFSymbol } from "expo-symbols";
 import type { Lang } from "../lib/i18n";
 import { radius, space, useTheme, type Colors } from "../lib/theme";
 import { Icon } from "./icon";
-import { DropIn } from "./motion";
+import { DropIn, useHighlight } from "./motion";
 
 export type Tint = "blue" | "green" | "amber" | "red" | "navy";
 export type Glyph = { ios: SFSymbol; md: AndroidSymbol; fallback?: string };
@@ -14,24 +14,38 @@ export function tintColors(c: Colors, tint: Tint) {
   return c.st[key[tint]];
 }
 
-/** Rounded tile with an icon on a soft tint. `drop` makes the icon fall in after that many ms. */
-export function IconTile({ glyph, tint, size = 48, round, drop }: { glyph: Glyph; tint: Tint; size?: number; round?: boolean; drop?: number }) {
+/**
+ * Rounded tile with an icon on a soft tint. `drop` makes the icon fall in after
+ * that many ms. `lit` (0–1) fades in a solid fill with a contrasting icon.
+ */
+export function IconTile({ glyph, tint, size = 48, round, drop, lit }: { glyph: Glyph; tint: Tint; size?: number; round?: boolean; drop?: number; lit?: Animated.Value }) {
   const { c } = useTheme();
   const { fg, bg } = tintColors(c, tint);
-  const icon = <Icon ios={glyph.ios} md={glyph.md} size={size * 0.46} color={fg} fallback={glyph.fallback} />;
+  const iconSize = size * 0.46;
+  const icon = <Icon ios={glyph.ios} md={glyph.md} size={iconSize} color={fg} fallback={glyph.fallback} />;
+  const corner = round ? size / 2 : size * 0.3;
   return (
-    <View style={{ width: size, height: size, borderRadius: round ? size / 2 : size * 0.3, backgroundColor: bg, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+    <View style={{ width: size, height: size, borderRadius: corner, backgroundColor: bg, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
       {drop !== undefined ? <DropIn delay={drop}>{icon}</DropIn> : icon}
+      {lit && (
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: fg, alignItems: "center", justifyContent: "center", opacity: lit }]}>
+          {/* surface colour keeps contrast in both themes: white on the light theme, dark navy on the dark one */}
+          <Icon ios={glyph.ios} md={glyph.md} size={iconSize} color={c.surface} fallback={glyph.fallback} />
+        </Animated.View>
+      )}
     </View>
   );
 }
 
-/** Icon + title + one line of text, no card around it (used inside a card). */
-export function FeatureRow({ glyph, tint, title, text, drop }: { glyph: Glyph; tint: Tint; title: string; text: string; drop?: number }) {
+/** Icon + title + one line of text, no card around it (used inside a card). `active` lights the icon. */
+export function FeatureRow({ glyph, tint, title, text, drop, active = false }: { glyph: Glyph; tint: Tint; title: string; text: string; drop?: number; active?: boolean }) {
   const { c } = useTheme();
+  const lit = useHighlight(active);
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: space(4) }}>
-      <IconTile glyph={glyph} tint={tint} size={48} round drop={drop} />
+    <View testID={active ? "feature-active" : "feature"} style={{ flexDirection: "row", alignItems: "center", gap: space(4) }}>
+      <Animated.View style={{ transform: [{ scale: lit.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }}>
+        <IconTile glyph={glyph} tint={tint} size={48} round drop={drop} lit={lit} />
+      </Animated.View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={{ fontSize: 16, fontWeight: "700", color: c.heading }}>{title}</Text>
         <Text style={{ fontSize: 14, color: c.muted, lineHeight: 19 }}>{text}</Text>
@@ -40,28 +54,51 @@ export function FeatureRow({ glyph, tint, title, text, drop }: { glyph: Glyph; t
   );
 }
 
-/** A feature on its own card (welcome screen). */
-export function FeatureCard({ glyph, tint, title, text, drop, highlight }: { glyph: Glyph; tint: Tint; title: string; text: string; drop?: number; highlight?: boolean }) {
-  const { c } = useTheme();
+/** A feature on its own card (welcome screen). `active` lifts the card and lights its icon. */
+export function FeatureCard({ glyph, tint, title, text, drop, active = false }: { glyph: Glyph; tint: Tint; title: string; text: string; drop?: number; active?: boolean }) {
+  const { c, isDark } = useTheme();
+  const lit = useHighlight(active);
+  const corner = radius.lg + 4;
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: space(4),
-        padding: space(4),
-        backgroundColor: c.surface,
-        borderRadius: radius.lg + 4,
-        borderWidth: StyleSheet.hairlineWidth * 2,
-        borderColor: highlight ? c.accent : c.border,
-      }}
-    >
-      <IconTile glyph={glyph} tint={tint} size={52} drop={drop} />
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ fontSize: 17, fontWeight: "700", color: c.heading }}>{title}</Text>
-        <Text style={{ fontSize: 14, color: c.muted, lineHeight: 19 }}>{text}</Text>
+    <Animated.View testID={active ? "feature-active" : "feature"} style={{ transform: [{ scale: lit.interpolate({ inputRange: [0, 1], outputRange: [1, 1.02] }) }] }}>
+      {/* soft shadow under the lit card */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            borderRadius: corner,
+            backgroundColor: c.surface,
+            opacity: lit,
+            shadowColor: "#0A2345",
+            shadowOpacity: isDark ? 0.5 : 0.14,
+            shadowRadius: 16,
+            shadowOffset: { width: 0, height: 8 },
+            elevation: Platform.OS === "android" ? 6 : 0,
+          },
+        ]}
+      />
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: space(4),
+          padding: space(4),
+          backgroundColor: c.surface,
+          borderRadius: corner,
+          borderWidth: StyleSheet.hairlineWidth * 2,
+          borderColor: c.border,
+        }}
+      >
+        <IconTile glyph={glyph} tint={tint} size={52} drop={drop} lit={lit} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={{ fontSize: 17, fontWeight: "700", color: c.heading }}>{title}</Text>
+          <Text style={{ fontSize: 14, color: c.muted, lineHeight: 19 }}>{text}</Text>
+        </View>
       </View>
-    </View>
+      {/* brand-blue outline on the lit card */}
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: corner, borderWidth: 1.5, borderColor: c.accent, opacity: lit }]} />
+    </Animated.View>
   );
 }
 
