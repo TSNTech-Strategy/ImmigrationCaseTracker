@@ -56,7 +56,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
       <Section id="bulletin-h" title="Visa Bulletin">
         <p className="text-sm text-[var(--muted)]">
           Follow your green card category on the{" "}
-          <Link href="/visa-bulletin" className="underline underline-offset-2">
+          <Link href="/bulletin" className="underline underline-offset-2">
             Visa Bulletin
           </Link>
           .
