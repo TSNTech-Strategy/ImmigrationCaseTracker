@@ -144,3 +144,53 @@ export function LangSwitch({ value, onChange }: { value: Lang; onChange: (l: Lan
     </View>
   );
 }
+
+/** Two or three equal segments, like the system segmented control (e.g. Type / Scan). */
+export function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+  label,
+}: {
+  value: T;
+  onChange: (value: T) => void;
+  options: { value: T; label: string; glyph?: Glyph }[];
+  /** Read out for the whole group. */
+  label: string;
+}) {
+  const { c, isDark } = useTheme();
+  return (
+    <View
+      accessibilityRole="tablist"
+      accessibilityLabel={label}
+      style={{ flexDirection: "row", padding: 4, gap: 4, borderRadius: 14, backgroundColor: c.surface2, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: c.border }}
+    >
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <Pressable
+            key={o.value}
+            accessibilityRole="tab"
+            aria-selected={on}
+            accessibilityLabel={o.label}
+            onPress={() => onChange(o.value)}
+            style={{
+              flex: 1,
+              minHeight: 40,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: space(1.5),
+              borderRadius: 10,
+              backgroundColor: on ? (isDark ? c.border : c.surface) : "transparent",
+              ...(on && !isDark ? Platform.select({ web: { boxShadow: "0 1px 3px rgba(15, 27, 45, 0.14)" }, default: { shadowColor: "#0F1B2D", shadowOpacity: 0.12, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 } }) : {}),
+            }}
+          >
+            {o.glyph && <Icon ios={o.glyph.ios} md={o.glyph.md} size={16} color={on ? c.accent : c.muted} fallback={o.glyph.fallback} />}
+            <Text style={{ fontSize: 15, fontWeight: "700", color: on ? c.heading : c.muted }}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}

@@ -24,7 +24,7 @@ Keep "USCIS" out of the app name: it can read as government affiliation. It's fi
 > • No ads, and no tracking across apps or websites
 > • Plain-language explanations of common USCIS statuses, in English and Spanish
 > • The full history: every change we've seen, plus the history USCIS reports
-> • Scan your receipt notice with the camera to add a case. It's read on your phone; the photo isn't uploaded
+> • Point the camera at the receipt number on your notice to add a case. It's read on your phone; the photo isn't uploaded
 > • Your form, the office that received your case, and a link to USCIS's official processing times
 > • Practice the citizenship civics test with USCIS's official questions: a mock test with the real pass and fail rules, or one section at a time, with the questions read aloud
 > • Up to 10 family cases in one place (Premium)
@@ -64,7 +64,7 @@ Caption ideas: "Know what your status means", "Celebrate the approval", "Your wh
   - User Content: other user content (receipt numbers and nicknames, encrypted at rest)
   - Identifiers: user ID; device ID (the push-notification token, only when alerts are on)
 - **Not collected:** location, contacts, browsing or search history, health, financial info (no purchases in the app), diagnostics or analytics SDKs, photos, audio.
-- **Camera and photos:** the receipt scanner reads a photo of the USCIS notice on the device (Apple Vision) to find the receipt number. The photo is never uploaded, so "Photos or Videos" stays Not collected; only the receipt number the person confirms is sent, as when typed.
+- **Camera and photos:** the receipt scanner (the app's own camera screen, or a photo the person chooses) reads the USCIS notice on the device (Apple Vision) to find the receipt number. The photo is never uploaded, so "Photos or Videos" stays Not collected; only the receipt number the person confirms is sent, as when typed.
 
 ## Google Play Data safety (draft answers)
 

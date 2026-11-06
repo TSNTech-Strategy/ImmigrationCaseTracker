@@ -67,6 +67,15 @@
         }
       ],
       [
+        "expo-camera",
+        {
+          "cameraPermission": "CasePingo uses the camera to read the receipt number on your USCIS notice. The photo stays on your phone and isn't uploaded.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "cameraPermission": "CasePingo uses the camera to read the receipt number on your USCIS notice. The photo stays on your phone and isn't uploaded.",
