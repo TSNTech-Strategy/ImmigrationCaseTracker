@@ -9,6 +9,7 @@ import { IconTile, LangSwitch, type Glyph, type Tint } from "../../../components
 import { Icon } from "../../../components/icon";
 import { FadeInDown, stagger } from "../../../components/motion";
 import { api, ApiError, type Me } from "../../../lib/api";
+import { APPEARANCE_CHOICES, setAppearance, useAppearance, type AppearanceChoice } from "../../../lib/appearance";
 import { useAuth } from "../../../lib/auth";
 import { config } from "../../../lib/config";
 import { trialDaysLeft } from "../../../lib/i18n";
@@ -32,7 +33,10 @@ function Group({ title, children, footer }: { title?: string; children: ReactNod
   );
 }
 
-/** One row: tinted icon tile, title and optional text, and a switch or chevron on the right. */
+/**
+ * One row: tinted icon tile, title and optional text, and a switch or chevron on the right.
+ * `below` sits under the title; `wide` goes under the whole row, across the card.
+ */
 function Row({
   glyph,
   tint,
@@ -40,6 +44,7 @@ function Row({
   text,
   right,
   below,
+  wide,
   onPress,
   first,
   danger,
@@ -50,12 +55,13 @@ function Row({
   text?: string;
   right?: ReactNode;
   below?: ReactNode;
+  wide?: ReactNode;
   onPress?: () => void;
   first?: boolean;
   danger?: boolean;
 }) {
   const { c } = useTheme();
-  const body = (
+  const main = (
     <View style={{ flexDirection: "row", alignItems: "center", gap: space(3), paddingHorizontal: space(4), paddingVertical: space(3.5) }}>
       <IconTile glyph={glyph} tint={tint} size={40} />
       <View style={{ flex: 1, gap: space(1.5) }}>
@@ -65,6 +71,14 @@ function Row({
       </View>
       {right ?? (onPress ? <Icon ios="chevron.right" md="chevron_right" size={14} color={c.muted} fallback="›" /> : null)}
     </View>
+  );
+  const body = wide ? (
+    <View>
+      {main}
+      <View style={{ paddingHorizontal: space(4), paddingBottom: space(4), marginTop: -space(1) }}>{wide}</View>
+    </View>
+  ) : (
+    main
   );
   return (
     <>
@@ -77,6 +91,55 @@ function Row({
         body
       )}
     </>
+  );
+}
+
+const APPEARANCE_ICONS: Record<AppearanceChoice, Glyph> = {
+  auto: { ios: "circle.lefthalf.filled", md: "contrast", fallback: "◐" },
+  light: { ios: "sun.max", md: "light_mode", fallback: "☀" },
+  dark: { ios: "moon", md: "dark_mode", fallback: "☾" },
+};
+
+/** Automatic, Light or Dark, as three tiles. Kept on this phone and applied right away. */
+function AppearancePicker() {
+  const { t } = useAuth();
+  const { c } = useTheme();
+  const value = useAppearance();
+  const labels: Record<AppearanceChoice, string> = { auto: t.appearanceAuto, light: t.appearanceLight, dark: t.appearanceDark };
+  return (
+    <View accessibilityRole="radiogroup" accessibilityLabel={t.appearance} style={{ flexDirection: "row", gap: space(2) }}>
+      {APPEARANCE_CHOICES.map((choice) => {
+        const on = value === choice;
+        const g = APPEARANCE_ICONS[choice];
+        return (
+          <Pressable
+            key={choice}
+            accessibilityRole="radio"
+            aria-checked={on}
+            accessibilityLabel={labels[choice]}
+            onPress={() => setAppearance(choice)}
+            style={({ pressed }) => ({
+              flex: 1,
+              minHeight: 64,
+              alignItems: "center",
+              justifyContent: "center",
+              gap: space(1),
+              paddingHorizontal: space(1),
+              paddingVertical: space(2.5),
+              borderRadius: radius.md,
+              borderWidth: 1.5,
+              borderColor: on ? c.accent : c.border,
+              backgroundColor: on ? c.accentSoft : pressed ? c.surface2 : c.surface,
+            })}
+          >
+            <Icon ios={g.ios} md={g.md} size={20} color={on ? c.accent : c.muted} fallback={g.fallback} />
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: 13, fontWeight: "700", color: on ? c.accent : c.text }}>
+              {labels[choice]}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -183,6 +246,13 @@ export default function Settings() {
                 <LangSwitch value={me.locale} onChange={(l) => patch({ locale: l })} />
               </View>
             }
+          />
+          <Row
+            glyph={{ ios: "circle.lefthalf.filled", md: "contrast", fallback: "◐" }}
+            tint="navy"
+            title={t.appearance}
+            text={t.appearanceNote}
+            wide={<AppearancePicker />}
           />
           <Row
             glyph={{ ios: "envelope", md: "mail", fallback: "@" }}

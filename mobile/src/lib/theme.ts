@@ -1,4 +1,5 @@
 import { Platform, useColorScheme } from "react-native";
+import { useAppearance } from "./appearance";
 
 /** Same tokens as the website (src/app/globals.css). */
 const light = {
@@ -57,9 +58,11 @@ const dark: typeof light = {
 };
 export type Colors = typeof light;
 
+/** The app's colors: the phone's light or dark setting, unless Settings, Appearance picks one. */
 export function useTheme() {
   const scheme = useColorScheme();
-  const isDark = scheme === "dark";
+  const choice = useAppearance();
+  const isDark = choice === "auto" ? scheme === "dark" : choice === "dark";
   return { c: isDark ? dark : light, isDark };
 }
 

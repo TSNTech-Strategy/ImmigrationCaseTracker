@@ -9,7 +9,8 @@ export type Tint = "blue" | "green" | "amber" | "red" | "navy";
 export type Glyph = { ios: SFSymbol; md: AndroidSymbol; fallback?: string };
 
 export function tintColors(c: Colors, tint: Tint) {
-  if (tint === "navy") return { fg: c.heading, bg: c.surface2 };
+  // The neutral status tint: the same as surface2 in light mode, and visible on cards in dark mode.
+  if (tint === "navy") return { fg: c.heading, bg: c.st.none.bg };
   const key = { blue: "progress", green: "done", amber: "action", red: "stop" } as const;
   return c.st[key[tint]];
 }

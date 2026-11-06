@@ -11,6 +11,7 @@ import { markSeen } from "../../../lib/seen";
 import { api, ApiError, type CaseDetail } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { config } from "../../../lib/config";
+import { FEATURES } from "../../../lib/features";
 import { formatDate } from "../../../lib/i18n";
 import { useRefreshOnForeground } from "../../../lib/use-refresh";
 import { space, useTheme } from "../../../lib/theme";
@@ -218,14 +219,16 @@ export default function CaseScreen() {
           <Small>{free ? t.freePlan : t.premiumPlan} {t.uscisSource}</Small>
         </Card>
 
-        <Card onPress={() => router.push({ pathname: "/assistant", params: { case: cs.id } })} label={t.assistantAskButton} style={{ flexDirection: "row", alignItems: "center", gap: space(3) }}>
-          <Icon ios="sparkles" md="auto_awesome" size={22} color={c.accent} fallback="✦" />
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={{ fontSize: 16, fontWeight: "700", color: c.heading }}>{t.assistantAskCase}</Text>
-            <Small>{t.assistantAskCaseBody}</Small>
-          </View>
-          <Icon ios="chevron.right" md="chevron_right" size={14} color={c.accent} fallback="›" />
-        </Card>
+        {FEATURES.assistant && (
+          <Card onPress={() => router.push({ pathname: "/assistant", params: { case: cs.id } })} label={t.assistantAskButton} style={{ flexDirection: "row", alignItems: "center", gap: space(3) }}>
+            <Icon ios="sparkles" md="auto_awesome" size={22} color={c.accent} fallback="✦" />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: c.heading }}>{t.assistantAskCase}</Text>
+              <Small>{t.assistantAskCaseBody}</Small>
+            </View>
+            <Icon ios="chevron.right" md="chevron_right" size={14} color={c.accent} fallback="›" />
+          </Card>
+        )}
 
         {(cs.form || cs.office) && (
           <Card>

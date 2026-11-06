@@ -1,6 +1,7 @@
 import { NativeTabs } from "expo-router/native-tabs";
 import { Platform } from "react-native";
 import { useAuth } from "../../../lib/auth";
+import { FEATURES } from "../../../lib/features";
 import { useTheme } from "../../../lib/theme";
 
 /** Bottom tabs: the system tab bar on each platform (floating glass on iOS 26). */
@@ -14,7 +15,8 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Icon sf={{ default: "doc.text", selected: "doc.text.fill" }} md="description" />
         <NativeTabs.Trigger.Label>{t.tabCases}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="assistant">
+      {/* Switched off for now (lib/features.ts): hidden tabs can't be opened at all. */}
+      <NativeTabs.Trigger name="assistant" hidden={!FEATURES.assistant}>
         <NativeTabs.Trigger.Icon sf={{ default: "sparkles", selected: "sparkles" }} md="auto_awesome" />
         <NativeTabs.Trigger.Label>{t.tabAssistant}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
