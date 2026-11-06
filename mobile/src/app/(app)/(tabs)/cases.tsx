@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Banner, Body, Button, Card, Screen, Small } from "../../../components/ui";
 import { CaseCard, FilterChips, IconButton, LargeHeader, SearchField, caseTitles } from "../../../components/cases";
 import { FlagStripe, StarBurst, StarsMark, dismissApproval, dismissedApprovals, takeUnplayed } from "../../../components/celebration";
+import { FeatureRow, TwoToneTitle, type Glyph, type Tint } from "../../../components/feature";
+import { FadeInDown, stagger } from "../../../components/motion";
 import { api, ApiError, type CaseSummary, type StatusCategory } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { timeAgo, trialDaysLeft } from "../../../lib/i18n";
@@ -12,6 +14,12 @@ import { radius, space, useTheme } from "../../../lib/theme";
 import { useRefreshOnForeground } from "../../../lib/use-refresh";
 
 const FILTER_ORDER: StatusCategory[] = ["action", "progress", "done", "stop", "none"];
+
+const EMPTY_FEATURES: { key: "updates" | "clear" | "secure"; glyph: Glyph; tint: Tint }[] = [
+  { key: "updates", glyph: { ios: "bell", md: "notifications", fallback: "!" }, tint: "green" },
+  { key: "clear", glyph: { ios: "clock", md: "schedule", fallback: "◷" }, tint: "amber" },
+  { key: "secure", glyph: { ios: "checkmark.shield", md: "verified_user", fallback: "✓" }, tint: "blue" },
+];
 
 export default function Cases() {
   const { t, lang, me, refreshMe } = useAuth();
@@ -76,7 +84,7 @@ export default function Cases() {
     setChecking(false);
   }
 
-  const list = cases ?? [];
+  const list = useMemo(() => cases ?? [], [cases]);
   const lastChecked = list.reduce<string | null>((max, x) => (x.lastCheckedAt && (!max || x.lastCheckedAt > max) ? x.lastCheckedAt : max), null);
   const counts = useMemo(() => {
     const m = new Map<StatusCategory, number>();
@@ -161,17 +169,29 @@ export default function Cases() {
         )}
 
         {cases && cases.length === 0 && (
-          <Card style={{ alignItems: "center", paddingVertical: space(8), gap: space(3) }}>
-            <Body style={{ fontWeight: "700", textAlign: "center" }}>{t.noCases}</Body>
-            <Small style={{ textAlign: "center" }}>{t.receiptWhere}</Small>
-            <View style={{ alignSelf: "stretch" }}>
-              <Button title={t.addFirstCase} onPress={() => router.push("/cases/new")} />
-            </View>
-          </Card>
+          <FadeInDown>
+            <Card style={{ padding: space(5), gap: space(5), borderRadius: radius.lg + 6 }}>
+              <View style={{ gap: space(2) }}>
+                <TwoToneTitle first={t.emptyFirst} second={t.emptySecond} size={28} />
+                <Body muted>{t.emptyBody}</Body>
+              </View>
+              {EMPTY_FEATURES.map((f, i) => (
+                <FadeInDown key={f.key} delay={stagger(i, 120, 150)}>
+                  <FeatureRow glyph={f.glyph} tint={f.tint} title={t.emptyFeatures[f.key].title} text={t.emptyFeatures[f.key].text} drop={stagger(i, 120, 280)} />
+                </FadeInDown>
+              ))}
+              <FadeInDown delay={stagger(3, 120, 150)} style={{ gap: space(3) }}>
+                <Button title={t.addFirstCase} onPress={() => router.push("/cases/new")} icon={{ ios: "plus", md: "add", fallback: "+" }} />
+                <Small style={{ textAlign: "center" }}>{t.receiptWhere}</Small>
+              </FadeInDown>
+            </Card>
+          </FadeInDown>
         )}
         {list.length > 0 && shown.length === 0 && <Small style={{ textAlign: "center" }}>{t.noMatches}</Small>}
-        {shown.map((cs) => (
-          <CaseCard key={cs.id} cs={cs} stageCount={stageCount} isNew={hasNewChange(seen, cs)} lang={lang} onPress={() => router.push(`/cases/${cs.id}`)} />
+        {shown.map((cs, i) => (
+          <FadeInDown key={cs.id} delay={stagger(i, 70)}>
+            <CaseCard cs={cs} stageCount={stageCount} isNew={hasNewChange(seen, cs)} lang={lang} onPress={() => router.push(`/cases/${cs.id}`)} />
+          </FadeInDown>
         ))}
         <Small style={{ textAlign: "center" }}>{t.disclaimer}</Small>
       </Screen>

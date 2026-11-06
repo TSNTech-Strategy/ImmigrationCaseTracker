@@ -22,6 +22,7 @@ export async function registerForPush(): Promise<PushResult> {
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("case-updates", {
       name: "Case updates",
+      // eslint-disable-next-line import/namespace -- re-exported via `export *`; TypeScript checks it exists
       importance: Notifications.AndroidImportance.HIGH,
     });
   }

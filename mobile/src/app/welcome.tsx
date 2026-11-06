@@ -1,34 +1,46 @@
 import { router } from "expo-router";
 import { View } from "react-native";
-import { Body, Button, Card, H1, Logo, Pill, Screen, Small } from "../components/ui";
+import { Body, Button, Logo, Screen, Small } from "../components/ui";
+import { FeatureCard, LangSwitch, TwoToneTitle, type Glyph, type Tint } from "../components/feature";
+import { FadeInDown, stagger } from "../components/motion";
 import { useAuth } from "../lib/auth";
-import { space, useTheme } from "../lib/theme";
+import { space } from "../lib/theme";
 
+const FEATURES: { key: "receipt" | "alerts" | "guide" | "privacy"; glyph: Glyph; tint: Tint }[] = [
+  { key: "receipt", glyph: { ios: "plus", md: "add", fallback: "+" }, tint: "blue" },
+  { key: "alerts", glyph: { ios: "bell", md: "notifications", fallback: "!" }, tint: "green" },
+  { key: "guide", glyph: { ios: "book", md: "menu_book", fallback: "?" }, tint: "amber" },
+  { key: "privacy", glyph: { ios: "lock.shield", md: "shield_lock", fallback: "•" }, tint: "navy" },
+];
+
+/** First screen before sign-in: what CasePingo does, in English or Spanish. */
 export default function Welcome() {
-  const { t } = useAuth();
-  const { c } = useTheme();
+  const { t, lang, setGuestLang } = useAuth();
   return (
     <Screen edges={["top", "bottom"]}>
-      <View style={{ paddingTop: space(6), gap: space(6) }}>
-        <Logo size={40} />
-        <View style={{ gap: space(3) }}>
-          <Small style={{ color: c.brandRed, fontWeight: "700" }}>{t.tagline}</Small>
-          <H1 style={{ fontSize: 32, lineHeight: 38 }}>{t.welcomeTitle}</H1>
+      <View style={{ gap: space(6), paddingTop: space(2) }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space(2) }}>
+          <Logo size={32} />
+          <LangSwitch value={lang} onChange={setGuestLang} />
+        </View>
+
+        <FadeInDown style={{ gap: space(3) }}>
+          <TwoToneTitle first={t.welcomeFirst} second={t.welcomeSecond} />
           <Body muted>{t.welcomeBody}</Body>
-        </View>
-        {/* Illustrative example of a case card */}
-        <Card>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <Body style={{ fontWeight: "700" }}>Mom&apos;s I-130</Body>
-            <Pill text="Approved" tone="success" />
-          </View>
-          <Small>I-130 · EAC*******402</Small>
-          <Small>{t.example}</Small>
-        </Card>
+        </FadeInDown>
+
         <View style={{ gap: space(3) }}>
-          <Button title={t.createAccount} onPress={() => router.push("/sign-up")} />
-          <Button title={t.signIn} variant="secondary" onPress={() => router.push("/sign-in")} />
+          {FEATURES.map((f, i) => (
+            <FadeInDown key={f.key} delay={stagger(i, 110, 160)}>
+              <FeatureCard glyph={f.glyph} tint={f.tint} title={t.features[f.key].title} text={t.features[f.key].text} drop={stagger(i, 110, 300)} highlight={i === 0} />
+            </FadeInDown>
+          ))}
         </View>
+
+        <FadeInDown delay={stagger(4, 110, 160)} style={{ gap: space(3) }}>
+          <Button title={t.createAccount} onPress={() => router.push("/sign-up")} iconAfter={{ ios: "arrow.right", md: "arrow_forward", fallback: "→" }} />
+          <Button title={t.signIn} variant="secondary" onPress={() => router.push("/sign-in")} />
+        </FadeInDown>
         <Small style={{ textAlign: "center" }}>{t.disclaimer}</Small>
       </View>
     </Screen>

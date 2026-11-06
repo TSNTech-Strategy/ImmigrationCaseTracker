@@ -1,6 +1,6 @@
-import { router, Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Alert, Platform, Pressable, Text, View } from "react-native";
 import { Banner, Body, Button, Card, Field, H1, H2, Loading, Row, Screen, Small, StatusPill, Timeline } from "../../../components/ui";
 import { CongratsCard, StarBurst, takeUnplayed } from "../../../components/celebration";
@@ -60,9 +60,11 @@ export default function CaseScreen() {
       setError(e instanceof ApiError ? e.message : String(e));
     }
   }, [id]);
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
   useRefreshOnForeground(load);
 
   if (error && !cs) return <Screen><Banner tone="danger">{error}</Banner></Screen>;
