@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { AREA_LABEL, AREAS, monthLabel } from "@/lib/visa-bulletin/model";
+import { bulletinEssentials } from "@/lib/visa-bulletin/parse";
 import { bulletinImportAction, type ImportState } from "./actions";
 
 /** "2026-12" → "December 2026" (anything else as typed). */
@@ -19,6 +20,8 @@ export function BulletinImportForm() {
   const [previewed, setPreviewed] = useState<string | null>(null);
   const preview = state.preview;
   const canSave = Boolean(preview) && previewed === `${month}\n${text}`;
+  // Only the tables and the title are sent (form posts are capped at 1 MB; a page source can be big).
+  const payload = useMemo(() => bulletinEssentials(text), [text]);
   return (
     <form action={action} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
@@ -27,7 +30,6 @@ export function BulletinImportForm() {
         </label>
         <textarea
           id="vb-text"
-          name="text"
           required
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -35,6 +37,7 @@ export function BulletinImportForm() {
           placeholder="Paste the bulletin's page source here"
           className={`${input} font-mono text-xs`}
         />
+        <input type="hidden" name="text" value={payload} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">

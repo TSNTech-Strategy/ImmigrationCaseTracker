@@ -193,3 +193,18 @@ export function parseBulletin(input: string, now: Date = new Date()): ParseResul
 
   return { month, charts, rows: counts, warnings };
 }
+
+/**
+ * The parts of a pasted page source that parseBulletin reads: its tables and the
+ * "Visa Bulletin For <Month> <Year>" title. Form posts are capped at 1 MB, and a full
+ * page source can be large, so the import form sends only these. Copied page text
+ * (no tables in it) is returned unchanged.
+ */
+export function bulletinEssentials(input: string): string {
+  if (!/<table[\s>]/i.test(input)) return input;
+  const plain = input.replace(/<[^>]+>/g, " ").replace(/&nbsp;|&#160;/gi, " ").replace(/\s+/g, " ");
+  const title = new RegExp(`visa bulletin for (${MONTH_NAMES_EN.join("|")})\\s+\\d{4}`, "i").exec(plain)?.[0] ?? "";
+  const tables = input.match(/<table[\s\S]*?<\/table>/gi) ?? [];
+  return `<h1>${title}</h1>\n${tables.join("\n")}`;
+}
+

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseBulletin, parseCell } from "../parse";
+import { bulletinEssentials, parseBulletin, parseCell } from "../parse";
 import { cellFor, formatCell, monthLabel } from "../model";
 import { describeMovement, isChange, movement, movementTone } from "../compare";
 import { bulletinView } from "../view";
@@ -95,6 +95,18 @@ describe("parseBulletin", () => {
     expect(cellFor(r.charts, "EB5R", "INDIA", "final")).toEqual({ t: "C" });
     expect(r.charts.familyFiling).toBeUndefined();
     expect(r.warnings.some((w) => w.startsWith("Family dates for filing: table not found"))).toBe(true);
+  });
+
+  it("keeps only the tables and the title of a big page source, and reads it the same", () => {
+    const menu = `<nav>${"<ul><li><a href='/x'>Menu item</a></li></ul>".repeat(20000)}</nav>`;
+    const page = HTML.replace("<body>", `<body>${menu}<script>var x = "${"y".repeat(300000)}";</script>`);
+    const small = bulletinEssentials(page);
+    expect(page.length).toBeGreaterThan(1_000_000);
+    expect(small.length).toBeLessThan(20_000);
+    expect(small.startsWith("<h1>Visa Bulletin For December 2026</h1>")).toBe(true);
+    expect(parseBulletin(small, now)).toEqual(parseBulletin(page, now));
+    // Copied page text has no tables: sent as it is.
+    expect(bulletinEssentials("Visa Bulletin For January 2027\nF1\t08NOV16")).toBe("Visa Bulletin For January 2027\nF1\t08NOV16");
   });
 
   it("asks for the month when the page doesn't say", () => {
