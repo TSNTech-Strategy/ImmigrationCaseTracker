@@ -26,6 +26,8 @@ export default function AppLayout() {
       <Stack.Screen name="guide/index" options={{ title: t.statusLibrary }} />
       <Stack.Screen name="guide/[slug]" options={{ title: "" }} />
       <Stack.Screen name="resources/[slug]" options={{ title: "" }} />
+      <Stack.Screen name="civics/index" options={{ title: t.civicsTitle }} />
+      <Stack.Screen name="civics/quiz" options={{ title: "" }} />
     </Stack>
   );
 }

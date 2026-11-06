@@ -58,6 +58,7 @@ export function PublicFooter() {
           <Link href="/how-it-works" className={link}>How it works</Link>
           <Link href="/resources" className={link}>Resources</Link>
           <Link href="/status-guide" className={link}>Status guide</Link>
+          <Link href="/civics-test" className={link}>Civics test practice</Link>
           <Link href="/visa-bulletin" className={link}>Visa Bulletin</Link>
           <Link href="/pricing" className={link}>Pricing</Link>
           <Link href="/pricing#firms" className={link}>For law firms</Link>

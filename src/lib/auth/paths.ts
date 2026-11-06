@@ -1,7 +1,7 @@
 // Pure helpers shared by the proxy, pages and actions (no server imports).
 
 /** Areas that require a signed-in user. */
-export const PROTECTED_PREFIXES = ["/cases", "/bulletin", "/settings", "/firm", "/admin", "/reset-password"] as const;
+export const PROTECTED_PREFIXES = ["/cases", "/bulletin", "/civics", "/settings", "/firm", "/admin", "/reset-password"] as const;
 
 /** Sign-in pages a signed-in user doesn't need. */
 export const AUTH_PAGES = ["/login", "/signup", "/forgot-password"] as const;
