@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Session } from "@supabase/supabase-js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, type Me } from "./api";
+import { prefetchCases } from "./cases-prefetch";
 import { deviceLang, strings, type Lang } from "./i18n";
 import { unregisterPush } from "./push";
 import { supabase } from "./supabase";
@@ -66,7 +67,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session);
       if (data.session) {
         const need = await checkMfa();
-        if (!need) await refreshMe();
+        if (!need) {
+          // Load the case list alongside the profile, so My cases is ready when the launch screen fades.
+          prefetchCases();
+          await refreshMe();
+        }
       }
       setReady(true);
     });

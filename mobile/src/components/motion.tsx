@@ -65,6 +65,24 @@ export function DropIn({ children, delay = 0 }: { children: ReactNode; delay?: n
   return <Animated.View style={{ opacity, transform: [{ translateY: y }] }}>{children}</Animated.View>;
 }
 
+/** A soft pulse for loading placeholders (opacity 1 → 0.55 → 1). Still with Reduce Motion. */
+export function Pulse({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const reduce = useReduceMotion();
+  const [opacity] = useState(() => new Animated.Value(1));
+  useEffect(() => {
+    if (reduce !== false) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.55, duration: 750, easing: Easing.inOut(Easing.quad), useNativeDriver: nativeDriver }),
+        Animated.timing(opacity, { toValue: 1, duration: 750, easing: Easing.inOut(Easing.quad), useNativeDriver: nativeDriver }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [reduce, opacity]);
+  return <Animated.View style={[{ opacity }, style]}>{children}</Animated.View>;
+}
+
 /** Delay for the n-th item of a list, capped so long lists don't wait. */
 export const stagger = (index: number, step = 80, start = 0, max = 6) => start + Math.min(index, max) * step;
 

@@ -6,6 +6,7 @@ import type { Lang } from "../lib/i18n";
 import { shortDate, strings, timeAgo } from "../lib/i18n";
 import { font, radius, space, useTheme } from "../lib/theme";
 import { Icon } from "./icon";
+import { Pulse } from "./motion";
 import { StatusPill } from "./ui";
 
 /** Big screen title with an optional line under it and round action buttons on the right. */
@@ -194,6 +195,39 @@ export function CaseSubline({ mono, text }: { mono: string | null; text?: string
       <Text style={font.mono}>{mono}</Text>
       {text ? ` · ${text}` : ""}
     </Text>
+  );
+}
+
+/** A placeholder shaped like a case card, shown while the list loads (never an empty state). */
+export function CaseCardSkeleton({ label }: { label?: string }) {
+  const { c, isDark } = useTheme();
+  // Visible on the card in both themes (the dark card is close to surface2).
+  const fill = isDark ? c.border : c.surface2;
+  const bar = (width: `${number}%` | number, height = 12) => <View style={{ width, height, borderRadius: height / 2, backgroundColor: fill }} />;
+  return (
+    <Pulse>
+      <View
+        accessible
+        accessibilityLabel={label}
+        style={{ flexDirection: "row", backgroundColor: c.surface, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: c.border, overflow: "hidden" }}
+      >
+        <View style={{ width: 4, backgroundColor: fill }} />
+        <View style={{ flex: 1, padding: space(4), gap: space(2.5) }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            {bar("45%", 16)}
+            {bar(64, 20)}
+          </View>
+          {bar("60%")}
+          {bar("70%", 14)}
+          <View style={{ flexDirection: "row", gap: space(1.5), marginTop: space(1) }}>
+            {[0, 1, 2, 3].map((i) => (
+              <View key={i} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: fill }} />
+            ))}
+          </View>
+          {bar("40%", 10)}
+        </View>
+      </View>
+    </Pulse>
   );
 }
 

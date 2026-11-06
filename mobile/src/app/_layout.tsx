@@ -4,11 +4,19 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { AuthProvider } from "../lib/auth";
+import { AuthProvider, useAuth } from "../lib/auth";
+import { launchDone } from "../lib/launch";
 import { useTheme } from "../lib/theme";
 
 function Shell() {
   const { c, isDark } = useTheme();
+  const { ready, session, needsMfa } = useAuth();
+
+  // Signed out (welcome) or at the two-factor step: nothing to load, so the launch screen can go.
+  // Signed in, My cases ends it once the cases are on screen.
+  useEffect(() => {
+    if (ready && (!session || needsMfa)) launchDone();
+  }, [ready, session, needsMfa]);
 
   // Tapping a "Case update" notification opens that case.
   useEffect(() => {
