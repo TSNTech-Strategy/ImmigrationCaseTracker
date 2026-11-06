@@ -11,7 +11,10 @@ import { usePathname } from "next/navigation";
 export function AppNav({ items }: { items: { href: string; label: string }[] }) {
   const pathname = usePathname();
   return (
-    <nav aria-label="Main" className="order-last flex w-full items-center gap-5 text-sm font-medium sm:order-none sm:w-auto">
+    <nav
+      aria-label="Main"
+      className="order-last -mx-4 flex w-[calc(100%+2rem)] items-center gap-4 overflow-x-auto whitespace-nowrap px-4 text-sm font-medium [scrollbar-width:none] sm:order-none sm:mx-0 sm:w-auto sm:gap-5 sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden"
+    >
       {items.map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
@@ -19,7 +22,7 @@ export function AppNav({ items }: { items: { href: string; label: string }[] }) 
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className={`relative py-2 transition-colors ${
+            className={`relative shrink-0 py-2 transition-colors ${
               active
                 ? "text-[var(--foreground)] after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-[var(--accent)]"
                 : "text-[var(--muted)] hover:text-[var(--foreground)]"

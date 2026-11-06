@@ -37,6 +37,12 @@ export default function Privacy() {
       </ul>
       <p>We do not ask for passport numbers, A-numbers, documents or other immigration records.</p>
       <p>
+        If you use the assistant, what you write and its replies are sent to our AI provider to produce the answers. If you ask from a
+        case, it also receives that case&apos;s form type and status text, never the receipt number. We don&apos;t store the
+        conversation: it stays on your screen. We keep only how many questions you asked each day, to apply your plan&apos;s limit.
+        Please don&apos;t include A-numbers or other ID numbers in your questions.
+      </p>
+      <p>
         If you use the app&apos;s receipt scanner, the photo of your notice is read on your phone to find the receipt number. The photo
         isn&apos;t sent to us, and the app deletes its own copy as soon as it has been read.
       </p>
@@ -45,6 +51,7 @@ export default function Privacy() {
       <ul>
         <li>To check the status of cases you&apos;re authorized to track, and show you the results.</li>
         <li>To notify you about status changes, if you turn alerts on.</li>
+        <li>To answer the questions you ask the assistant.</li>
         <li>To secure accounts, prevent abuse, and meet legal obligations.</li>
       </ul>
       <p>We do not use your case information for advertising, and we do not sell or rent personal information to anyone.</p>
@@ -68,6 +75,11 @@ export default function Privacy() {
           <strong>Vercel</strong>: website hosting.
         </li>
         <li>
+          <strong>Anthropic</strong>: the AI model behind the assistant. It receives your questions, the conversation so far and,
+          when you ask from a case, that case&apos;s form type and status text. Under its commercial terms it doesn&apos;t use them to
+          train its models. [Retention terms to be confirmed with counsel.]
+        </li>
+        <li>
           <strong>Email delivery provider</strong>: to send account and alert emails. [Provider to be named before launch.]
         </li>
       </ul>
@@ -83,6 +95,7 @@ export default function Privacy() {
       <ul>
         <li>Case information: until you remove the case or delete your account.</li>
         <li>Account information: until you delete your account.</li>
+        <li>Assistant: conversations aren&apos;t stored by CasePingo; daily question counts (no content) are kept for 30 days.</li>
         <li>Records of deletion requests and security logs: [retention period to be confirmed with counsel], without case content.</li>
         <li>
           Free-trial records: a one-way fingerprint of the email address and of receipt numbers used during a free trial (never the

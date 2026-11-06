@@ -92,6 +92,26 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
           )
         }
       />
+      <Link
+        href={`/assistant?case=${c.id}`}
+        className="group flex items-center justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 transition-colors hover:border-[var(--accent)]"
+      >
+        <span className="flex items-center gap-3">
+          <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+              <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" />
+            </svg>
+          </span>
+          <span className="flex flex-col">
+            <span className="font-semibold">Questions about this case?</span>
+            <span className="text-sm text-[var(--muted)]">Ask the assistant what this status means and what usually comes next.</span>
+          </span>
+        </span>
+        <span aria-hidden="true" className="text-[var(--accent)] transition-transform group-hover:translate-x-0.5">
+          →
+        </span>
+      </Link>
       <ObservedChanges events={c.events} es={es} />
       <UscisHistory history={c.uscisHistory} es={es} />
 

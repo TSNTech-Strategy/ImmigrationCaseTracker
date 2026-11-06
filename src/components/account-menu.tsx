@@ -57,7 +57,7 @@ export function AccountMenu({ name, email, isAdmin, firmMember }: { name: string
         <span aria-hidden="true" className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-bold text-[var(--accent-fg)]">
           {initials(name, email)}
         </span>
-        <span className="hidden max-w-[14rem] truncate sm:inline">
+        <span className="hidden max-w-[10rem] truncate lg:inline">
           {fullName ? (
             <>
               <span className="text-[var(--muted)]">Welcome, </span>

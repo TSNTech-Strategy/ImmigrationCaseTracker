@@ -12,10 +12,19 @@ import type { Plan } from "@prisma/client";
  */
 export const PLAN_LIMITS: Record<
   Plan,
-  { maxCases: number; checkIntervalHours: number; label: string; autoChecks: boolean; alerts: boolean; manualChecksPerDay: number }
+  {
+    maxCases: number;
+    checkIntervalHours: number;
+    label: string;
+    autoChecks: boolean;
+    alerts: boolean;
+    manualChecksPerDay: number;
+    /** Questions to the assistant per UTC day (each one is a paid AI call). */
+    assistantPerDay: number;
+  }
 > = {
-  FREE: { maxCases: 1, checkIntervalHours: 24, label: "Free", autoChecks: false, alerts: false, manualChecksPerDay: 3 },
-  PREMIUM: { maxCases: 10, checkIntervalHours: 12, label: "Premium", autoChecks: true, alerts: true, manualChecksPerDay: 30 },
+  FREE: { maxCases: 1, checkIntervalHours: 24, label: "Free", autoChecks: false, alerts: false, manualChecksPerDay: 3, assistantPerDay: 5 },
+  PREMIUM: { maxCases: 10, checkIntervalHours: 12, label: "Premium", autoChecks: true, alerts: true, manualChecksPerDay: 30, assistantPerDay: 50 },
 };
 
 /** New accounts start with this many days of Premium. */

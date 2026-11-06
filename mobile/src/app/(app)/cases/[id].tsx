@@ -215,6 +215,15 @@ export default function CaseScreen() {
           <Small>{free ? t.freePlan : t.premiumPlan} {t.uscisSource}</Small>
         </Card>
 
+        <Card onPress={() => router.push({ pathname: "/assistant", params: { case: cs.id } })} label={t.assistantAskButton} style={{ flexDirection: "row", alignItems: "center", gap: space(3) }}>
+          <Icon ios="sparkles" md="auto_awesome" size={22} color={c.accent} fallback="✦" />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: c.heading }}>{t.assistantAskCase}</Text>
+            <Small>{t.assistantAskCaseBody}</Small>
+          </View>
+          <Icon ios="chevron.right" md="chevron_right" size={14} color={c.accent} fallback="›" />
+        </Card>
+
         {(cs.form || cs.office) && (
           <Card>
             {cs.form && <Row label={t.form} value={cs.form.name ? `${cs.form.code} · ${cs.form.name[lang]}` : cs.form.code} />}
