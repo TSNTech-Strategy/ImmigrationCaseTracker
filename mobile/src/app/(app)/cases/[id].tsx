@@ -6,6 +6,7 @@ import { Banner, Body, Button, Card, Field, H1, H2, Loading, Row, Screen, Small,
 import { CongratsCard, StarBurst, takeUnplayed } from "../../../components/celebration";
 import { CaseSubline, Stepper, caseTitles } from "../../../components/cases";
 import { Icon } from "../../../components/icon";
+import { launchDone } from "../../../lib/launch";
 import { markSeen } from "../../../lib/seen";
 import { api, ApiError, type CaseDetail } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
@@ -59,6 +60,8 @@ export default function CaseScreen() {
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e));
     }
+    // Opened from a notification at launch: the case is on screen now.
+    requestAnimationFrame(() => launchDone());
   }, [id]);
   useFocusEffect(
     useCallback(() => {

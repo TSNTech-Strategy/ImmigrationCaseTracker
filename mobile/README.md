@@ -8,6 +8,7 @@ v1: personal cases only, no buying in the app (upgrades happen on casepingo.com)
 | Screen | File |
 |---|---|
 | Welcome (English/Español switch, feature cards), sign in, create account, forgot password, two-factor code | `src/app/welcome.tsx`, `sign-in.tsx`, `sign-up.tsx`, `forgot-password.tsx`, `mfa.tsx` |
+| Launch: the CasePingo mark (no square) on the app's background, light and dark (`assets/splash-mark*.png`; Android has a circle-safe version). The launch screen stays up until the first screen has its data, then fades; My cases loads during launch and shows placeholder cards if it's still loading | `app.json` (expo-splash-screen), `src/lib/launch.ts`, `src/lib/cases-prefetch.ts`, `CaseCardSkeleton` in `src/components/cases.tsx` |
 | Tabs (system tab bar: floating glass on iOS 26): Cases, Assistant, Bulletin, Resources, Settings | `src/app/(app)/(tabs)/_layout.tsx` |
 | My cases: Check all, add, search, filters by kind of status, cards with progress line and "New" badge | `src/app/(app)/(tabs)/cases.tsx`, `src/components/cases.tsx` |
 | Add a case (with consent; scan the receipt notice or type the number), case details (progress line, rename, guide, form and office, timelines, congratulations) | `src/app/(app)/cases/` |

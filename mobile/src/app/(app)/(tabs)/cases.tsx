@@ -1,13 +1,15 @@
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Banner, Body, Button, Card, Screen, Small } from "../../../components/ui";
-import { CaseCard, FilterChips, IconButton, LargeHeader, SearchField, caseTitles } from "../../../components/cases";
+import { CaseCard, CaseCardSkeleton, FilterChips, IconButton, LargeHeader, SearchField, caseTitles } from "../../../components/cases";
 import { FlagStripe, StarBurst, StarsMark, dismissApproval, dismissedApprovals, takeUnplayed } from "../../../components/celebration";
 import { FeatureRow, TwoToneTitle, type Glyph, type Tint } from "../../../components/feature";
 import { FadeInDown, stagger, useSpotlight } from "../../../components/motion";
 import { api, ApiError, type CaseSummary, type StatusCategory } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
+import { takePrefetchedCases, type CasesResponse } from "../../../lib/cases-prefetch";
+import { launchDone } from "../../../lib/launch";
 import { timeAgo, trialDaysLeft } from "../../../lib/i18n";
 import { hasNewChange, seenChanges } from "../../../lib/seen";
 import { radius, space, useTheme } from "../../../lib/theme";
@@ -41,7 +43,8 @@ export default function Cases() {
 
   const load = useCallback(async () => {
     try {
-      const r = await api<{ cases: CaseSummary[]; stageCount?: number }>("/api/v1/cases");
+      // The first time, the list the app started loading during launch.
+      const r = await (takePrefetchedCases() ?? api<CasesResponse>("/api/v1/cases"));
       setCases(r.cases);
       setStageCount(r.stageCount ?? 4);
       setError(null);
@@ -61,6 +64,12 @@ export default function Cases() {
     }, [load]),
   );
   useRefreshOnForeground(load);
+
+  // The cases (or an error) are on screen: the launch screen can fade into them.
+  const loaded = cases !== null || error !== null;
+  useEffect(() => {
+    if (loaded) requestAnimationFrame(() => launchDone());
+  }, [loaded]);
 
   /** Ask USCIS about every active case (limits and cooldowns still apply on the server). */
   async function checkAll() {
@@ -118,10 +127,11 @@ export default function Cases() {
       >
         <LargeHeader
           title={t.myCases}
-          subtitle={lastChecked ? t.checkedAgo(timeAgo(lastChecked, lang)) : t.noChecksYet}
+          // While loading, keep the line (no "add a case" flash before the list arrives).
+          subtitle={!loaded ? "\u00a0" : lastChecked ? t.checkedAgo(timeAgo(lastChecked, lang)) : t.noChecksYet}
           right={
             <>
-              {list.length > 0 && <IconButton ios="arrow.clockwise" md="refresh" label={t.checkAll} onPress={checkAll} loading={checking} fallback="↻" />}
+              {(!loaded || list.length > 0) && <IconButton ios="arrow.clockwise" md="refresh" label={t.checkAll} onPress={checkAll} loading={checking} fallback="↻" />}
               <IconButton ios="plus" md="add" label={t.addCase} onPress={() => router.push("/cases/new")} filled fallback="+" />
             </>
           }
@@ -169,6 +179,13 @@ export default function Cases() {
               ...FILTER_ORDER.filter((k) => counts.get(k)).map((k) => ({ key: k, label: t.category[k], count: counts.get(k) ?? 0 })),
             ]}
           />
+        )}
+
+        {!loaded && (
+          <View style={{ gap: space(3) }}>
+            <CaseCardSkeleton label={t.loadingCases} />
+            <CaseCardSkeleton />
+          </View>
         )}
 
         {cases && cases.length === 0 && (
