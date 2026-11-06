@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "CasePingo",
+    "slug": "casepingo",
+    "scheme": "casepingo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "description": "Track your USCIS case and get an alert when it changes. Independent service; not affiliated with USCIS or DHS.",
+    "ios": {
+      "bundleIdentifier": "com.tsntech.casepingo",
+      "supportsTablet": false,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.tsntech.casepingo",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon-foreground.png",
+        "backgroundImage": "./assets/adaptive-icon-background.png"
+      },
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-localization",
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "backgroundColor": "#F5F7FB",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#0A1220"
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#1758A8"
+        }
+      ]
+    ],
+    "experiments": {},
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}
