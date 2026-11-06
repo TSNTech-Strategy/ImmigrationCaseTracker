@@ -179,7 +179,16 @@ export function DeleteAccountForm() {
   );
 }
 
-export function BulletinWatchForm({ watch, alerts }: { watch: { category: string; area: string; chart: string } | null; alerts: boolean }) {
+export function BulletinWatchForm({
+  watch,
+  alerts,
+  note = true,
+}: {
+  watch: { category: string; area: string; chart: string } | null;
+  alerts: boolean;
+  /** The line about alerts (off where the page already says it). */
+  note?: boolean;
+}) {
   const [state, action] = useActionState<FormState, FormData>(bulletinWatchAction, {});
   const select = "w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2";
   // After a save React resets the form to the menus' first defaults; keying the menus on the saved
@@ -226,11 +235,13 @@ export function BulletinWatchForm({ watch, alerts }: { watch: { category: string
           </select>
         </label>
       </div>
-      <p className="text-sm text-[var(--muted)]">
-        {alerts
-          ? "We email you (and notify the app) when this category moves in a new bulletin."
-          : "Premium emails you when this category moves in a new bulletin. On the Free plan, the app’s Bulletin tab still opens on your category."}
-      </p>
+      {note && (
+        <p className="text-sm text-[var(--muted)]">
+          {alerts
+            ? "We email you (and notify the app) when this category moves in a new bulletin."
+            : "Premium emails you when this category moves in a new bulletin. On the Free plan, your category still shows first on your Visa Bulletin page and in the app."}
+        </p>
+      )}
       <div className="flex flex-wrap gap-3">
         <SubmitButton pendingText="Saving…">Save category</SubmitButton>
         {watch && (

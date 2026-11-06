@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { BULLETIN_CHARTS, BulletinChart, BulletinLegend } from "@/components/bulletin-chart";
+import { getCurrentUser } from "@/lib/auth/session";
 import { visaBulletinService } from "@/lib/visa-bulletin";
-import { AREA_LABEL, AREAS, type ChartKey, monthLabel } from "@/lib/visa-bulletin/model";
-import { bulletinView, STATE_BULLETIN_URL, USCIS_CHARTS_URL, type ViewRow } from "@/lib/visa-bulletin/view";
+import { bulletinView, STATE_BULLETIN_URL, USCIS_CHARTS_URL } from "@/lib/visa-bulletin/view";
 
 export const metadata: Metadata = {
   title: "Visa Bulletin: final action dates and dates for filing · CasePingo",
@@ -13,86 +14,44 @@ export const metadata: Metadata = {
   alternates: { canonical: "/visa-bulletin" },
 };
 
-const CHARTS: { key: ChartKey; title: string; note: string }[] = [
-  { key: "familyFinal", title: "Family-sponsored: final action dates", note: "When a green card can be issued." },
-  { key: "familyFiling", title: "Family-sponsored: dates for filing", note: "When you may submit your application, if USCIS accepts this chart this month." },
-  { key: "employmentFinal", title: "Employment-based: final action dates", note: "When a green card can be issued." },
-  { key: "employmentFiling", title: "Employment-based: dates for filing", note: "When you may submit your application, if USCIS accepts this chart this month." },
-];
-
-function ChartTable({ id, title, note, rows }: { id: string; title: string; note: string; rows: ViewRow[] }) {
+/** Signed-in visitors get the same bulletin on their own page, with their category first. */
+function SignedInNote() {
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-2">
-      <h2 id={id} className="text-xl font-semibold">
-        {title}
-      </h2>
-      <p className="text-sm text-[var(--muted)]">{note}</p>
-      <div className="overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)]">
-        <table className="w-full min-w-[700px] table-fixed text-left text-sm sm:min-w-[760px]">
-          <colgroup>
-            <col className="w-24 sm:w-[28%]" />
-            {AREAS.map((a) => (
-              <col key={a} />
-            ))}
-          </colgroup>
-          <thead className="bg-[var(--surface-2)] text-[var(--muted)]">
-            <tr>
-              {/* The category column stays put while the table scrolls sideways on a phone. */}
-              <th scope="col" className="sticky left-0 z-10 bg-[var(--surface-2)] px-3 py-2.5 font-medium sm:px-4">
-                Category
-              </th>
-              {AREAS.map((a) => (
-                <th key={a} scope="col" className="px-3 py-2.5 font-medium">
-                  {AREA_LABEL[a].en}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.category} className="border-t border-[var(--border)] align-top">
-                <th scope="row" className="sticky left-0 z-10 bg-[var(--surface)] px-3 py-2.5 font-normal sm:px-4">
-                  <span className="font-semibold">{r.code}</span>
-                  <span className="sr-only text-xs text-[var(--muted)] sm:not-sr-only sm:block">{r.en}</span>
-                </th>
-                {AREAS.map((a) => {
-                  const cell = r.cells[a];
-                  const tone = cell?.move?.tone;
-                  return (
-                    <td key={a} className="px-3 py-2.5">
-                      <span className="whitespace-nowrap font-medium tabular-nums">{cell?.value.en ?? "—"}</span>
-                      {cell?.move?.changed && (
-                        <span className={`block text-xs ${tone === "good" ? "text-[var(--success)]" : tone === "bad" ? "text-[var(--danger)]" : "text-[var(--muted)]"}`}>
-                          {tone === "good" ? "▲ " : tone === "bad" ? "▼ " : ""}
-                          {cell.move.en}
-                        </span>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
+    <p className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm">
+      <span>You&apos;re signed in: see the bulletin with your own category first.</span>
+      <Link href="/bulletin" className="font-semibold text-[var(--accent)] hover:underline">
+        Open my Visa Bulletin →
+      </Link>
+    </p>
   );
 }
 
 async function LatestBulletin() {
   await connection();
+  const signedIn = (await getCurrentUser().catch(() => null)) ? <SignedInNote /> : null;
   let latest;
   try {
     latest = await visaBulletinService().latest();
   } catch {
-    return <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">The bulletin couldn&apos;t be loaded right now. Please try again shortly.</p>;
+    return (
+      <>
+        {signedIn}
+        <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">The bulletin couldn&apos;t be loaded right now. Please try again shortly.</p>
+      </>
+    );
   }
   if (!latest.current) {
-    return <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">This month&apos;s bulletin isn&apos;t loaded yet. Check back soon.</p>;
+    return (
+      <>
+        {signedIn}
+        <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">This month&apos;s bulletin isn&apos;t loaded yet. Check back soon.</p>
+      </>
+    );
   }
   const view = bulletinView(latest.current, latest.previous);
   return (
     <>
+      {signedIn}
       <div className="flex flex-col gap-1 text-sm text-[var(--muted)]">
         <p>
           <span className="font-semibold text-[var(--foreground)]">{view.label.en} bulletin</span> ·{" "}
@@ -100,15 +59,12 @@ async function LatestBulletin() {
             Official bulletin
           </a>
         </p>
-        {view.previousMonth && (
-          <p>
-            Changes since {monthLabel(view.previousMonth)}: <span className="text-[var(--success)]">▲ moved ahead</span>,{" "}
-            <span className="text-[var(--danger)]">▼ moved back</span>. Dates without a note didn&apos;t change.
-          </p>
-        )}
+        {view.previousMonth && <BulletinLegend previousMonth={view.previousMonth} />}
         <p className="sm:hidden">Swipe a table sideways to see every country.</p>
       </div>
-      {CHARTS.map((ch) => (view.rows[ch.key] ? <ChartTable key={ch.key} id={`chart-${ch.key}`} title={ch.title} note={ch.note} rows={view.rows[ch.key]!} /> : null))}
+      {BULLETIN_CHARTS.map((ch) =>
+        view.rows[ch.key] ? <BulletinChart key={ch.key} id={`chart-${ch.key}`} title={ch.title} note={ch.note} rows={view.rows[ch.key]!} /> : null,
+      )}
     </>
   );
 }
