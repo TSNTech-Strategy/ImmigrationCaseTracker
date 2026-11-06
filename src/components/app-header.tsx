@@ -3,7 +3,9 @@ import { signOutAction } from "@/app/(auth)/actions";
 import { Logo } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
 
-export function AppHeader({ email, isAdmin = false }: { email: string; isAdmin?: boolean }) {
+/** Signed-in header. Greets the person by their full name (the email shows on hover, or instead when no name is set). */
+export function AppHeader({ name, email, isAdmin = false }: { name?: string | null; email: string; isAdmin?: boolean }) {
+  const fullName = name?.trim();
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -23,7 +25,15 @@ export function AppHeader({ email, isAdmin = false }: { email: string; isAdmin?:
               Admin
             </Link>
           )}
-          <span className="hidden text-[var(--muted)] md:inline">{email}</span>
+          <span className="hidden max-w-[16rem] truncate text-[var(--muted)] md:inline" title={email}>
+            {fullName ? (
+              <>
+                Welcome, <span className="font-semibold text-[var(--foreground)]">{fullName}</span>
+              </>
+            ) : (
+              email
+            )}
+          </span>
           <ThemeToggle />
           <form action={signOutAction}>
             <button type="submit" className="rounded-lg border border-[var(--border)] px-3 py-1.5 font-medium hover:bg-[var(--surface-2)]">
