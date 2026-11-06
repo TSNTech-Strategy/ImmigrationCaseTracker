@@ -57,6 +57,11 @@ export default async function AdminPage() {
           USCIS: {mode} · Billing: {billingEnabled() ? (billingTestMode() ? "on (test mode)" : "on (live)") : "off"} · Counts only; no receipt numbers or
           client details are shown here.
         </p>
+        <p className="text-sm">
+          <Link href="/admin/visa-bulletin" className="font-medium text-[var(--accent)] underline-offset-2 hover:underline">
+            Import this month&apos;s Visa Bulletin →
+          </Link>
+        </p>
       </div>
 
       <section aria-labelledby="health-h" className="flex flex-col gap-3">

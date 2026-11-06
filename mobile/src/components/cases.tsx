@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, TextInput, View } from "react-native";
 import type { AndroidSymbol, SFSymbol } from "expo-symbols";
 import type { CaseSummary, StatusCategory } from "../lib/api";
 import type { Lang } from "../lib/i18n";
@@ -88,10 +88,21 @@ export function SearchField({ value, onChangeText, placeholder }: { value: strin
 }
 
 /** Horizontal filter chips, e.g. All 3 · In progress 2 · Approved 1. */
-export function FilterChips<T extends string>({ options, value, onChange }: { options: { key: T; label: string; count: number }[]; value: T; onChange: (v: T) => void }) {
+export function FilterChips<T extends string>({ options, value, onChange }: { options: { key: T; label: string; count?: number }[]; value: T; onChange: (v: T) => void }) {
   const { c } = useTheme();
+  // When the choice is made elsewhere (e.g. the country someone follows), bring that chip into view.
+  // A chip that was just tapped is already in view, so the row doesn't jump.
+  const scroller = useRef<ScrollViewInstance>(null);
+  const tapped = useRef<T | null>(null);
+  const [xs, setXs] = useState<Partial<Record<string, number>>>({});
+  const x = xs[value];
+  useEffect(() => {
+    if (x === undefined) return;
+    if (tapped.current === value) tapped.current = null;
+    else scroller.current?.scrollTo({ x: Math.max(0, x - space(4)), animated: true });
+  }, [x, value]);
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space(2) }}>
+    <ScrollView ref={scroller} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space(2) }}>
       {options.map((o) => {
         const on = o.key === value;
         return (
@@ -99,7 +110,14 @@ export function FilterChips<T extends string>({ options, value, onChange }: { op
             key={o.key}
             accessibilityRole="button"
             accessibilityState={{ selected: on }}
-            onPress={() => onChange(o.key)}
+            onLayout={(e) => {
+              const lx = e.nativeEvent.layout.x;
+              setXs((m) => (m[o.key] === lx ? m : { ...m, [o.key]: lx }));
+            }}
+            onPress={() => {
+              tapped.current = o.key;
+              onChange(o.key);
+            }}
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -113,7 +131,7 @@ export function FilterChips<T extends string>({ options, value, onChange }: { op
             }}
           >
             <Text style={{ color: on ? c.background : c.text, fontWeight: "600", fontSize: 14 }}>{o.label}</Text>
-            <Text style={{ color: on ? c.background : c.muted, fontSize: 13, fontWeight: "600" }}>{o.count}</Text>
+            {o.count !== undefined && <Text style={{ color: on ? c.background : c.muted, fontSize: 13, fontWeight: "600" }}>{o.count}</Text>}
           </Pressable>
         );
       })}

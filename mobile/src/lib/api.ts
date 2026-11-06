@@ -111,3 +111,31 @@ export type GuideEntry = {
   en: GuideText;
   es: GuideText;
 };
+
+// ---- Visa Bulletin ---------------------------------------------------------------
+
+export type BulletinArea = "ALL" | "CHINA" | "INDIA" | "MEXICO" | "PHILIPPINES";
+export type BulletinChartKey = "familyFinal" | "familyFiling" | "employmentFinal" | "employmentFiling";
+/** `move` is null for the first month on record; `changed` is false for "No change". */
+export type BulletinCell = { value: Bilingual; move: ({ tone: "good" | "bad" | "neutral"; changed: boolean } & Bilingual) | null };
+export type BulletinRow = { category: string; code: string; en: string; es: string; cells: Partial<Record<BulletinArea, BulletinCell>> };
+export type BulletinWatch = { category: string; area: BulletinArea; chart: "final" | "filing" };
+export type BulletinCategory = { key: string; kind: "family" | "employment"; code: string; en: string; es: string };
+export type BulletinResponse = {
+  bulletin: {
+    month: string;
+    label: Bilingual;
+    previousMonth: string | null;
+    sourceUrl: string | null;
+    importedAt: string;
+    rows: Partial<Record<BulletinChartKey, BulletinRow[]>>;
+  } | null;
+  catalog: { areas: ({ key: BulletinArea } & Bilingual)[]; categories: BulletinCategory[] };
+  watch: BulletinWatch | null;
+  /** The person's plan includes alerts (Premium). */
+  alerts: boolean;
+  links: { bulletin: string; uscisCharts: string };
+};
+
+export const bulletinChartKey = (kind: "family" | "employment", type: "final" | "filing"): BulletinChartKey =>
+  `${kind}${type === "final" ? "Final" : "Filing"}` as BulletinChartKey;
