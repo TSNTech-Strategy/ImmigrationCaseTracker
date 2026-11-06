@@ -8,7 +8,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const { user } = await requireAdminPage();
   return (
     <>
-      <AppHeader name={user.name} email={user.email} isAdmin />
+      <AppHeader user={{ ...user, isAdmin: true }} />
       <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-8">{children}</div>
       <AppFooter />
     </>

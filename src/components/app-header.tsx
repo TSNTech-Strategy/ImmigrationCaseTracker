@@ -1,46 +1,30 @@
 import Link from "next/link";
-import { signOutAction } from "@/app/(auth)/actions";
+import { prisma } from "@/lib/db";
+import { AccountMenu } from "./account-menu";
+import { AppNav } from "./app-nav";
 import { Logo } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
 
-/** Signed-in header. Greets the person by their full name (the email shows on hover, or instead when no name is set). */
-export function AppHeader({ name, email, isAdmin = false }: { name?: string | null; email: string; isAdmin?: boolean }) {
-  const fullName = name?.trim();
+/**
+ * Signed-in header. Places on the left (My cases, and Firm for firm members),
+ * account tools on the right: the theme toggle and an account menu
+ * ("Welcome, <name>") holding settings, plan, firm workspace, admin and sign out.
+ * On phones the places move to a second row so nothing wraps awkwardly.
+ */
+export async function AppHeader({ user }: { user: { id: string; name: string | null; email: string; isAdmin: boolean } }) {
+  const firmMember = Boolean(await prisma.firmMembership.findFirst({ where: { userId: user.id, revokedAt: null }, select: { id: true } }));
+  const places = [{ href: "/cases", label: "My cases" }, ...(firmMember ? [{ href: "/firm", label: "Firm" }] : [])];
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <Logo href="/cases" />
-        <nav aria-label="Account" className="flex items-center gap-4 text-sm">
-          <Link href="/cases" className="underline-offset-2 hover:underline">
-            My cases
-          </Link>
-          <Link href="/firm" className="underline-offset-2 hover:underline">
-            Firm
-          </Link>
-          <Link href="/settings" className="underline-offset-2 hover:underline">
-            Settings
-          </Link>
-          {isAdmin && (
-            <Link href="/admin" className="underline-offset-2 hover:underline">
-              Admin
-            </Link>
-          )}
-          <span className="hidden max-w-[16rem] truncate text-[var(--muted)] md:inline" title={email}>
-            {fullName ? (
-              <>
-                Welcome, <span className="font-semibold text-[var(--foreground)]">{fullName}</span>
-              </>
-            ) : (
-              email
-            )}
-          </span>
+      <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-x-8 px-4 pt-2.5 sm:pb-0">
+        <div className="py-1.5">
+          <Logo href="/cases" />
+        </div>
+        <AppNav items={places} />
+        <div className="ml-auto flex items-center gap-2 py-1.5">
           <ThemeToggle />
-          <form action={signOutAction}>
-            <button type="submit" className="rounded-lg border border-[var(--border)] px-3 py-1.5 font-medium hover:bg-[var(--surface-2)]">
-              Sign out
-            </button>
-          </form>
-        </nav>
+          <AccountMenu name={user.name} email={user.email} isAdmin={user.isAdmin} firmMember={firmMember} />
+        </div>
       </div>
     </header>
   );
