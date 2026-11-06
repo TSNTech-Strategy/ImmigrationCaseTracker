@@ -25,19 +25,24 @@ export function Screen({
   children,
   refreshing,
   onRefresh,
-  edges = ["bottom"],
+  edges,
+  tab,
 }: {
   children: ReactNode;
   refreshing?: boolean;
   onRefresh?: () => void;
   edges?: ("top" | "bottom")[];
+  /** A tab screen: no navigation header above it, the tab bar below it. */
+  tab?: boolean;
 }) {
   const { c } = useTheme();
   return (
-    <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: c.background }}>
+    <SafeAreaView edges={edges ?? (tab ? ["top"] : ["bottom"])} style={{ flex: 1, backgroundColor: c.background }}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView
-          contentContainerStyle={{ padding: space(5), gap: space(4), paddingBottom: space(10) }}
+          contentInsetAdjustmentBehavior={tab ? "automatic" : undefined}
+          // The web preview draws its tab bar at the top; phones draw it at the bottom.
+          contentContainerStyle={{ padding: space(5), gap: space(4), paddingTop: tab && Platform.OS === "web" ? space(20) : space(5), paddingBottom: tab ? space(28) : space(10) }}
           keyboardShouldPersistTaps="handled"
           refreshControl={onRefresh ? <RefreshControl refreshing={Boolean(refreshing)} onRefresh={onRefresh} tintColor={c.muted} /> : undefined}
         >

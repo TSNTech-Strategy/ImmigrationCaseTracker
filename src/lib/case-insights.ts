@@ -149,3 +149,52 @@ export function approvalNextStep(formType: string | null | undefined, currentTit
   }
   return g ? g.next : null;
 }
+
+// ---- Where the case is in the process ------------------------------------------
+
+/** Steps shown as a small progress line: Received → In review → Decision → After the decision. */
+export const STAGE_COUNT = 4;
+
+const STAGE_BY_SLUG: Record<string, 0 | 1 | 2 | 3> = {
+  "case-was-received": 0,
+  "fingerprint-fee-was-received": 0,
+  "fees-were-waived": 0,
+  "biometrics-appointment-was-scheduled": 1,
+  "fingerprints-were-taken": 1,
+  "case-is-being-actively-reviewed": 1,
+  "request-for-evidence-was-sent": 1,
+  "request-for-initial-evidence-was-sent": 1,
+  "response-to-request-for-evidence-was-received": 1,
+  "interview-was-scheduled": 1,
+  "interview-was-completed": 1,
+  "interview-was-cancelled": 1,
+  "ready-to-be-scheduled-for-an-interview": 1,
+  "notice-explaining-uscis-actions-was-mailed": 1,
+  "case-was-reopened": 1,
+  "case-was-approved": 2,
+  "approval-was-reaffirmed": 2,
+  "case-was-denied": 2,
+  "case-was-rejected": 2,
+  "withdrawal-acknowledgement-notice-was-sent": 2,
+  "case-closed-benefit-received-by-other-means": 2,
+  "new-card-is-being-produced": 3,
+  "card-was-mailed": 3,
+  "card-was-picked-up-by-usps": 3,
+  "card-was-delivered": 3,
+  "document-was-mailed": 3,
+  "case-was-sent-to-the-department-of-state": 3,
+  "oath-ceremony-was-scheduled": 3,
+  "mail-was-returned-to-uscis": 3,
+};
+
+/**
+ * Step index (0–3) for the current status, or null before the first check.
+ * Side statuses (transfer, expedite, updated details) count as "In review".
+ */
+export function caseStage(currentTitleEn: string | null | undefined): number | null {
+  if (!currentTitleEn) return null;
+  const g = findStatusGuide(currentTitleEn);
+  if (g && g.slug in STAGE_BY_SLUG) return STAGE_BY_SLUG[g.slug];
+  const cat = statusCategory(currentTitleEn);
+  return cat === "done" || cat === "stop" ? 2 : 1;
+}

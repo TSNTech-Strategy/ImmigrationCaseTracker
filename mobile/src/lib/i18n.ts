@@ -92,6 +92,47 @@ const en = {
   viewCase: "View case",
   dismiss: "Dismiss",
   alertsNote: "Case alerts go out only when a status changes. We never send daily reminders or ads.",
+  tabCases: "Cases",
+  tabGuide: "Status guide",
+  tabSettings: "Settings",
+  checkedAgo: (when: string) => `Last checked with USCIS ${when}`,
+  noChecksYet: "Add a receipt number to start",
+  checkAll: "Check all with USCIS",
+  checkAllResult: (checked: number, changed: number, skipped: number, reason: string) =>
+    checked === 0
+      ? reason
+      : `Checked ${checked} case${checked === 1 ? "" : "s"} with USCIS. ${changed === 0 ? "No changes." : `${changed} changed.`}${skipped ? ` ${skipped} skipped: ${reason}` : ""}`,
+  searchCases: "Search cases",
+  noMatches: "No cases match.",
+  all: "All",
+  changedOn: (date: string) => `Changed ${date}`,
+  checkedShort: (when: string) => `checked ${when}`,
+  newBadge: "New",
+  stages: ["Received", "In review", "Decision", "After the decision"],
+  stepOf: (n: number, total: number, label: string) => `Step ${n} of ${total}: ${label}`,
+  freePlanShort: "Free plan · check manually up to 3 times a day",
+  addFirstCase: "Add your first case",
+  receiptWhere: "Your receipt number is on the top left of the USCIS notice (Form I-797C): 3 letters and 10 digits.",
+  rename: "Rename",
+  renamePlaceholder: "e.g. Mom's green card",
+  guideTitle: "Status guide",
+  guideSubtitle: "What USCIS statuses usually mean, and what comes next",
+  searchStatuses: "Search statuses",
+  guideGroups: {
+    progress: "In progress",
+    action: "Action may be needed",
+    done: "Approved, and what follows",
+    stop: "Decisions and returned mail",
+    none: "Other",
+  },
+  wordingUscis: "Wording USCIS uses",
+  openOnWeb: "Open on casepingo.com",
+  version: (v: string) => `CasePingo ${v}`,
+  justNow: "just now",
+  minutesAgo: (n: number) => `${n} min ago`,
+  hoursAgo: (n: number) => `${n} h ago`,
+  yesterday: "yesterday",
+  daysAgo: (n: number) => `${n} days ago`,
 };
 type Strings = typeof en;
 
@@ -186,6 +227,47 @@ const es: Strings = {
   viewCase: "Ver caso",
   dismiss: "Cerrar",
   alertsNote: "Las alertas solo se envían cuando cambia el estado de un caso. Nunca enviamos recordatorios diarios ni anuncios.",
+  tabCases: "Casos",
+  tabGuide: "Guía de estados",
+  tabSettings: "Ajustes",
+  checkedAgo: (when: string) => `Última consulta con USCIS ${when}`,
+  noChecksYet: "Agregue un número de recibo para empezar",
+  checkAll: "Consultar todos con USCIS",
+  checkAllResult: (checked: number, changed: number, skipped: number, reason: string) =>
+    checked === 0
+      ? reason
+      : `Consultamos ${checked} caso${checked === 1 ? "" : "s"} con USCIS. ${changed === 0 ? "Sin cambios." : `${changed} con cambios.`}${skipped ? ` ${skipped} omitido${skipped === 1 ? "" : "s"}: ${reason}` : ""}`,
+  searchCases: "Buscar casos",
+  noMatches: "Ningún caso coincide.",
+  all: "Todos",
+  changedOn: (date: string) => `Cambió el ${date}`,
+  checkedShort: (when: string) => `consultado ${when}`,
+  newBadge: "Nuevo",
+  stages: ["Recibido", "En revisión", "Decisión", "Después de la decisión"],
+  stepOf: (n: number, total: number, label: string) => `Paso ${n} de ${total}: ${label}`,
+  freePlanShort: "Plan Gratis · consulte manualmente hasta 3 veces al día",
+  addFirstCase: "Agregar su primer caso",
+  receiptWhere: "Su número de recibo está arriba a la izquierda del aviso de USCIS (Formulario I-797C): 3 letras y 10 dígitos.",
+  rename: "Cambiar nombre",
+  renamePlaceholder: "p. ej. Residencia de mamá",
+  guideTitle: "Guía de estados",
+  guideSubtitle: "Qué suelen significar los estados de USCIS y qué sigue",
+  searchStatuses: "Buscar estados",
+  guideGroups: {
+    progress: "En proceso",
+    action: "Puede requerir acción",
+    done: "Aprobado, y lo que sigue",
+    stop: "Decisiones y correo devuelto",
+    none: "Otros",
+  },
+  wordingUscis: "Cómo lo dice USCIS",
+  openOnWeb: "Abrir en casepingo.com",
+  version: (v: string) => `CasePingo ${v}`,
+  justNow: "justo ahora",
+  minutesAgo: (n: number) => `hace ${n} min`,
+  hoursAgo: (n: number) => `hace ${n} h`,
+  yesterday: "ayer",
+  daysAgo: (n: number) => `hace ${n} días`,
 };
 
 export type Lang = "en" | "es";
@@ -200,4 +282,25 @@ export function formatDate(iso: string | null, lang: Lang, fallback: string): st
 export function trialDaysLeft(trialEndsAt: string | null): number {
   if (!trialEndsAt) return 0;
   return Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86_400_000));
+}
+
+/** "Nov 6" / "6 nov" (adds the year when it isn't this year). */
+export function shortDate(iso: string, lang: Lang): string {
+  const d = new Date(iso);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleDateString(lang === "es" ? "es-US" : "en-US", { month: "short", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) });
+}
+
+/** "just now", "5 min ago", "2 h ago", "yesterday", "3 days ago", then a date. */
+export function timeAgo(iso: string, lang: Lang, now: number = Date.now()): string {
+  const t = strings(lang);
+  const minutes = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60_000));
+  if (minutes < 1) return t.justNow;
+  if (minutes < 60) return t.minutesAgo(minutes);
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return t.hoursAgo(hours);
+  const days = Math.round(hours / 24);
+  if (days === 1) return t.yesterday;
+  if (days < 7) return t.daysAgo(days);
+  return shortDate(iso, lang);
 }

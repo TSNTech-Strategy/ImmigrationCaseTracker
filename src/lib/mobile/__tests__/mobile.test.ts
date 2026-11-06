@@ -106,6 +106,42 @@ describe.skipIf(!url)("mobile API", () => {
     title = "Case Was Received";
   });
 
+  it("adds form and progress step, renames cases, says whether a check changed anything, and serves the guide", async () => {
+    const u = await mkUser();
+    title = "Case Was Received";
+    const caseId = body(await add(u, "WAC9999103422")).caseId as string;
+    const list = body(await api.listCases(u));
+    expect(list.stageCount).toBe(4);
+    expect(list.cases[0]).toMatchObject({ id: caseId, stage: 0, form: null, category: "progress" });
+    expect(body(await api.getCase(u, caseId)).case.stage).toBe(0);
+
+    expect(await api.renameCase(u, caseId, { nickname: "  Papá's work permit " })).toMatchObject({ status: 200, body: { nickname: "Papá's work permit" } });
+    expect(body(await api.listCases(u)).cases[0].nickname).toBe("Papá's work permit");
+    expect(await api.renameCase(u, caseId, { nickname: "" })).toMatchObject({ status: 200, body: { nickname: null } });
+    expect(await api.renameCase(u, caseId, { nickname: "x".repeat(61) })).toMatchObject({ status: 400, body: { field: "nickname" } });
+    expect(await api.renameCase(u, caseId, { nickname: "a", extra: 1 })).toMatchObject({ status: 400 });
+    const other = await mkUser();
+    expect(await api.renameCase(other, caseId, { nickname: "not mine" })).toMatchObject({ status: 404 });
+
+    clock = new Date(clock.getTime() + 11 * 60_000);
+    expect(await api.refreshCase(u, caseId)).toMatchObject({ status: 200, body: { status: "updated", changed: false } });
+    title = "Case Was Approved";
+    clock = new Date(clock.getTime() + 11 * 60_000);
+    expect(await api.refreshCase(u, caseId)).toMatchObject({ status: 200, body: { status: "updated", changed: true } });
+    expect(body(await api.listCases(u)).cases[0]).toMatchObject({ stage: 2, category: "done" });
+    title = "Case Was Received";
+
+    const g = body(api.guide());
+    expect(g.entries.length).toBeGreaterThanOrEqual(30);
+    expect(g.entries.find((e: { slug: string }) => e.slug === "case-was-approved")).toMatchObject({
+      category: "done",
+      stage: 2,
+      path: "/status-guide/case-was-approved",
+      en: { meaning: "USCIS approved your application or petition." },
+      es: { meaning: "USCIS aprobó su solicitud o petición." },
+    });
+  });
+
   it("returns the profile and plan, and updates language and alerts with strict validation", async () => {
     const u = await mkUser("FREE");
     expect(body(await api.me(u))).toMatchObject({ locale: "es", plan: { id: "FREE", maxCases: 1 }, alerts: { email: true, push: false } });

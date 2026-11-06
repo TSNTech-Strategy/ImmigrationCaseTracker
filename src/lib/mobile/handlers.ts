@@ -7,8 +7,8 @@ import { createEntitlements } from "@/lib/billing/entitlements";
 import { isExpoPushToken } from "@/lib/push";
 import { PLAN_LIMITS, describeCadence } from "@/lib/plans";
 import { statusCategory } from "@/lib/status-category";
-import { findStatusGuide, guidePath, guideText } from "@/lib/status-guide";
-import { PROCESSING_TIMES_URL, approvalNextStep, formInfo, receivingOffice, recentApprovalAt } from "@/lib/case-insights";
+import { STATUS_GUIDE, findStatusGuide, guideCategory, guideHeading, guidePath, guideText } from "@/lib/status-guide";
+import { PROCESSING_TIMES_URL, STAGE_COUNT, approvalNextStep, caseStage, formInfo, receivingOffice, recentApprovalAt } from "@/lib/case-insights";
 import { recentApprovals } from "@/lib/cases/approvals";
 
 /**
@@ -56,6 +56,8 @@ const addCaseBody = z.object({
   consent: z.literal(true),
   statementVersion: z.string().optional(),
 });
+
+const renameBody = z.object({ nickname: z.string().trim().max(60).nullable() }).strict();
 
 const deviceBody = z.object({
   token: z.string().refine(isExpoPushToken, "Not an Expo push token."),
@@ -126,7 +128,14 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
     const rows = await db.trackedCase.findMany({ where: { ownerUserId: userId }, select: listSelect, orderBy: { createdAt: "desc" } });
     const approvals = await recentApprovals(db, rows, now());
     return ok({
-      cases: rows.map((r) => ({ ...r, category: statusCategory(r.statusTitleEn), recentApprovalAt: approvals.get(r.id) ?? null })),
+      stageCount: STAGE_COUNT,
+      cases: rows.map((r) => ({
+        ...r,
+        category: statusCategory(r.statusTitleEn),
+        stage: caseStage(r.statusTitleEn),
+        form: formInfo(r.formType),
+        recentApprovalAt: approvals.get(r.id) ?? null,
+      })),
     });
   }
 
@@ -141,6 +150,7 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
       case: {
         ...Object.fromEntries(Object.entries(c).filter(([k]) => k !== "consents" && k !== "events" && k !== "uscisHistory")),
         category: statusCategory(c.statusTitleEn),
+        stage: caseStage(c.statusTitleEn),
         uscisHistory: history && history.map((h) => ({ ...h, category: statusCategory(h?.textEn) })),
         events: c.events.map((e) => ({
           id: e.id,
@@ -183,7 +193,33 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
 
   async function refreshCase(userId: string, caseId: string): Promise<ApiResult> {
     const r = await cases.refreshCase(userId, caseId);
-    return { status: REFRESH_STATUS[r.status], body: { status: r.status, message: r.message } };
+    return { status: REFRESH_STATUS[r.status], body: { status: r.status, message: r.message, ...(r.status === "updated" ? { changed: r.changed } : {}) } };
+  }
+
+  /** Change (or clear) the case's nickname. Owner only. */
+  async function renameCase(userId: string, caseId: string, input: unknown): Promise<ApiResult> {
+    const p = renameBody.safeParse(input);
+    if (!p.success) return err(400, "invalid", "Use a nickname of up to 60 characters.", "nickname");
+    const nickname = p.data.nickname?.trim() || null;
+    const r = await db.trackedCase.updateMany({ where: { id: caseId, ownerUserId: userId }, data: { nickname } });
+    return r.count === 1 ? ok({ nickname }) : err(404, "not_found", "Case not found.");
+  }
+
+  /** The plain-language status guide, both languages (public information). */
+  function guide(): ApiResult {
+    return ok({
+      stageCount: STAGE_COUNT,
+      entries: STATUS_GUIDE.map((g) => ({
+        slug: g.slug,
+        heading: guideHeading(g),
+        wordings: [g.title, ...(g.aliases ?? [])],
+        category: guideCategory(g),
+        stage: caseStage(g.title),
+        path: guidePath(g),
+        en: guideText(g, "en"),
+        es: guideText(g, "es"),
+      })),
+    });
   }
 
   async function removeCase(userId: string, caseId: string): Promise<ApiResult> {
@@ -217,7 +253,7 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
     return ok({ unregistered: true });
   }
 
-  return { me, updateMe, config, listCases, getCase, addCase, refreshCase, removeCase, checkInstead, registerDevice, unregisterDevice };
+  return { me, updateMe, config, guide, listCases, getCase, addCase, refreshCase, renameCase, removeCase, checkInstead, registerDevice, unregisterDevice };
 }
 
 export type MobileApi = ReturnType<typeof createMobileApi>;
