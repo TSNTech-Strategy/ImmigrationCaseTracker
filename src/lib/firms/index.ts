@@ -1,3 +1,5 @@
+import { createFirmDocumentService } from "./documents";
+import { getFileStore } from "@/lib/storage/file-store";
 import { createFirmMatterService } from "./matters";
 import { createFirmTaskService } from "./tasks";
 import { createFirmDashboardService } from "./dashboard";
@@ -62,4 +64,9 @@ export function firmTaskService() {
 /** Matters: groups of related cases. */
 export function firmMatterService() {
   return createFirmMatterService({ db: prisma });
+}
+
+/** Firm documents (encrypted file storage). */
+export function firmDocumentService() {
+  return createFirmDocumentService({ db: prisma, store: getFileStore() });
 }

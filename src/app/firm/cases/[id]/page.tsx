@@ -10,8 +10,12 @@ import { caseJourney } from "@/lib/journeys";
 import { LocalTime } from "@/components/local-time";
 import { ModeBanner } from "@/components/mode-banner";
 import { requireUser } from "@/lib/auth/session";
-import { firmAlertService, firmCaseService, firmMatterService, firmService, firmTagService, firmTaskService } from "@/lib/firms";
+import { firmAlertService, firmCaseService, firmDocumentService, firmMatterService, firmService, firmTagService, firmTaskService } from "@/lib/firms";
 import { setCasesMatterAction } from "../../matters/actions";
+import { DOC_NOTICES, DocumentTable } from "../../documents/document-table";
+import { DocumentUploadForm } from "../../documents/upload-form";
+import { ACCEPT, DOCUMENT_KINDS, DOCUMENT_VISIBILITY } from "@/lib/firms/documents";
+
 import { TaskTable } from "../../tasks/task-list";
 import { setCaseAssigneeAction } from "../actions";
 import { DEADLINE_KINDS, suggestedDeadline } from "@/lib/firms/alerts";
@@ -55,6 +59,8 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
   const members = (team?.members ?? []).map((m) => ({ id: m.userId, name: m.user.name ?? m.user.email }));
   const caseTasks = await firmTaskService().list(user.id, { scope: "team", status: "all", caseId: c.id });
   const matters = await firmMatterService().options(ctx.firm.id);
+  const docs = await firmDocumentService().list(user.id, { caseId: c.id });
+  const docNotice = typeof notice === "string" ? DOC_NOTICES[notice] : undefined;
   const alerts = firmAlertService();
   const deadlines = await alerts.caseDeadlines(ctx.firm.id, c.id);
   const today = alerts.today(ctx.firm.timeZone);
@@ -181,6 +187,18 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
           <TaskTable tasks={caseTasks.tasks} today={caseTasks.today} back={`/firm/cases/${c.id}#tasks-h`} compact />
         ) : (
           <p className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">No tasks on this case yet.</p>
+        )}
+      </section>
+      <section aria-labelledby="docs-h" className="flex scroll-mt-24 flex-col gap-3">
+        <h2 id="docs-h" className="text-lg font-semibold">
+          Documents <span className="text-base font-normal tabular-nums text-[var(--muted)]">{docs?.documents.length ?? 0}</span>
+        </h2>
+        {docNotice && <p role={docNotice.error ? "alert" : "status"} className={`rounded-md border px-3 py-2 text-sm ${docNotice.error ? "border-[var(--danger)] text-[var(--danger)]" : "border-[var(--success)] text-[var(--success)]"}`}>{docNotice.text}</p>}
+        {docs && docs.documents.length > 0 && <DocumentTable documents={docs.documents} back={`/firm/cases/${c.id}#docs-h`} userId={user.id} isManager={ctx.membership.role !== "STAFF"} showLink={false} />}
+        {docs?.storageReady ? (
+          <DocumentUploadForm accept={ACCEPT} kinds={Object.entries(DOCUMENT_KINDS).map(([value, label]) => ({ value, label }))} visibilities={Object.entries(DOCUMENT_VISIBILITY).map(([value, label]) => ({ value, label }))} fixed={{ caseId: c.id }} />
+        ) : (
+          <p className="text-sm text-[var(--muted)]">File storage isn&apos;t set up on this site.</p>
         )}
       </section>
       <InsightsLink href={`/firm/cases/${c.id}/insights`} es={es} />

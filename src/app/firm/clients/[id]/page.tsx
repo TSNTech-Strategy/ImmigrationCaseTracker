@@ -2,8 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
-import { firmCaseService, firmTaskService, firmUpdateService } from "@/lib/firms";
+import { firmCaseService, firmDocumentService, firmTaskService, firmUpdateService } from "@/lib/firms";
 import { TaskTable } from "../../tasks/task-list";
+import { DOC_NOTICES, DocumentTable } from "../../documents/document-table";
+import { DocumentUploadForm } from "../../documents/upload-form";
+import { ACCEPT, DOCUMENT_KINDS, DOCUMENT_VISIBILITY } from "@/lib/firms/documents";
+
 import { CopyLink } from "@/components/copy-link";
 import { LocalTime } from "@/components/local-time";
 import { ArchiveClientForm, EditClientForm } from "../forms";
@@ -82,6 +86,8 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
   const error = typeof notice === "string" ? ERRORS[notice] : undefined;
   const portalUrl = firmUpdateService().portalUrl(client);
   const clientTasks = await firmTaskService().list(user.id, { scope: "team", status: "active", clientId: client.id });
+  const docs = await firmDocumentService().list(user.id, { clientId: client.id });
+  const docNotice = typeof notice === "string" ? DOC_NOTICES[notice] : undefined;
   const canArchive = ctx.membership.role !== "STAFF";
 
   return (
@@ -149,6 +155,19 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
           <TaskTable tasks={clientTasks.tasks} today={clientTasks.today} back={`/firm/clients/${client.id}`} compact />
         ) : (
           <p className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">No open tasks for this client.</p>
+        )}
+      </section>
+
+      <section aria-labelledby="docs-h" className="flex scroll-mt-24 flex-col gap-3">
+        <h2 id="docs-h" className="text-lg font-semibold">
+          Documents <span className="text-base font-normal tabular-nums text-[var(--muted)]">{docs?.documents.length ?? 0}</span>
+        </h2>
+        {docNotice && <p role={docNotice.error ? "alert" : "status"} className={`rounded-md border px-3 py-2 text-sm ${docNotice.error ? "border-[var(--danger)] text-[var(--danger)]" : "border-[var(--success)] text-[var(--success)]"}`}>{docNotice.text}</p>}
+        {docs && docs.documents.length > 0 && <DocumentTable documents={docs.documents} back={`/firm/clients/${client.id}`} userId={user.id} isManager={ctx.membership.role !== "STAFF"} showLink={false} />}
+        {docs?.storageReady ? (
+          <DocumentUploadForm accept={ACCEPT} kinds={Object.entries(DOCUMENT_KINDS).map(([value, label]) => ({ value, label }))} visibilities={Object.entries(DOCUMENT_VISIBILITY).map(([value, label]) => ({ value, label }))} fixed={{ clientId: client.id }} />
+        ) : (
+          <p className="text-sm text-[var(--muted)]">File storage isn&apos;t set up on this site.</p>
         )}
       </section>
 
