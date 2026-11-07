@@ -1,6 +1,8 @@
 import type { ClientUpdateMode, ClientUpdateState, Prisma, PrismaClient } from "@prisma/client";
 import type { EmailDriver, EmailMessage } from "@/lib/email";
-import { clientUpdateEmail } from "@/lib/email/templates";
+import { clientUpdateEmail, withFirmLogo } from "@/lib/email/templates";
+import { logoPath } from "./branding";
+import { requestToken } from "./requests";
 import { formInfo } from "@/lib/case-insights";
 import { caseViewSelect } from "@/lib/cases/service";
 import { caseJourney } from "@/lib/journeys";
@@ -46,7 +48,7 @@ export type UpdateAction =
   | { type: "skip" };
 
 type ClientForUpdate = { id: string; displayName: string; email: string | null; locale: string; updatesConsentAt: Date | null; archivedAt: Date | null; portalEnabled: boolean; portalVersion: number };
-type FirmForUpdate = { name: string; clientUpdates: ClientUpdateMode; clientContactLine: string | null; replyToEmail: string | null };
+type FirmForUpdate = { name: string; clientUpdates: ClientUpdateMode; clientContactLine: string | null; replyToEmail: string | null; id?: string; logoKey?: string | null; logoVersion?: number };
 type EventForUpdate = { statusTitleEn: string | null; statusTitleEs: string | null; formType: string | null };
 
 const canEmail = (c: ClientForUpdate | null | undefined): c is ClientForUpdate & { email: string } => Boolean(c && !c.archivedAt && c.email && c.updatesConsentAt);
@@ -63,7 +65,8 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
     const text = guide ? guideText(guide, lang) : null;
     const formType = event.formType ?? c.formType;
     const status = (lang === "es" ? event.statusTitleEs : event.statusTitleEn) ?? event.statusTitleEn ?? (lang === "es" ? "Estado actualizado" : "Status updated");
-    return clientUpdateEmail({
+    const logo = firm.id && firm.logoKey ? logoPath({ id: firm.id, logoKey: firm.logoKey, logoVersion: firm.logoVersion ?? 0 }) : null;
+    const message = clientUpdateEmail({
       to: client.email,
       locale: lang,
       firmName: firm.name,
@@ -78,6 +81,7 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
       contactLine: firm.clientContactLine,
       replyTo: firm.replyToEmail,
     });
+    return withFirmLogo(message, logo ? `${siteUrl}${logo}` : null, firm.name);
   }
 
   /**
@@ -362,14 +366,35 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
 
   // ---- The client's status page (public, by link) ------------------------------------------------
 
+  /** The client a status page link belongs to, while the link still works. */
+  async function portalClient(token: string) {
+    const t = readPortalToken(token);
+    if (!t) return null;
+    return db.client.findFirst({ where: { id: t.clientId, portalEnabled: true, portalVersion: t.version, archivedAt: null, firm: { status: "ACTIVE" } }, select: { id: true, firmId: true } });
+  }
+
   async function portalView(token: string) {
     const t = readPortalToken(token);
     if (!t) return null;
     const client = await db.client.findFirst({
       where: { id: t.clientId, portalEnabled: true, portalVersion: t.version, archivedAt: null, firm: { status: "ACTIVE" } },
-      select: { id: true, firmId: true, displayName: true, locale: true, firm: { select: { name: true, clientContactLine: true, replyToEmail: true } } },
+      select: { id: true, firmId: true, displayName: true, locale: true, firm: { select: { id: true, name: true, clientContactLine: true, replyToEmail: true, logoKey: true, logoVersion: true } } },
     });
     if (!client) return null;
+    const [requests, documents] = await Promise.all([
+      db.documentRequest.findMany({
+        where: { clientId: client.id, firmId: client.firmId, status: "OPEN" },
+        select: { id: true, title: true, dueOn: true, linkVersion: true, items: { select: { required: true, status: true } } },
+        orderBy: [{ dueOn: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
+        take: 20,
+      }),
+      db.firmDocument.findMany({
+        where: { clientId: client.id, firmId: client.firmId, visibility: "CLIENT" },
+        select: { id: true, name: true, kind: true, size: true, source: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      }),
+    ]);
     const cases = await db.trackedCase.findMany({
       where: { clientId: client.id, firmId: client.firmId },
       select: { ...caseViewSelect, events: { select: { statusTitleEn: true, uscisReportedRaw: true, firstObservedAt: true }, orderBy: { firstObservedAt: "asc" } } },
@@ -377,8 +402,23 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
     });
     const at = now();
     return {
-      firm: client.firm,
+      firm: { name: client.firm.name, clientContactLine: client.firm.clientContactLine, replyToEmail: client.firm.replyToEmail, logo: logoPath(client.firm) },
       client: { displayName: client.displayName, locale: client.locale === "es" ? ("es" as const) : ("en" as const) },
+      // Open document requests: each opens its own upload page.
+      requests: requests.map((r) => {
+        const required = r.items.filter((i) => i.required);
+        return {
+          id: r.id,
+          title: r.title,
+          dueOn: r.dueOn,
+          uploadPath: `/upload/${requestToken(r.id, r.linkVersion)}`,
+          required: required.length,
+          done: required.filter((i) => i.status === "ACCEPTED").length,
+          waiting: r.items.filter((i) => i.status === "PENDING" || i.status === "REJECTED").length,
+        };
+      }),
+      // Files shared with the client, and what they uploaded.
+      documents,
       // No USCIS descriptions here (they can repeat case details); titles, plain-language help and the line map only.
       cases: cases.map((c) => {
         const journey = caseJourney(c, at);
@@ -399,7 +439,7 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
     };
   }
 
-  return { recordStatusChange, sendClientUpdate, list, openCount, act, saveSettings, sampleEmails, setPortal, portalUrl, portalView };
+  return { recordStatusChange, sendClientUpdate, list, openCount, act, saveSettings, sampleEmails, setPortal, portalUrl, portalClient, portalView };
 }
 
 export type FirmUpdateService = ReturnType<typeof createFirmUpdateService>;

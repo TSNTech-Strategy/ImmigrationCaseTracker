@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { FirmBrand } from "@/components/firm-brand";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { firmUpdateService } from "@/lib/firms";
@@ -38,6 +39,19 @@ const T = {
       `This page shows the status USCIS publishes for each case, with plain-language help. It isn't legal advice, and USCIS can be behind or change a status. ${firm} is your contact for anything about your case. ${SITE.name} is not affiliated with USCIS or DHS.`,
     powered: "Case tracking by",
     switchTo: "Ver en español",
+    needH: "Documents we need from you",
+    needIntro: (firm: string) => `${firm} asked you to upload these. It takes a few minutes from your phone.`,
+    dueBy: (d: string) => `Please upload by ${d}`,
+    progress: (done: number, total: number) => `${done} of ${total} accepted`,
+    toUpload: (n: number) => (n === 1 ? "1 document to upload" : `${n} documents to upload`),
+    inReview: "Your firm is reviewing what you sent",
+    upload: "Upload documents",
+    docsH: "Your documents",
+    docsIntro: (firm: string) => `Files ${firm} shared with you, and what you uploaded.`,
+    fromFirm: (firm: string) => `From ${firm}`,
+    fromYou: "Uploaded by you",
+    open: "Open",
+    download: "Download",
   },
   es: {
     heading: (name: string) => `Estado del caso de ${name}`,
@@ -58,9 +72,25 @@ const T = {
       `Esta página muestra el estado que USCIS publica para cada caso, con una explicación sencilla. No es asesoría legal, y USCIS puede tardar en actualizar o cambiar un estado. ${firm} es su contacto para todo lo relacionado con su caso. ${SITE.name} no está afiliado con USCIS ni con DHS.`,
     powered: "Seguimiento de casos por",
     switchTo: "View in English",
+    needH: "Documentos que necesitamos de usted",
+    needIntro: (firm: string) => `${firm} le pidió que suba estos documentos. Toma unos minutos desde su teléfono.`,
+    dueBy: (d: string) => `Súbalos antes del ${d}`,
+    progress: (done: number, total: number) => `${done} de ${total} aceptados`,
+    toUpload: (n: number) => (n === 1 ? "1 documento por subir" : `${n} documentos por subir`),
+    inReview: "Su bufete está revisando lo que envió",
+    upload: "Subir documentos",
+    docsH: "Sus documentos",
+    docsIntro: (firm: string) => `Archivos que ${firm} compartió con usted, y lo que usted subió.`,
+    fromFirm: (firm: string) => `De ${firm}`,
+    fromYou: "Subido por usted",
+    open: "Abrir",
+    download: "Descargar",
   },
 } as const;
 
+const size = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
+const viewable = (name: string) => /\.(pdf|png|jpe?g|webp)$/i.test(name);
+const fmtDue = (d: Date, lang: "en" | "es") => new Intl.DateTimeFormat(lang === "es" ? "es-US" : "en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" }).format(d);
 const fmt = (d: Date, lang: "en" | "es") => new Intl.DateTimeFormat(lang === "es" ? "es-US" : "en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" }).format(d);
 
 export default function ClientStatusPage(props: PageProps<"/status/[token]">) {
@@ -85,7 +115,7 @@ async function StatusView({ params, searchParams }: PageProps<"/status/[token]">
     <div lang={lang} className="flex flex-1 flex-col bg-[var(--background)]">
       <header className="border-b border-[var(--border)] bg-[var(--surface)]">
         <div className="mx-auto flex w-full max-w-2xl flex-wrap items-center justify-between gap-2 px-4 py-4">
-          <p className="text-lg font-semibold">{firm}</p>
+          <FirmBrand name={firm} logo={view.firm.logo} />
           <Link href={`/status/${token}?lang=${es ? "en" : "es"}`} hrefLang={es ? "en" : "es"} className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm font-medium hover:border-[var(--accent)]">
             {t.switchTo}
           </Link>
@@ -96,6 +126,33 @@ async function StatusView({ params, searchParams }: PageProps<"/status/[token]">
           <h1 className="font-serif text-3xl font-bold tracking-tight">{t.heading(view.client.displayName)}</h1>
           <p className="text-sm text-[var(--muted)]">{t.from(firm)}</p>
         </div>
+        {view.requests.length > 0 && (
+          <section aria-labelledby="need-h" className="flex flex-col gap-3 rounded-lg border-2 border-[var(--accent)] bg-[var(--surface)] p-5">
+            <div className="flex flex-col gap-1">
+              <h2 id="need-h" className="text-lg font-semibold">
+                {t.needH}
+              </h2>
+              <p className="text-sm text-[var(--muted)]">{t.needIntro(firm)}</p>
+            </div>
+            <ul className="flex flex-col divide-y divide-[var(--border)]">
+              {view.requests.map((r) => (
+                <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <p className="font-medium">{r.title}</p>
+                    <p className="text-sm text-[var(--muted)]">
+                      {r.waiting > 0 ? t.toUpload(r.waiting) : t.inReview}
+                      {r.required > 0 && ` · ${t.progress(r.done, r.required)}`}
+                    </p>
+                    {r.dueOn && <p className="text-sm font-medium">{t.dueBy(fmtDue(r.dueOn, lang))}</p>}
+                  </div>
+                  <Link href={`${r.uploadPath}?lang=${lang}`} className="rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-fg)] hover:bg-[var(--accent-hover)]">
+                    {t.upload}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {view.cases.length === 0 && <p className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] p-6 text-center text-[var(--muted)]">{t.none}</p>}
         {view.cases.map((c, i) => {
           const title = (es ? (c.statusTitleEs ?? c.statusTitleEn) : c.statusTitleEn) ?? t.noStatus;
@@ -144,6 +201,38 @@ async function StatusView({ params, searchParams }: PageProps<"/status/[token]">
             </article>
           );
         })}
+        {view.documents.length > 0 && (
+          <section aria-labelledby="docs-h" className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+            <div className="flex flex-col gap-1">
+              <h2 id="docs-h" className="text-lg font-semibold">
+                {t.docsH}
+              </h2>
+              <p className="text-sm text-[var(--muted)]">{t.docsIntro(firm)}</p>
+            </div>
+            <ul className="flex flex-col divide-y divide-[var(--border)]">
+              {view.documents.map((d) => (
+                <li key={d.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5 first:pt-0 last:pb-0">
+                  <div className="flex min-w-0 flex-col">
+                    <p className="truncate font-medium">{d.name}</p>
+                    <p className="text-xs text-[var(--muted)]">
+                      {d.source === "CLIENT" ? t.fromYou : t.fromFirm(firm)} · {fmt(d.createdAt, lang)} · {size(d.size)}
+                    </p>
+                  </div>
+                  <span className="flex gap-3 text-sm font-medium">
+                    {viewable(d.name) && (
+                      <a href={`/status/${token}/files/${d.id}?view=1`} target="_blank" rel="noreferrer" className="text-[var(--accent)] hover:underline">
+                        {t.open}
+                      </a>
+                    )}
+                    <a href={`/status/${token}/files/${d.id}`} className="text-[var(--accent)] hover:underline">
+                      {t.download}
+                    </a>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <section aria-label={t.questions(firm)} className="flex flex-col gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
           <p className="font-semibold">{t.questions(firm)}</p>
           {view.firm.clientContactLine && <p>{view.firm.clientContactLine}</p>}

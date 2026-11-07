@@ -239,7 +239,17 @@ export function createFirmDocumentService({ db, store }: { db: PrismaClient; sto
     return { ok: true };
   }
 
-  return { upload, saveFromClient, list, download, update, remove };
+  /** A file the firm shared with this client (or the client uploaded), for the client's own status page. */
+  async function downloadShared(firmId: string, clientId: string, id: string): Promise<{ ok: true; name: string; contentType: string; data: Buffer } | Fail> {
+    if (!store) return fail("File storage isn't set up on this site.");
+    const d = await db.firmDocument.findFirst({ where: { id, firmId, clientId, visibility: "CLIENT" }, select: { id: true, name: true, contentType: true, storageKey: true } });
+    if (!d) return fail("Document not found.");
+    const data = decryptBytes(await store.get(d.storageKey));
+    await db.auditLog.create({ data: { firmId, actorUserId: null, action: "document.client_downloaded", targetType: "FirmDocument", targetId: d.id, metadata: { name: d.name } } });
+    return { ok: true, name: d.name, contentType: d.contentType, data };
+  }
+
+  return { upload, saveFromClient, list, download, downloadShared, update, remove };
 }
 
 export type FirmDocumentService = ReturnType<typeof createFirmDocumentService>;

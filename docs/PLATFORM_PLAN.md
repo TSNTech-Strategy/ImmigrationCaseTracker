@@ -64,7 +64,7 @@ The order a firm meets the product: set up, bring in clients and cases, keep the
 
 | # | Area | What it does | Status |
 |---|---|---|---|
-| 1 | Workspace and settings | Firm profile (name, logo, time zone, default assignee), my profile, appearance; settings tabs: General, Team, Tags, Client updates and alerts, Activity, Plan and billing (Sync, Notifications, Legal and data come later) | Built in Phase 1 (logo in Phase 4) |
+| 1 | Workspace and settings | Firm profile (name, logo, time zone, default assignee), my profile, appearance; settings tabs: General, Team, Tags, Client updates and alerts, Activity, Plan and billing (Sync, Notifications, Legal and data come later) | Built (Phase 1; logo in Phase 4) |
 | 2 | Clients | Client list with search and filters; client profile: first and last name, date of birth, country of birth, citizenship, email, phone, preferred language, A-Number (encrypted), tags, family links; cases, documents, tasks and activity on one page | Profile, table and filters built (Phase 1); family links with matters (Phase 2) |
 | 3 | Cases | Case table: receipt, client, form, category, assignee, status, tags, last change; side panel with details; new case form (receipt, client, assignee, matter, tags); bulk import (paste or file); export CSV | Built (matter added in Phase 2) |
 | 4 | Sync | USCIS checks per plan schedule, "check now", last runs and health; consent records | Built (Phase 6 adds schedule settings and history page) |
@@ -73,7 +73,7 @@ The order a firm meets the product: set up, bring in clients and cases, keep the
 | 7 | Matters and groups | Group cases by family, employer, lawsuit or custom; filter every page by matter | Built (Phase 2C) |
 | 8 | Documents | Upload files to a case or client; kind, visibility (internal or shared with the client), size, uploaded by; search and filters | Built (Phase 3A) |
 | 9 | Document requests | Firm builds a request from the case-type checklist (or its own list), adds a due date and message; client gets a link (email now, SMS later) and uploads from a phone; firm accepts or asks again; reminders; progress on case and client pages | Built (Phase 3B); SMS later |
-| 10 | Client portal | Client's status page plus open document requests, uploads, firm contact; English and Spanish; firm logo | Status page built; Phase 4 adds requests and branding |
+| 10 | Client portal | Client's status page plus open document requests, uploads, firm contact; English and Spanish; firm logo | Built (Phase 4) |
 | 11 | Dashboard | Case volume by form and category, status overview, cases by assignee, days waiting, stuck cases, upcoming deadlines, open document requests; filters by date, assignee, matter | Built (Phase 2A); matter filter and document requests added with those phases |
 | 12 | Notifications | Per person: inbox start view, backup colleague while away, which task updates appear, which case updates email me (by type: approvals, requests, appointments, denials, other) and for which cases (mine, matters, groups, tags) | Phase 6 |
 | 13 | Team and roles | Members with role, active cases, last active; invitations; Owner, Admin, Staff, plus "Attorney" and "Paralegal" labels | Built (Phase 6 adds columns and labels) |
@@ -111,9 +111,9 @@ Every phase: database migration with row-level security, server logic with datab
 - Client upload page by secure link (no password), works on phones, camera photo or file; firm reviews: accept, or ask again with a reason.
 - Request progress on case and client pages, inbox items when a client uploads, reminders before the due date.
 
-### Phase 4: Client portal
+### Phase 4: Client portal ✅ built
 - One portal per client: status of every case, open requests, uploads, firm contact, English and Spanish.
-- Firm branding: logo on portal and client emails, firm portal address.
+- Firm branding: logo on portal, upload page and client emails (built). A firm's own portal address (custom domain) is left for later.
 
 ### Phase 5: Dashboard and reports
 - Charts from the firm's own data only: volume by form or category, status overview, by assignee, days waiting, stuck cases, upcoming deadlines, open requests.

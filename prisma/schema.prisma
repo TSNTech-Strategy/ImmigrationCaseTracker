@@ -138,6 +138,11 @@ model Firm {
   /// New cases go to this member unless someone else is chosen. Null: whoever adds the case.
   defaultAssigneeId String?
   defaultAssignee   User?            @relation("FirmDefaultAssignee", fields: [defaultAssigneeId], references: [id], onDelete: SetNull)
+  /// The firm's logo (encrypted in the file store) for the client portal, upload page and client emails. Null: no logo.
+  logoKey           String?
+  logoContentType   String?
+  /// Goes up with every new logo, so cached copies are replaced.
+  logoVersion       Int              @default(0)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 

@@ -1,9 +1,10 @@
 import { timingSafeEqual } from "node:crypto";
 import type { PrismaClient } from "@prisma/client";
 import type { EmailDriver } from "@/lib/email";
-import { documentRequestEmail } from "@/lib/email/templates";
+import { documentRequestEmail, withFirmLogo } from "@/lib/email/templates";
 import { sign } from "@/lib/crypto";
 import { checklistForForm, checklistItems } from "@/lib/checklists";
+import { logoPath } from "./branding";
 import { findFirmContext } from "./service";
 import type { FirmDocumentService } from "./documents";
 import { easternDay, formatDue } from "./alerts";
@@ -103,10 +104,12 @@ export function createDocumentRequestService({ db, mailer, siteUrl, docs, now = 
 
   async function email(r: { id: string; linkVersion: number; title: string; message: string | null; dueOn: Date | null; firmId: string }, client: { email: string | null; locale: string; displayName: string; firstName: string | null }, kind: "request" | "reminder" | "reupload", items: { label: string; labelEs: string | null }[], reason?: string | null) {
     if (!client.email) return false;
-    const firm = await db.firm.findUniqueOrThrow({ where: { id: r.firmId }, select: { name: true, clientContactLine: true, replyToEmail: true, timeZone: true } });
+    const firm = await db.firm.findUniqueOrThrow({ where: { id: r.firmId }, select: { id: true, name: true, clientContactLine: true, replyToEmail: true, timeZone: true, logoKey: true, logoVersion: true } });
     const es = client.locale === "es";
     const due = r.dueOn ? new Intl.DateTimeFormat(es ? "es-US" : "en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" }).format(r.dueOn) : null;
+    const logo = logoPath(firm);
     await mailer.send(
+      withFirmLogo(
       documentRequestEmail({
         to: client.email,
         locale: client.locale,
@@ -122,6 +125,9 @@ export function createDocumentRequestService({ db, mailer, siteUrl, docs, now = 
         contactLine: firm.clientContactLine,
         replyTo: firm.replyToEmail,
       }),
+      logo ? `${siteUrl}${logo}` : null,
+      firm.name,
+      ),
     );
     return true;
   }
@@ -232,7 +238,7 @@ export function createDocumentRequestService({ db, mailer, siteUrl, docs, now = 
     const r = await db.documentRequest.findFirst({
       where: { id: t.id, linkVersion: t.version, status: { in: ["OPEN", "COMPLETED"] }, firm: { status: "ACTIVE" } },
       include: {
-        firm: { select: { name: true, clientContactLine: true, replyToEmail: true } },
+        firm: { select: { id: true, name: true, clientContactLine: true, replyToEmail: true, logoKey: true, logoVersion: true } },
         client: { select: { id: true, displayName: true, firstName: true, locale: true } },
         items: { orderBy: { position: "asc" }, include: { documents: { select: { id: true, name: true, createdAt: true }, orderBy: { createdAt: "asc" } } } },
       },
@@ -244,7 +250,7 @@ export function createDocumentRequestService({ db, mailer, siteUrl, docs, now = 
     const r = await fromToken(token);
     if (!r) return null;
     return {
-      firm: r.firm,
+      firm: { name: r.firm.name, clientContactLine: r.firm.clientContactLine, replyToEmail: r.firm.replyToEmail, logo: logoPath(r.firm) },
       client: { name: r.client.firstName ?? r.client.displayName, locale: r.client.locale === "es" ? ("es" as const) : ("en" as const) },
       title: r.title,
       message: r.message,

@@ -1,4 +1,5 @@
 import { createDocumentRequestService } from "./requests";
+import { createFirmBrandingService } from "./branding";
 import { createFirmDocumentService } from "./documents";
 import { getFileStore } from "@/lib/storage/file-store";
 import { createFirmMatterService } from "./matters";
@@ -75,4 +76,9 @@ export function firmDocumentService() {
 /** Document requests to clients (checklists, upload links, review, reminders). */
 export function documentRequestService() {
   return createDocumentRequestService({ db: prisma, mailer: getEmailDriver(), siteUrl: getSiteUrl(), docs: firmDocumentService() });
+}
+
+/** The firm's logo for the client portal, upload page and client emails. */
+export function firmBrandingService() {
+  return createFirmBrandingService({ db: prisma, store: getFileStore() });
 }

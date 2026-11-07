@@ -302,3 +302,28 @@ export function documentRequestEmail(p: {
       ];
   return { to: p.to, subject, body: lines.join("\n"), fromName: `${p.firmName} via CasePingo`, replyTo: p.replyTo ?? undefined };
 }
+
+const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/**
+ * Adds an HTML version of a client email with the law firm's logo on top. The words are exactly
+ * the plain-text body (escaped, links made clickable); without a logo the email stays text only.
+ */
+export function withFirmLogo(message: EmailMessage, logoUrl: string | null, firmName: string): EmailMessage {
+  if (!logoUrl) return message;
+  const paragraphs = message.body
+    .split(/\n{2,}/)
+    .map((block) => {
+      const html = escapeHtml(block)
+        .replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" style="color:#1d4ed8">${u}</a>`)
+        .replace(/\n/g, "<br>");
+      return `<p style="margin:0 0 16px">${html}</p>`;
+    })
+    .join("");
+  const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#f6f6f4;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1f2328;font-size:15px;line-height:1.55">
+<div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e5e0;border-radius:8px;padding:24px">
+<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(firmName)}" style="display:block;max-height:56px;max-width:220px;margin:0 0 20px">
+${paragraphs}
+</div></body></html>`;
+  return { ...message, html };
+}
