@@ -13,7 +13,7 @@ import { ThemeToggle } from "./theme-toggle";
  * ("Welcome, <name>") holding settings, plan, firm workspace, admin and sign out.
  * On phones the places move to a second row so nothing wraps awkwardly.
  */
-export async function AppHeader({ user }: { user: { id: string; name: string | null; email: string; isAdmin: boolean } }) {
+export async function AppHeader({ user, wide = false }: { user: { id: string; name: string | null; email: string; isAdmin: boolean }; wide?: boolean }) {
   const firmMember = Boolean(await prisma.firmMembership.findFirst({ where: { userId: user.id, revokedAt: null }, select: { id: true } }));
   const places = [
     { href: "/cases", label: "My cases" },
@@ -24,7 +24,7 @@ export async function AppHeader({ user }: { user: { id: string; name: string | n
   ];
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 px-4 pt-2.5 sm:pb-0">
+      <div className={`mx-auto flex w-full ${wide ? "max-w-6xl sm:px-6" : "max-w-5xl"} flex-wrap items-center gap-x-6 px-4 pt-2.5 sm:pb-0`}>
         <div className="py-1.5">
           <Logo href="/cases" />
         </div>
@@ -38,9 +38,9 @@ export async function AppHeader({ user }: { user: { id: string; name: string | n
   );
 }
 
-export function AppFooter() {
+export function AppFooter({ wide = false }: { wide?: boolean } = {}) {
   return (
-    <footer className="mx-auto flex w-full max-w-3xl flex-col gap-2 px-4 py-8 text-xs text-[var(--muted)]">
+    <footer className={`mx-auto flex w-full ${wide ? "max-w-6xl sm:px-6" : "max-w-3xl"} flex-col gap-2 px-4 py-8 text-xs text-[var(--muted)]`}>
       <nav aria-label="Legal" className="flex flex-wrap gap-4">
         <Link href="/privacy" className="underline underline-offset-2">Privacy</Link>
         <Link href="/terms" className="underline underline-offset-2">Terms</Link>

@@ -10,7 +10,8 @@ import { caseJourney } from "@/lib/journeys";
 import { LocalTime } from "@/components/local-time";
 import { ModeBanner } from "@/components/mode-banner";
 import { requireUser } from "@/lib/auth/session";
-import { firmAlertService, firmCaseService, firmTagService } from "@/lib/firms";
+import { firmAlertService, firmCaseService, firmService, firmTagService } from "@/lib/firms";
+import { setCaseAssigneeAction } from "../actions";
 import { DEADLINE_KINDS, suggestedDeadline } from "@/lib/firms/alerts";
 import { AddDeadlineForm } from "../../deadlines/add-deadline-form";
 import { DEADLINE_NOTICES, DeadlineList } from "../../deadlines/deadline-list";
@@ -29,6 +30,7 @@ const NOTICES: Record<string, string> = {
   "consent-withdrawn": "Consent withdrawn. We've stopped checking this case.",
   "consent-recorded": "Consent recorded. Automatic checks are back on.",
   ...DEADLINE_NOTICES,
+  assigned: "Case reassigned. Its open inbox items moved with it.",
 };
 const who = (u: { name: string | null; email: string } | null) => (u ? (u.name ?? u.email) : "a former team member");
 
@@ -45,14 +47,16 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
   const active = c.consents.find((x) => !x.withdrawnAt);
   const canRemove = ctx.membership.role !== "STAFF";
   const journey = caseJourney(c);
+  const team = await firmService().listTeam(user.id);
+  const members = (team?.members ?? []).map((m) => ({ id: m.userId, name: m.user.name ?? m.user.email }));
   const alerts = firmAlertService();
   const deadlines = await alerts.caseDeadlines(ctx.firm.id, c.id);
-  const today = alerts.today();
+  const today = alerts.today(ctx.firm.timeZone);
   const suggested = suggestedDeadline(c.statusTitleEn);
   const showPrompt = suggested && !deadlines.some((d) => d.kind === suggested && !d.doneAt);
 
   return (
-    <>
+    <div className="flex w-full max-w-3xl flex-col gap-6">
       <Link href="/firm/cases" className="text-sm underline underline-offset-2">
         ← Cases
       </Link>
@@ -73,6 +77,25 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
           {c.nickname ? `${c.formType ? `${c.formType} · ` : ""}${c.receiptMasked}` : (c.formType ?? "")}
         </p>
       </div>
+      <form action={setCaseAssigneeAction} className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm">
+        <input type="hidden" name="caseId" value={c.id} />
+        <input type="hidden" name="back" value={`/firm/cases/${c.id}`} />
+        <label htmlFor="case-assignee" className="font-medium">
+          Assigned to
+        </label>
+        <select id="case-assignee" name="assigneeId" defaultValue={c.assignee?.id ?? ""} className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5">
+          <option value="">Unassigned</option>
+          {members.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </select>
+        <button type="submit" className="rounded-md border border-[var(--border)] px-3 py-1.5 font-medium hover:border-[var(--accent)]">
+          Save
+        </button>
+        <span className="text-[var(--muted)]">Updates, alerts and reminders for this case go to this person.</span>
+      </form>
       <ModeBanner mode={getUscisClient().mode} />
       {message && (
         <p role="status" className="rounded-md border border-[var(--success)] px-3 py-2 text-sm text-[var(--success)]">
@@ -93,7 +116,7 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
         actions={active ? <FirmRefreshButton caseId={c.id} /> : undefined}
         footnote={
           <>
-            Firm cases are checked automatically about twice a day. {who(c.addedBy)} gets an email when the status changes. {USCIS_SOURCE_NOTE}
+            Firm cases are checked automatically about twice a day. {c.assignee ? who(c.assignee) : who(c.addedBy)} gets an email when the status changes. {USCIS_SOURCE_NOTE}
           </>
         }
       />
@@ -166,6 +189,6 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
           <RemoveFirmCaseForm caseId={c.id} />
         </section>
       )}
-    </>
+    </div>
   );
 }

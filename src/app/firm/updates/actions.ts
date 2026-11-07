@@ -36,6 +36,7 @@ export async function updateAction(formData: FormData) {
   const action = readAction(formData);
   const r = action ? await firmUpdateService().act(user.id, String(formData.get("updateId") ?? ""), action) : { ok: false as const, code: "invalid" };
   const q = new URLSearchParams({ tab: TABS.has(tab) ? tab : "open", [r.ok ? "done" : "error"]: r.code });
+  refresh(); // the workspace tabs (badges) re-read their counts
   redirect(`/firm/updates?${q}#u-${encodeURIComponent(String(formData.get("updateId") ?? ""))}`);
 }
 

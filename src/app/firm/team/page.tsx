@@ -18,7 +18,7 @@ export default async function TeamPage() {
   const canManage = myRole === "OWNER" || myRole === "ADMIN";
 
   return (
-    <>
+    <div className="flex w-full max-w-3xl flex-col gap-6">
       <div className="flex flex-col gap-1">
         <Link href="/firm" className="text-sm underline underline-offset-2">
           ← {ctx.firm.name}
@@ -98,6 +98,6 @@ export default async function TeamPage() {
           <li>Staff: work on the firm&apos;s cases.</li>
         </ul>
       </section>
-    </>
+    </div>
   );
 }

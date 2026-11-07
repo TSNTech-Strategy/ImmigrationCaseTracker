@@ -7,6 +7,10 @@ import { findFirmContext, type FirmContext } from "./service";
 import { firmChecksAllowed } from "@/lib/billing/entitlements";
 import { flatTags } from "@/lib/cases/tags";
 import { firmCaseTagsSelect } from "./tags";
+import { decrypt, encrypt } from "@/lib/crypto";
+import { revealReceipt } from "@/lib/cases/receipt-store";
+import { csvCell } from "@/lib/csv";
+import { CASE_CATEGORIES, CATEGORY_LABEL, caseCategory, categoryFormVariants, cleanANumber, cleanBirthDate, countryName, formatANumber, isCountryCode, type CaseCategory } from "./profile";
 
 /**
  * A firm's clients and the cases it tracks for them (CasePingo Pro).
@@ -27,7 +31,16 @@ type Fail = { ok: false; error: string; field?: string };
 const fail = (error: string, field?: string): Fail => ({ ok: false, error, field });
 
 export type ClientInput = {
-  displayName: string;
+  /** Used when first and last name aren't given (imports). */
+  displayName?: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  /** "YYYY-MM-DD"; stored encrypted. */
+  dateOfBirth?: string | null;
+  countryOfBirth?: string | null;
+  citizenship?: string | null;
+  /** Stored encrypted; only the last 4 digits are kept in the clear. */
+  aNumber?: string | null;
   email?: string | null;
   phone?: string | null;
   externalRef?: string | null;
@@ -36,8 +49,34 @@ export type ClientInput = {
   /** The firm records that the client agreed to case updates by email. Left out: unchanged. */
   updatesConsent?: boolean;
 };
-type CleanClient = { displayName: string; email: string | null; phone: string | null; externalRef: string | null; locale: "en" | "es" };
-export type FirmCaseInput = { clientId: string; receipt: string; nickname?: string | null; basis: FirmConsentBasis; evidenceRef: string };
+type CleanClient = {
+  displayName: string;
+  firstName: string | null;
+  lastName: string | null;
+  countryOfBirth: string | null;
+  citizenship: string | null;
+  email: string | null;
+  phone: string | null;
+  externalRef: string | null;
+  locale: "en" | "es";
+};
+type CleanSensitive = { dateOfBirth: string | null; aNumber: string | null };
+export type FirmCaseInput = { clientId: string; receipt: string; nickname?: string | null; basis: FirmConsentBasis; evidenceRef: string; assigneeId?: string | null };
+
+/** Field names for the activity log (values are never logged). */
+const FIELD_LABELS: Record<string, string> = {
+  displayName: "name",
+  firstName: "first name",
+  lastName: "last name",
+  countryOfBirth: "country of birth",
+  citizenship: "citizenship",
+  email: "email",
+  phone: "phone",
+  externalRef: "reference",
+  locale: "language",
+  dateOfBirth: "date of birth",
+  aNumber: "A-Number",
+};
 
 export const CASE_VIEWS = {
   changed: "Changed in the last 7 days",
@@ -53,7 +92,8 @@ export const CASE_SORTS = {
   client: "Client name",
 } as const;
 export type CaseSort = keyof typeof CASE_SORTS;
-export type CaseFilters = { clientId?: string; tagId?: string; q?: string; view?: CaseListView; sort?: CaseSort };
+/** assignee: a member's id, "me" (the viewer) or "none" (unassigned). */
+export type CaseFilters = { clientId?: string; tagId?: string; q?: string; view?: CaseListView; sort?: CaseSort; assignee?: string; category?: CaseCategory };
 export const LIST_LIMIT = 100;
 
 const SORTS: Record<CaseSort, Prisma.TrackedCaseOrderByWithRelationInput[]> = {
@@ -89,9 +129,12 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     });
   }
 
-  function cleanClient(input: ClientInput): { ok: true; data: CleanClient } | Fail {
-    const displayName = input.displayName.trim().slice(0, 120);
-    if (displayName.length < 2) return fail("Enter the client's name.", "displayName");
+  function cleanClient(input: ClientInput): { ok: true; data: CleanClient; sensitive: CleanSensitive } | Fail {
+    const firstName = input.firstName?.trim().replace(/\s+/g, " ").slice(0, 60) || null;
+    const lastName = input.lastName?.trim().replace(/\s+/g, " ").slice(0, 60) || null;
+    if ((firstName || lastName) && !(firstName && lastName)) return fail(firstName ? "Enter the client's last name." : "Enter the client's first name.", firstName ? "lastName" : "firstName");
+    const displayName = (firstName && lastName ? `${firstName} ${lastName}` : (input.displayName ?? "")).trim().slice(0, 120);
+    if (displayName.length < 2) return fail("Enter the client's name.", input.firstName !== undefined ? "firstName" : "displayName");
     const email = input.email?.trim().toLowerCase() || null;
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("Enter a valid email address, or leave it blank.", "email");
     const phone = input.phone?.trim() || null;
@@ -100,19 +143,54 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     if (externalRef && externalRef.length > 60) return fail("Use 60 characters or fewer.", "externalRef");
     const locale = input.locale === "es" ? "es" : "en";
     if (input.updatesConsent && !email) return fail("Add the client's email address to send them updates.", "email");
-    return { ok: true, data: { displayName, email, phone, externalRef, locale } };
+    const countryOfBirth = input.countryOfBirth?.trim().toUpperCase() || null;
+    if (countryOfBirth && !isCountryCode(countryOfBirth)) return fail("Choose a country from the list.", "countryOfBirth");
+    const citizenship = input.citizenship?.trim().toUpperCase() || null;
+    if (citizenship && !isCountryCode(citizenship)) return fail("Choose a country from the list.", "citizenship");
+    const dobRaw = input.dateOfBirth?.trim() || null;
+    const dateOfBirth = dobRaw ? cleanBirthDate(dobRaw, now()) : null;
+    if (dobRaw && !dateOfBirth) return fail("Enter a real date of birth, like 1990-04-21.", "dateOfBirth");
+    const aRaw = input.aNumber?.trim() || null;
+    const aNumber = aRaw ? cleanANumber(aRaw) : null;
+    if (aRaw && !aNumber) return fail("An A-Number has 8 or 9 digits, like A123-456-789.", "aNumber");
+    return { ok: true, data: { displayName, firstName, lastName, countryOfBirth, citizenship, email, phone, externalRef, locale }, sensitive: { dateOfBirth, aNumber } };
   }
+
+  /** The database columns for the encrypted fields (only the A-Number's last 4 digits in the clear). */
+  const sensitiveColumns = (s: CleanSensitive) => ({
+    dateOfBirthEnc: s.dateOfBirth ? encrypt(s.dateOfBirth) : null,
+    aNumberEnc: s.aNumber ? encrypt(s.aNumber) : null,
+    aNumberLast4: s.aNumber ? s.aNumber.slice(-4) : null,
+  });
+  const readSensitive = (c: { dateOfBirthEnc: string | null; aNumberEnc: string | null }): CleanSensitive => ({
+    dateOfBirth: c.dateOfBirthEnc ? decrypt(c.dateOfBirthEnc) : null,
+    aNumber: c.aNumberEnc ? decrypt(c.aNumberEnc) : null,
+  });
 
   // ---- Clients --------------------------------------------------------------
 
-  async function listClients(userId: string, { archived = false }: { archived?: boolean } = {}) {
+  async function listClients(userId: string, { archived = false, q, country }: { archived?: boolean; q?: string; country?: string } = {}) {
     const ctx = await ctxOf(userId);
     if (!ctx) return null;
-    const clients = await db.client.findMany({
-      where: { firmId: ctx.firm.id, archivedAt: archived ? { not: null } : null },
-      select: { id: true, displayName: true, email: true, externalRef: true, archivedAt: true, _count: { select: { cases: true } } },
-      orderBy: { displayName: "asc" },
-    });
+    const search = q?.trim().slice(0, 80);
+    const contains = search ? { contains: search, mode: "insensitive" as const } : undefined;
+    const [rows, open] = await Promise.all([
+      db.client.findMany({
+        where: {
+          firmId: ctx.firm.id,
+          archivedAt: archived ? { not: null } : null,
+          ...(country ? { countryOfBirth: country } : {}),
+          ...(contains ? { OR: [{ displayName: contains }, { email: contains }, { externalRef: contains }, { phone: contains }] } : {}),
+        },
+        select: { id: true, displayName: true, email: true, phone: true, externalRef: true, locale: true, countryOfBirth: true, archivedAt: true, _count: { select: { cases: true } } },
+        orderBy: { displayName: "asc" },
+      }),
+      // "Needs action": open items in the Updates inbox on the client's cases.
+      db.firmUpdate.findMany({ where: { firmId: ctx.firm.id, OR: [{ state: "OPEN" }, { state: "SNOOZED", snoozedUntil: { lte: now() } }] }, select: { case: { select: { clientId: true } } } }),
+    ]);
+    const needs = new Map<string, number>();
+    for (const u of open) if (u.case.clientId) needs.set(u.case.clientId, (needs.get(u.case.clientId) ?? 0) + 1);
+    const clients = rows.map((c) => ({ ...c, countryName: countryName(c.countryOfBirth), needsAction: needs.get(c.id) ?? 0 }));
     return { ctx, clients };
   }
 
@@ -123,7 +201,18 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
       where: { id: clientId, firmId: ctx.firm.id },
       include: { cases: { select: { ...caseViewSelect, ...firmCaseTagsSelect }, orderBy: { createdAt: "desc" } } },
     });
-    return client ? { ctx, client: { ...client, cases: client.cases.map(({ firmTags, ...c }) => ({ ...c, tags: flatTags(firmTags) })) } } : null;
+    if (!client) return null;
+    const { dateOfBirthEnc, aNumberEnc, ...rest } = client;
+    const sensitive = readSensitive({ dateOfBirthEnc, aNumberEnc });
+    return {
+      ctx,
+      client: {
+        ...rest,
+        dateOfBirth: sensitive.dateOfBirth,
+        aNumber: sensitive.aNumber ? formatANumber(sensitive.aNumber) : null,
+        cases: client.cases.map(({ firmTags, ...c }) => ({ ...c, tags: flatTags(firmTags) })),
+      },
+    };
   }
 
   async function createClient(userId: string, input: ClientInput): Promise<{ ok: true; clientId: string } | Fail> {
@@ -131,7 +220,7 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     if (!ctx) return fail("You're not part of a firm workspace.");
     const v = cleanClient(input);
     if (!v.ok) return v;
-    const client = await db.client.create({ data: { ...v.data, updatesConsentAt: input.updatesConsent ? now() : null, firmId: ctx.firm.id, createdById: userId } });
+    const client = await db.client.create({ data: { ...v.data, ...sensitiveColumns(v.sensitive), updatesConsentAt: input.updatesConsent ? now() : null, firmId: ctx.firm.id, createdById: userId } });
     await audit(ctx, "client.created", "Client", client.id);
     return { ok: true, clientId: client.id };
   }
@@ -144,8 +233,18 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     const before = await db.client.findFirst({ where: { id: clientId, firmId: ctx.firm.id } });
     if (!before) return fail("Client not found.");
     const updatesConsentAt = input.updatesConsent === undefined ? before.updatesConsentAt : input.updatesConsent ? (before.updatesConsentAt ?? now()) : null;
-    await db.client.update({ where: { id: before.id }, data: { ...v.data, updatesConsentAt } });
-    const changed: string[] = (Object.keys(v.data) as (keyof CleanClient)[]).filter((k) => (before[k] ?? null) !== v.data[k]);
+    // Fields a form didn't send (imports, older forms) keep their stored values.
+    const prior = readSensitive(before);
+    const sensitive: CleanSensitive = {
+      dateOfBirth: input.dateOfBirth === undefined ? prior.dateOfBirth : v.sensitive.dateOfBirth,
+      aNumber: input.aNumber === undefined ? prior.aNumber : v.sensitive.aNumber,
+    };
+    const keep = <K extends "firstName" | "lastName" | "countryOfBirth" | "citizenship">(k: K) => (input[k] === undefined ? before[k] : v.data[k]);
+    const data: CleanClient = { ...v.data, firstName: keep("firstName"), lastName: keep("lastName"), countryOfBirth: keep("countryOfBirth"), citizenship: keep("citizenship") };
+    await db.client.update({ where: { id: before.id }, data: { ...data, ...sensitiveColumns(sensitive), updatesConsentAt } });
+    const changed: string[] = (Object.keys(data) as (keyof CleanClient)[]).filter((k) => (before[k] ?? null) !== data[k]).map((k) => FIELD_LABELS[k] ?? k);
+    if (prior.dateOfBirth !== sensitive.dateOfBirth) changed.push(FIELD_LABELS.dateOfBirth);
+    if (prior.aNumber !== sensitive.aNumber) changed.push(FIELD_LABELS.aNumber);
     if (Boolean(before.updatesConsentAt) !== Boolean(updatesConsentAt)) changed.push(updatesConsentAt ? "update agreement recorded" : "update agreement removed");
     if (changed.length) await audit(ctx, "client.updated", "Client", before.id, { fields: changed });
     return { ok: true };
@@ -174,6 +273,11 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     if (filters.clientId) and.push({ clientId: filters.clientId });
     if (filters.tagId) and.push({ firmTags: { some: { tagId: filters.tagId } } });
     if (filters.view) and.push(viewWhere(filters.view, t));
+    if (filters.assignee === "none") and.push({ assigneeId: null });
+    else if (filters.assignee) and.push({ assigneeId: filters.assignee === "me" ? userId : filters.assignee });
+    if (filters.category === "other") {
+      and.push({ OR: [{ formType: null }, { formType: { notIn: (Object.keys(CASE_CATEGORIES) as (keyof typeof CASE_CATEGORIES)[]).flatMap(categoryFormVariants) } }] });
+    } else if (filters.category) and.push({ formType: { in: categoryFormVariants(filters.category) } });
     const q = filters.q?.trim().slice(0, 80);
     if (q) {
       const receipt = normalizeReceiptNumber(q);
@@ -200,6 +304,7 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
         ...caseViewSelect,
         ...firmCaseTagsSelect,
         client: { select: { id: true, displayName: true } },
+        assignee: { select: { id: true, name: true, email: true } },
         consents: { where: { withdrawnAt: null }, select: { id: true }, take: 1 },
       },
       orderBy: SORTS[filters.sort ?? "added"],
@@ -208,7 +313,7 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     return {
       ctx,
       truncated: rows.length > LIST_LIMIT,
-      cases: rows.slice(0, LIST_LIMIT).map(({ consents, firmTags, ...c }) => ({ ...c, tags: flatTags(firmTags), hasConsent: consents.length > 0 })),
+      cases: rows.slice(0, LIST_LIMIT).map(({ consents, firmTags, ...c }) => ({ ...c, category: caseCategory(c.formType), tags: flatTags(firmTags), hasConsent: consents.length > 0 })),
     };
   }
 
@@ -222,6 +327,7 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
         ...firmCaseTagsSelect,
         client: { select: { id: true, displayName: true, externalRef: true } },
         addedBy: { select: { name: true, email: true } },
+        assignee: { select: { id: true, name: true, email: true } },
         events: { orderBy: { firstObservedAt: "desc" }, take: 50 },
         consents: {
           orderBy: { capturedAt: "desc" },
@@ -270,6 +376,10 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     if ((await db.trackedCase.count({ where: { firmId: ctx.firm.id } })) >= ctx.firm.caseLimit) {
       return fail(`Your firm's plan includes up to ${ctx.firm.caseLimit} cases.`);
     }
+    const members = await activeMemberIds(ctx.firm.id);
+    if (input.assigneeId && !members.has(input.assigneeId)) return fail("Choose someone on your team.", "assigneeId");
+    // Who it's for: the person chosen, else the firm's default, else whoever adds it.
+    const assigneeId = input.assigneeId || (ctx.firm.defaultAssigneeId && members.has(ctx.firm.defaultAssigneeId) ? ctx.firm.defaultAssigneeId : userId);
     const dup = await db.trackedCase.findUnique({
       where: { firmId_receiptDigest: { firmId: ctx.firm.id, receiptDigest: receipt.receiptDigest } },
       select: { id: true },
@@ -286,6 +396,7 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
             firmId: ctx.firm.id,
             clientId: client.id,
             addedById: userId,
+            assigneeId,
             consents: {
               create: {
                 basis: input.basis,
@@ -315,6 +426,73 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     }
     const check = await cases.runCheck(created, "INITIAL");
     return { ok: true, caseId: created.id, check };
+  }
+
+  async function activeMemberIds(firmId: string) {
+    const rows = await db.firmMembership.findMany({ where: { firmId, revokedAt: null }, select: { userId: true } });
+    return new Set(rows.map((r) => r.userId));
+  }
+
+  /** Who the case is for (any member can change it); its open inbox items move with it. */
+  async function setAssignee(userId: string, caseId: string, assigneeId: string | null): Promise<{ ok: true } | Fail> {
+    const ctx = await ctxOf(userId);
+    if (!ctx) return fail("You're not part of a firm workspace.");
+    const c = await db.trackedCase.findFirst({ where: { id: caseId, firmId: ctx.firm.id }, select: { id: true, assigneeId: true } });
+    if (!c) return fail("Case not found.");
+    if (assigneeId && !(await activeMemberIds(ctx.firm.id)).has(assigneeId)) return fail("Choose someone on your team.", "assigneeId");
+    if (c.assigneeId === assigneeId) return { ok: true };
+    await db.$transaction([
+      db.trackedCase.update({ where: { id: c.id }, data: { assigneeId } }),
+      db.firmUpdate.updateMany({ where: { caseId: c.id, state: { not: "DONE" }, assignedToId: c.assigneeId }, data: { assignedToId: assigneeId } }),
+    ]);
+    const to = assigneeId ? await db.user.findUnique({ where: { id: assigneeId }, select: { name: true, email: true } }) : null;
+    await audit(ctx, "case.assigned", "TrackedCase", c.id, { to: to ? (to.name ?? to.email) : null });
+    return { ok: true };
+  }
+
+  /** Every case as CSV (Owner/Admin): full receipt numbers, so it's recorded in the activity log. */
+  async function exportCases(userId: string): Promise<{ ok: true; csv: string; count: number } | Fail> {
+    const ctx = await ctxOf(userId);
+    if (!ctx) return fail("You're not part of a firm workspace.");
+    if (!isManager(ctx.membership.role)) return fail("Only an Owner or Admin can export cases.");
+    const rows = await db.trackedCase.findMany({
+      where: { firmId: ctx.firm.id },
+      select: {
+        receiptEncrypted: true,
+        nickname: true,
+        formType: true,
+        statusTitleEn: true,
+        lastChangeObservedAt: true,
+        lastCheckedAt: true,
+        createdAt: true,
+        client: { select: { displayName: true, externalRef: true } },
+        assignee: { select: { name: true, email: true } },
+        ...firmCaseTagsSelect,
+      },
+      orderBy: [{ client: { displayName: "asc" } }, { createdAt: "asc" }],
+    });
+    const day = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
+    const header = ["Client", "Client reference", "Receipt number", "Label", "Form", "Category", "Status", "Assigned to", "Tags", "Last change seen", "Last checked", "Added"];
+    const lines = rows.map((r) =>
+      [
+        r.client?.displayName ?? "",
+        r.client?.externalRef ?? "",
+        revealReceipt(r),
+        r.nickname ?? "",
+        r.formType ?? "",
+        CATEGORY_LABEL(caseCategory(r.formType)),
+        r.statusTitleEn ?? "",
+        r.assignee ? (r.assignee.name ?? r.assignee.email) : "",
+        flatTags(r.firmTags).map((tg) => tg.name).join("; "),
+        day(r.lastChangeObservedAt),
+        day(r.lastCheckedAt),
+        day(r.createdAt),
+      ]
+        .map(csvCell)
+        .join(","),
+    );
+    await audit(ctx, "cases.exported", "Firm", ctx.firm.id, { rows: rows.length });
+    return { ok: true, csv: "\uFEFF" + [header.map(csvCell).join(","), ...lines].join("\r\n") + "\r\n", count: rows.length };
   }
 
   async function refreshCase(userId: string, caseId: string): Promise<RefreshResult> {
@@ -401,6 +579,8 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     withdrawConsent,
     recordConsent,
     removeCase,
+    setAssignee,
+    exportCases,
     counts,
   };
 }

@@ -88,7 +88,7 @@ describe.skipIf(!url)("firm clients and cases", () => {
     const logs = await db.auditLog.findMany({ where: { firmId: a.firmId, targetId: clientId } });
     expect(logs.map((l) => l.action).sort()).toEqual(["client.archived", "client.created", "client.updated"]);
     expect(JSON.stringify(logs)).not.toMatch(/maria@example|555 0100|Lopez/);
-    expect(logs.find((l) => l.action === "client.updated")!.metadata).toEqual({ fields: ["displayName"] });
+    expect(logs.find((l) => l.action === "client.updated")!.metadata).toEqual({ fields: ["name"] });
   });
 
   it("adds a firm case with a G-28 attestation, checks it once, and blocks duplicates per firm", async () => {

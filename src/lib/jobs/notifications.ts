@@ -17,8 +17,8 @@ type Recipient = { id: string; email: string; name: string | null; locale: strin
  * Recipients:
  * - Individual case (Premium only; Free has no alerts): the owner, if their alerts are on; plus a push alert to
  *   their phones when they turned push on in the app.
- * - Firm case: the member who added it, while still on the team; otherwise
- *   the firm's Owners. Each person's own alert setting applies.
+ * - Firm case: the member it's assigned to; else the member who added it, while still on the team;
+ *   otherwise the firm's Owners. Each person's own alert setting applies.
  */
 export async function notifyStatusChange(
   db: PrismaClient,
@@ -54,8 +54,9 @@ export async function notifyStatusChange(
       where: { firmId: c.firmId, revokedAt: null, firm: { status: "ACTIVE" } },
       select: { userId: true, role: true, user: { select: userSelect } },
     });
-    const adder = members.find((m) => m.userId === c.addedById);
-    recipients = (adder ? [adder] : members.filter((m) => m.role === "OWNER")).map((m) => toRecipient(m.user));
+    // The person the case is assigned to; else whoever added it; else the Owners.
+    const person = members.find((m) => m.userId === c.assigneeId) ?? members.find((m) => m.userId === c.addedById);
+    recipients = (person ? [person] : members.filter((m) => m.role === "OWNER")).map((m) => toRecipient(m.user));
   }
 
   let firstError: unknown;

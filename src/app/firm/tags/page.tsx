@@ -16,7 +16,7 @@ export default async function FirmTagsPage() {
   if (!data) redirect("/firm");
   const { tags, canManage } = data;
   return (
-    <>
+    <div className="flex w-full max-w-3xl flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Tags</h1>
         <p className="text-sm text-[var(--muted)]">
@@ -47,6 +47,6 @@ export default async function FirmTagsPage() {
           Back to cases
         </Link>
       </p>
-    </>
+    </div>
   );
 }

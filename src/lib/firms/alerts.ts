@@ -15,7 +15,7 @@ import { findFirmContext } from "./service";
  *   Marking the deadline done closes its reminders.
  *
  * CasePingo never works out a legal deadline itself: the firm enters the date from the notice.
- * "Today" is the date in US Eastern time.
+ * "Today" is the date in the firm's time zone.
  */
 
 export const DEADLINE_KINDS: Record<DeadlineKind, { label: string; prompt: string | null }> = {
@@ -41,9 +41,9 @@ export function suggestedDeadline(statusTitleEn: string | null | undefined): Dea
 }
 
 const DAY = 86_400_000;
-/** "YYYY-MM-DD" in US Eastern time. */
-export function easternDay(d: Date): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+/** "YYYY-MM-DD" in a time zone (the firm's; US Eastern by default). */
+export function easternDay(d: Date, timeZone = "America/New_York"): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 }
 const asDate = (day: string) => new Date(`${day}T00:00:00Z`);
 const dayOfDate = (d: Date) => d.toISOString().slice(0, 10);
@@ -80,32 +80,32 @@ export function createFirmAlertService({ db, now = () => new Date() }: { db: Pri
     // Days since the last change, from USCIS's own dates (as on the case page), else when we saw it change.
     const cases = await db.trackedCase.findMany({
       where: { firmId: firm.id, trackingStatus: "ACTIVE", statusFingerprint: { not: null } },
-      select: { ...caseViewSelect, statusFingerprint: true, events: { select: { statusTitleEn: true, uscisReportedRaw: true, firstObservedAt: true }, orderBy: { firstObservedAt: "asc" } } },
+      select: { ...caseViewSelect, statusFingerprint: true, assigneeId: true, events: { select: { statusTitleEn: true, uscisReportedRaw: true, firstObservedAt: true }, orderBy: { firstObservedAt: "asc" } } },
     });
     const data: Prisma.FirmUpdateCreateManyInput[] = [];
     for (const c of cases) {
       const j = caseJourney(c, t);
       const since = j.days.sinceUpdate;
       if (j.lineMap.finished || since === null || since < firm.stuckAfterDays) continue;
-      data.push({ firmId: firm.id, caseId: c.id, kind: "STUCK", alertKey: `stuck:${c.id}:${c.statusFingerprint}`, stuckDays: since });
+      data.push({ firmId: firm.id, caseId: c.id, kind: "STUCK", alertKey: `stuck:${c.id}:${c.statusFingerprint}`, stuckDays: since, assignedToId: c.assigneeId });
     }
     if (!data.length) return 0;
     return (await db.firmUpdate.createMany({ data, skipDuplicates: true })).count;
   }
 
-  type DeadlineRow = { id: string; firmId: string; caseId: string; dueOn: Date };
+  type DeadlineRow = { id: string; firmId: string; caseId: string; dueOn: Date; case: { assigneeId: string | null } };
   const deadlineAlert = (d: DeadlineRow, today: string, leadDays: number): Prisma.FirmUpdateCreateManyInput | null => {
     const n = daysUntil(d.dueOn, today);
     if (n > leadDays) return null;
-    return { firmId: d.firmId, caseId: d.caseId, kind: "DEADLINE", deadlineId: d.id, alertKey: `deadline:${d.id}:${n < 0 ? "overdue" : "soon"}` };
+    return { firmId: d.firmId, caseId: d.caseId, kind: "DEADLINE", deadlineId: d.id, alertKey: `deadline:${d.id}:${n < 0 ? "overdue" : "soon"}`, assignedToId: d.case.assigneeId };
   };
 
   /** Reminders for one firm's open deadlines that are close or overdue. */
-  async function raiseDeadlines(firm: { id: string; deadlineLeadDays: number }): Promise<number> {
-    const today = easternDay(now());
+  async function raiseDeadlines(firm: { id: string; deadlineLeadDays: number; timeZone?: string }): Promise<number> {
+    const today = easternDay(now(), firm.timeZone);
     const due = await db.caseDeadline.findMany({
       where: { firmId: firm.id, doneAt: null, dueOn: { lte: asDate(dayOfDate(new Date(asDate(today).getTime() + firm.deadlineLeadDays * DAY))) } },
-      select: { id: true, firmId: true, caseId: true, dueOn: true },
+      select: { id: true, firmId: true, caseId: true, dueOn: true, case: { select: { assigneeId: true } } },
     });
     const data = due.map((d) => deadlineAlert(d, today, firm.deadlineLeadDays)).filter((x): x is Prisma.FirmUpdateCreateManyInput => x !== null);
     if (!data.length) return 0;
@@ -114,7 +114,7 @@ export function createFirmAlertService({ db, now = () => new Date() }: { db: Pri
 
   /** The daily run over every firm whose cases are being checked (Inngest cron). */
   async function runDaily() {
-    const firms = await db.firm.findMany({ where: firmChecksAllowedWhere(now()), select: { id: true, stuckAfterDays: true, deadlineLeadDays: true } });
+    const firms = await db.firm.findMany({ where: firmChecksAllowedWhere(now()), select: { id: true, stuckAfterDays: true, deadlineLeadDays: true, timeZone: true } });
     let stuck = 0;
     let deadlines = 0;
     for (const f of firms) {
@@ -126,20 +126,23 @@ export function createFirmAlertService({ db, now = () => new Date() }: { db: Pri
 
   /** A deadline was added or its date changed: remind now if it's already close. */
   async function syncDeadline(id: string) {
-    const d = await db.caseDeadline.findUnique({ where: { id }, select: { id: true, firmId: true, caseId: true, dueOn: true, doneAt: true, firm: { select: { deadlineLeadDays: true } } } });
+    const d = await db.caseDeadline.findUnique({
+      where: { id },
+      select: { id: true, firmId: true, caseId: true, dueOn: true, doneAt: true, case: { select: { assigneeId: true } }, firm: { select: { deadlineLeadDays: true, timeZone: true } } },
+    });
     if (!d || d.doneAt) return;
-    const a = deadlineAlert(d, easternDay(now()), d.firm.deadlineLeadDays);
+    const a = deadlineAlert(d, easternDay(now(), d.firm.timeZone), d.firm.deadlineLeadDays);
     if (a) await db.firmUpdate.createMany({ data: [a], skipDuplicates: true });
   }
 
   // ---- Deadlines (any member) ------------------------------------------------------------------
 
-  function cleanDeadline(input: DeadlineInput): { ok: true; data: { kind: DeadlineKind; dueOn: Date; note: string | null } } | Fail {
+  function cleanDeadline(input: DeadlineInput, timeZone?: string): { ok: true; data: { kind: DeadlineKind; dueOn: Date; note: string | null } } | Fail {
     if (!(input.kind in DEADLINE_KINDS)) return fail("Choose what the deadline is for.", "kind");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(input.dueOn) || Number.isNaN(asDate(input.dueOn).getTime()) || dayOfDate(asDate(input.dueOn)) !== input.dueOn) {
       return fail("Enter the date, like 2026-12-01.", "dueOn");
     }
-    const today = easternDay(now());
+    const today = easternDay(now(), timeZone);
     const n = daysUntil(asDate(input.dueOn), today);
     if (n < -365 || n > 3 * 365) return fail("Enter a date within a year back and three years ahead.", "dueOn");
     const note = input.note?.trim().replace(/\s+/g, " ") || null;
@@ -153,7 +156,7 @@ export function createFirmAlertService({ db, now = () => new Date() }: { db: Pri
     if (!ctx) return fail("You're not part of a firm workspace.");
     const c = await db.trackedCase.findFirst({ where: { id: caseId, firmId: ctx.firm.id }, select: { id: true } });
     if (!c) return fail("Case not found.");
-    const v = cleanDeadline(input);
+    const v = cleanDeadline(input, ctx.firm.timeZone);
     if (!v.ok) return v;
     const open = await db.caseDeadline.count({ where: { caseId: c.id, doneAt: null } });
     if (open >= 20) return fail("A case can have up to 20 open deadlines.");
@@ -221,12 +224,12 @@ export function createFirmAlertService({ db, now = () => new Date() }: { db: Pri
       db.caseDeadline.findMany({ where: { firmId: ctx.firm.id, doneAt: null }, select, orderBy: { dueOn: "asc" }, take: 300 }),
       db.caseDeadline.findMany({ where: { firmId: ctx.firm.id, doneAt: { gte: new Date(t.getTime() - 30 * DAY) } }, select, orderBy: { doneAt: "desc" }, take: 100 }),
     ]);
-    return { ctx, today: easternDay(t), open, done };
+    return { ctx, today: easternDay(t, ctx.firm.timeZone), open, done };
   }
 
-  async function openDeadlineCount(firmId: string) {
-    const today = easternDay(now());
-    return db.caseDeadline.count({ where: { firmId, doneAt: null, dueOn: { lte: asDate(dayOfDate(new Date(asDate(today).getTime() + 7 * DAY))) } } });
+  async function openDeadlineCount(firm: { id: string; timeZone: string }) {
+    const today = easternDay(now(), firm.timeZone);
+    return db.caseDeadline.count({ where: { firmId: firm.id, doneAt: null, dueOn: { lte: asDate(dayOfDate(new Date(asDate(today).getTime() + 7 * DAY))) } } });
   }
 
   // ---- Settings (Owner/Admin) ----------------------------------------------------------------
@@ -242,11 +245,11 @@ export function createFirmAlertService({ db, now = () => new Date() }: { db: Pri
     await db.auditLog.create({ data: { firmId: ctx.firm.id, actorUserId: userId, action: "firm.alerts", targetType: "Firm", targetId: ctx.firm.id, metadata: { from: before, to: input } } });
     // Apply the new settings right away rather than at the next daily run.
     await raiseStuck({ id: ctx.firm.id, stuckAfterDays: input.stuckAfterDays });
-    await raiseDeadlines({ id: ctx.firm.id, deadlineLeadDays: input.deadlineLeadDays });
+    await raiseDeadlines({ id: ctx.firm.id, deadlineLeadDays: input.deadlineLeadDays, timeZone: ctx.firm.timeZone });
     return { ok: true };
   }
 
-  const today = () => easternDay(now());
+  const today = (timeZone?: string) => easternDay(now(), timeZone);
 
   return { today, raiseStuck, raiseDeadlines, runDaily, syncDeadline, addDeadline, setDeadlineDone, removeDeadline, caseDeadlines, firmDeadlines, openDeadlineCount, saveAlertSettings };
 }

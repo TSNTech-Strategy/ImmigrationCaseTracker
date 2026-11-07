@@ -119,6 +119,12 @@ export function describeAudit(action: string, m: Meta, target: string): string {
       const label = (v: unknown) => (v === "AUTO" ? "Automatic" : v === "REVIEW" ? "Review first" : "Off");
       return `Changed client emails from ${label(m.from)} to ${label(m.to)}`;
     }
+    case "case.assigned":
+      return `Assigned case ${t} to ${str(m.to) || "nobody"}`;
+    case "cases.exported":
+      return `Exported ${plural(m.rows, "case")} to CSV (with full receipt numbers)`;
+    case "firm.settings":
+      return `Changed firm settings (${(Array.isArray(m.fields) ? m.fields : []).join(", ") || "details"})`;
     case "deadline.added":
       return `Added a deadline on case ${t}: ${deadlineLabel(m.kind)} ${str(m.dueOn)}`;
     case "deadline.done":

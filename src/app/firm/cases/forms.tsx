@@ -57,7 +57,17 @@ function ConsentFields({ state }: { state: FormState }) {
   );
 }
 
-export function AddFirmCaseForm({ clients, clientId }: { clients: { id: string; displayName: string }[]; clientId?: string }) {
+export function AddFirmCaseForm({
+  clients,
+  clientId,
+  members,
+  defaultAssigneeId,
+}: {
+  clients: { id: string; displayName: string }[];
+  clientId?: string;
+  members: { id: string; name: string }[];
+  defaultAssigneeId: string;
+}) {
   const [state, action] = useActionState<FormState, FormData>(addFirmCaseAction, {});
   const err = state.fieldErrors?.clientId;
   return (
@@ -102,6 +112,22 @@ export function AddFirmCaseForm({ clients, clientId }: { clients: { id: string; 
         defaultValue={state.values?.receipt}
         error={state.fieldErrors?.receipt}
       />
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="field-assigneeId" className="text-sm font-medium">
+          Assigned to
+        </label>
+        <select id="field-assigneeId" name="assigneeId" defaultValue={state.values?.assigneeId ?? defaultAssigneeId} aria-describedby="field-assigneeId-hint" className={select}>
+          {members.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </select>
+        <p id="field-assigneeId-hint" className="text-xs text-[var(--muted)]">
+          Status changes, alerts and reminders for this case go to this person.
+        </p>
+        {state.fieldErrors?.assigneeId && <p className="text-sm text-[var(--danger)]">{state.fieldErrors.assigneeId}</p>}
+      </div>
       <Field
         label="Label (optional)"
         name="nickname"
