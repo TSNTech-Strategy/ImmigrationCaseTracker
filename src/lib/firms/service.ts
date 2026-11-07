@@ -1,3 +1,4 @@
+import { isTimeZone } from "./profile";
 import { createHash, randomBytes } from "node:crypto";
 import type { Firm, FirmMembership, FirmRole, PrismaClient } from "@prisma/client";
 import type { EmailDriver } from "@/lib/email";
@@ -30,8 +31,8 @@ export type FirmServiceDeps = {
   now?: () => Date;
 };
 
-type Fail = { ok: false; error: string };
-const fail = (error: string): Fail => ({ ok: false, error });
+type Fail = { ok: false; error: string; field?: string };
+const fail = (error: string, field?: string): Fail => ({ ok: false, error, ...(field ? { field } : {}) });
 
 const canManageTeam = (role: FirmRole) => role === "OWNER" || role === "ADMIN";
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
@@ -247,7 +248,30 @@ export function createFirmService({ db, mailer, siteUrl, now = () => new Date() 
     return { ok: true, self };
   }
 
-  return { getContext, createFirm, listTeam, invite, revokeInvite, previewInvite, acceptInvite, changeRole, removeMember };
+  /** The firm's name, time zone and default assignee for new cases (Owner/Admin). */
+  async function saveGeneral(userId: string, input: { name: string; timeZone: string; defaultAssigneeId: string | null }): Promise<{ ok: true } | Fail> {
+    const ctx = await getContext(userId);
+    if (!ctx || ctx.membership.role === "STAFF") return fail("Only an Owner or Admin can change firm settings.");
+    const name = input.name.trim().replace(/\s+/g, " ");
+    if (name.length < 2 || name.length > 80) return fail("Enter your firm's name (2 to 80 characters).", "name");
+    if (!isTimeZone(input.timeZone)) return fail("Choose a time zone from the list.", "timeZone");
+    if (input.defaultAssigneeId) {
+      const m = await db.firmMembership.findFirst({ where: { firmId: ctx.firm.id, userId: input.defaultAssigneeId, revokedAt: null }, select: { id: true } });
+      if (!m) return fail("Choose someone on your team.", "defaultAssigneeId");
+    }
+    const before = ctx.firm;
+    const changed = [
+      before.name !== name && "name",
+      before.timeZone !== input.timeZone && "time zone",
+      (before.defaultAssigneeId ?? null) !== input.defaultAssigneeId && "default assignee",
+    ].filter((x): x is string => Boolean(x));
+    if (!changed.length) return { ok: true };
+    await db.firm.update({ where: { id: ctx.firm.id }, data: { name, timeZone: input.timeZone, defaultAssigneeId: input.defaultAssigneeId } });
+    await audit(ctx.firm.id, userId, "firm.settings", "Firm", ctx.firm.id, { fields: changed });
+    return { ok: true };
+  }
+
+  return { getContext, saveGeneral, createFirm, listTeam, invite, revokeInvite, previewInvite, acceptInvite, changeRole, removeMember };
 }
 
 export type FirmService = ReturnType<typeof createFirmService>;

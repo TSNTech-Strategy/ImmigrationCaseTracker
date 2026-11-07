@@ -10,7 +10,19 @@ const NOT_SIGNED_IN: FormState = { error: "Your session has expired. Please sign
 
 function readClient(formData: FormData) {
   const get = (k: string) => String(formData.get(k) ?? "");
-  return { displayName: get("displayName"), email: get("email"), phone: get("phone"), externalRef: get("externalRef"), locale: get("locale"), updatesConsent: formData.get("updatesConsent") === "1" ? "1" : "" };
+  return {
+    firstName: get("firstName"),
+    lastName: get("lastName"),
+    dateOfBirth: get("dateOfBirth"),
+    countryOfBirth: get("countryOfBirth"),
+    citizenship: get("citizenship"),
+    aNumber: get("aNumber"),
+    email: get("email"),
+    phone: get("phone"),
+    externalRef: get("externalRef"),
+    locale: get("locale"),
+    updatesConsent: formData.get("updatesConsent") === "1" ? "1" : "",
+  };
 }
 const toInput = (v: ReturnType<typeof readClient>) => ({ ...v, updatesConsent: v.updatesConsent === "1" });
 

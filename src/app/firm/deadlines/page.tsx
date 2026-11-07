@@ -28,7 +28,7 @@ export default async function DeadlinesPage({ searchParams }: PageProps<"/firm/d
     ) : null;
 
   return (
-    <>
+    <div className="flex w-full max-w-3xl flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Deadlines</h1>
         <p className="text-sm text-[var(--muted)]">Every open deadline across your firm&apos;s cases. Add them on each case page; reminders arrive in Updates.</p>
@@ -50,6 +50,6 @@ export default async function DeadlinesPage({ searchParams }: PageProps<"/firm/d
           {group("Done in the last 30 days", done, "done-h")}
         </>
       )}
-    </>
+    </div>
   );
 }

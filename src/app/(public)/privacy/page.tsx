@@ -43,7 +43,9 @@ export default function Privacy() {
           cases.
         </li>
         <li>
-          <strong>Law firm clients:</strong> when a law firm uses CasePingo, it adds its clients&apos; names, contact details,
+          <strong>Law firm clients:</strong> when a law firm uses CasePingo, it adds its clients&apos; names, contact details, and
+          optionally date of birth, country of birth, citizenship and A-Number (date of birth and A-Number are stored encrypted, and lists
+          show only the last four A-Number digits),
           preferred language and whether the client agreed to get case updates. If the firm turns on client updates, we use that email
           address only to send status updates on the firm&apos;s behalf, and the firm can give its client a private status page link,
           which it can replace or turn off at any time. The firm decides what is added; clients can ask the firm, or us, to stop.
@@ -53,7 +55,10 @@ export default function Privacy() {
           and audit logs of account actions, and basic technical data such as IP address needed to keep the service secure.
         </li>
       </ul>
-      <p>We do not ask for passport numbers, A-numbers, documents or other immigration records.</p>
+      <p>
+        We do not ask individuals for passport numbers, A-numbers, documents or other immigration records. A law firm may record its own
+        clients&apos; A-Numbers and dates of birth in its workspace, as described above.
+      </p>
       {FEATURES.assistant && (
         <p>
           If you use the assistant, what you write and its replies are sent to our AI provider to produce the answers. If you ask from a

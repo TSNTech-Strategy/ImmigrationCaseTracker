@@ -53,7 +53,7 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
   const trial = ctx.firm.plan ? `Plan: ${FIRM_PLANS[ctx.firm.plan].label}.` : trialText(ctx.firm.trialEndsAt, new Date());
   const n = await firmCaseService().counts(ctx);
   return (
-    <>
+    <div className="flex w-full max-w-4xl flex-col gap-6">
       <div className="flex flex-col gap-1">
         <p className="text-sm text-[var(--muted)]">CasePingo Pro</p>
         <h1 className="text-2xl font-semibold tracking-tight">{ctx.firm.name}</h1>
@@ -86,7 +86,7 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
           Add a client
         </Link>
       </div>
-    </>
+    </div>
   );
 }
 

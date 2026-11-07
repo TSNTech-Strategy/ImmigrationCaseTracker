@@ -69,7 +69,7 @@ export default async function FirmBillingPage({ searchParams }: PageProps<"/firm
   };
 
   return (
-    <>
+    <div className="flex w-full max-w-3xl flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Billing</h1>
         <p className="text-sm text-[var(--muted)]">{firm.name}</p>
@@ -133,6 +133,6 @@ export default async function FirmBillingPage({ searchParams }: PageProps<"/firm
         Secure payment by Stripe. Sales tax is added where it applies; you can add your firm&apos;s tax ID at checkout. Cancel any time: your plan
         stays on until the end of the period you paid for.
       </p>
-    </>
+    </div>
   );
 }

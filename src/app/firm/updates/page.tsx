@@ -135,7 +135,7 @@ function UpdateCard({ u, tab, members }: { u: Item; tab: string; members: { id: 
           <span
             className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold ${u.overdue ? "bg-[var(--st-stop-bg)] text-[var(--st-stop)]" : "bg-[var(--st-action-bg)] text-[var(--st-action)]"}`}
           >
-            <span aria-hidden="true">{u.kind === "STUCK" ? "⏳" : "📅"}</span>
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
             {u.kind === "STUCK" ? "Stuck case" : u.overdue ? "Deadline overdue" : "Deadline coming up"}
           </span>
         )}
@@ -227,7 +227,7 @@ export default async function UpdatesPage({ searchParams }: PageProps<"/firm/upd
   const count = (t: UpdatesTab) => (t === "open" ? counts.open : t === "mine" ? counts.mine : t === "snoozed" ? counts.snoozed : null);
 
   return (
-    <>
+    <div className="flex w-full max-w-3xl flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Updates</h1>
@@ -239,7 +239,7 @@ export default async function UpdatesPage({ searchParams }: PageProps<"/firm/upd
             <>
               {" · "}
               <Link href="/firm/updates/settings" className="font-medium text-[var(--accent)] hover:underline">
-                Settings
+                Change
               </Link>
             </>
           )}
@@ -279,6 +279,6 @@ export default async function UpdatesPage({ searchParams }: PageProps<"/firm/upd
           ))}
         </ul>
       )}
-    </>
+    </div>
   );
 }

@@ -88,7 +88,7 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
   async function recordStatusChange(eventId: string): Promise<{ updateId: string | null; clientUpdate?: ClientUpdateState }> {
     const event = await db.caseStatusEvent.findUnique({
       where: { id: eventId },
-      select: { id: true, caseId: true, firstObservedAt: true, case: { select: { firmId: true, client: true, firm: { select: { status: true, clientUpdates: true } } } } },
+      select: { id: true, caseId: true, firstObservedAt: true, case: { select: { firmId: true, assigneeId: true, client: true, firm: { select: { status: true, clientUpdates: true } } } } },
     });
     const firmId = event?.case.firmId;
     if (!event || !firmId || event.case.firm?.status !== "ACTIVE") return { updateId: null };
@@ -101,7 +101,7 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
     let update = await db.firmUpdate.findUnique({ where: { eventId } });
     if (!update) {
       try {
-        update = await db.firmUpdate.create({ data: { firmId, caseId: event.caseId, eventId, clientUpdate: initial } });
+        update = await db.firmUpdate.create({ data: { firmId, caseId: event.caseId, eventId, clientUpdate: initial, assignedToId: event.case.assigneeId } });
       } catch (err) {
         // Another run created it a moment ago.
         if ((err as { code?: string }).code !== "P2002") throw err;
@@ -203,7 +203,7 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
         const client = u.case.client;
         const preview = (u.clientUpdate === "PENDING" || u.clientUpdate === "FAILED") && canEmail(client) && u.event ? buildClientUpdate(ctx.firm, client, u.case, u.event) : null;
         const caseView = { id: u.case.id, receiptMasked: u.case.receiptMasked, nickname: u.case.nickname, formType: u.case.formType, statusTitleEn: u.case.statusTitleEn };
-        const today = easternDay(t);
+        const today = easternDay(t, ctx.firm.timeZone);
         const d = u.deadline;
         const overdue = Boolean(d && !d.doneAt && daysUntil(d.dueOn, today) < 0);
         const title = u.event

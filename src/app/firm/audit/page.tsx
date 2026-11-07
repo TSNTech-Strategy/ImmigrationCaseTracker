@@ -20,7 +20,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/firm/audit
   const field = "rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2";
 
   return (
-    <>
+    <div className="flex w-full max-w-4xl flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
@@ -126,6 +126,6 @@ export default async function AuditPage({ searchParams }: PageProps<"/firm/audit
       <p className="text-xs text-[var(--muted)]">
         The export includes up to {AUDIT_EXPORT_MAX.toLocaleString("en-US")} entries matching your filters, and is itself recorded here.
       </p>
-    </>
+    </div>
   );
 }

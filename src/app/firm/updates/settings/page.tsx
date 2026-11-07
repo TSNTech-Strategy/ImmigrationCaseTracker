@@ -17,7 +17,7 @@ export default async function ClientUpdateSettingsPage() {
   const { firm } = ctx;
   const samples = firmUpdateService().sampleEmails(firm);
   return (
-    <>
+    <div className="flex w-full max-w-3xl flex-col gap-6">
       <div className="flex flex-col gap-1">
         <Link href="/firm/updates" className="text-sm font-medium text-[var(--accent)] hover:underline">
           ← Updates
@@ -56,6 +56,6 @@ export default async function ClientUpdateSettingsPage() {
         </div>
         <p className="text-xs text-[var(--muted)]">Have a lawyer on your team read the wording before you turn on Automatic.</p>
       </section>
-    </>
+    </div>
   );
 }

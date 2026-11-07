@@ -27,6 +27,7 @@ export async function setDeadlineDoneAction(formData: FormData) {
   if (!user) redirect("/login?next=/firm/deadlines");
   const done = formData.get("done") === "1";
   const r = await firmAlertService().setDeadlineDone(user.id, String(formData.get("deadlineId") ?? ""), done);
+  refresh(); // the workspace tabs (badges) re-read their counts
   redirect(back(formData, r.ok ? (done ? "deadline-done" : "deadline-reopened") : "deadline-error"));
 }
 
@@ -34,5 +35,6 @@ export async function removeDeadlineAction(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/firm/deadlines");
   const r = await firmAlertService().removeDeadline(user.id, String(formData.get("deadlineId") ?? ""));
+  refresh(); // the workspace tabs (badges) re-read their counts
   redirect(back(formData, r.ok ? "deadline-removed" : "deadline-error"));
 }

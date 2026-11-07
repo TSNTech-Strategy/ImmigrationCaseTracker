@@ -15,7 +15,7 @@ export default async function ImportPage() {
   if (!ctx) redirect("/firm");
   const clients = await prisma.client.findMany({ where: { firmId: ctx.firm.id, archivedAt: null }, select: { displayName: true }, orderBy: { displayName: "asc" }, take: 500 });
   return (
-    <>
+    <div className="flex w-full max-w-4xl flex-col gap-6">
       <Link href="/firm/cases" className="text-sm underline underline-offset-2">
         ← Cases
       </Link>
@@ -27,6 +27,6 @@ export default async function ImportPage() {
         </p>
       </div>
       <ImportForm maxRows={IMPORT_MAX_ROWS} clients={clients.map((c) => c.displayName)} />
-    </>
+    </div>
   );
 }

@@ -7,6 +7,7 @@ import { CopyLink } from "@/components/copy-link";
 import { LocalTime } from "@/components/local-time";
 import { ArchiveClientForm, EditClientForm } from "../forms";
 import { setClientPortalAction } from "../actions";
+import { COUNTRIES, countryName, maskANumber } from "@/lib/firms/profile";
 import { FirmCaseList } from "../../cases/case-list";
 
 export const metadata: Metadata = { title: "Client · CasePingo" };
@@ -34,6 +35,41 @@ function PortalButton({ clientId, portal, children, primary }: { clientId: strin
   );
 }
 
+type ClientForForm = {
+  displayName: string;
+  firstName: string | null;
+  lastName: string | null;
+  dateOfBirth: string | null;
+  countryOfBirth: string | null;
+  citizenship: string | null;
+  aNumber: string | null;
+  email: string | null;
+  phone: string | null;
+  externalRef: string | null;
+  locale: string;
+  updatesConsentAt: Date | null;
+};
+
+/** Form values; clients added before first/last names existed get theirs split from the full name. */
+function initialValues(c: ClientForForm) {
+  const parts = c.displayName.trim().split(/\s+/);
+  const first = c.firstName ?? (parts.length > 1 ? parts.slice(0, -1).join(" ") : c.displayName);
+  const last = c.lastName ?? (parts.length > 1 ? parts[parts.length - 1]! : "");
+  return {
+    firstName: first,
+    lastName: last,
+    dateOfBirth: c.dateOfBirth ?? "",
+    countryOfBirth: c.countryOfBirth ?? "",
+    citizenship: c.citizenship ?? "",
+    aNumber: c.aNumber ?? "",
+    email: c.email ?? "",
+    phone: c.phone ?? "",
+    externalRef: c.externalRef ?? "",
+    locale: c.locale,
+    updatesConsent: Boolean(c.updatesConsentAt),
+  };
+}
+
 export default async function ClientPage({ params, searchParams }: PageProps<"/firm/clients/[id]">) {
   const { id } = await params;
   const user = await requireUser(`/firm/clients/${id}`);
@@ -47,7 +83,7 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
   const canArchive = ctx.membership.role !== "STAFF";
 
   return (
-    <>
+    <div className="flex w-full max-w-3xl flex-col gap-6">
       <Link href="/firm/clients" className="text-sm underline underline-offset-2">
         ← Clients
       </Link>
@@ -73,6 +109,24 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
         </p>
       )}
 
+      <dl className="grid gap-x-6 gap-y-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm sm:grid-cols-3">
+        {[
+          ["Country of birth", countryName(client.countryOfBirth)],
+          ["Citizenship", countryName(client.citizenship)],
+          ["A-Number", maskANumber(client.aNumberLast4)],
+          ["Email", client.email],
+          ["Phone", client.phone],
+          ["Language", client.locale === "es" ? "Español" : "English"],
+          ["Reference", client.externalRef],
+          ["Case updates by email", client.updatesConsentAt ? "Agreed" : "Not agreed"],
+        ].map(([k, val]) => (
+          <div key={k} className="min-w-0">
+            <dt className="text-[var(--muted)]">{k}</dt>
+            <dd className="truncate font-medium">{val ?? <span className="font-normal text-[var(--muted)]">Not recorded</span>}</dd>
+          </div>
+        ))}
+      </dl>
+
       <section aria-labelledby="client-cases-h" className="flex flex-col gap-3">
         <h2 id="client-cases-h" className="text-lg font-semibold">
           Cases
@@ -86,7 +140,8 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
         </h2>
         <EditClientForm
           clientId={client.id}
-          initial={{ displayName: client.displayName, email: client.email, phone: client.phone, externalRef: client.externalRef, locale: client.locale, updatesConsent: Boolean(client.updatesConsentAt) }}
+          initial={initialValues(client)}
+          countries={COUNTRIES}
         />
         {client.updatesConsentAt && (
           <p className="text-xs text-[var(--muted)]">
@@ -139,6 +194,6 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
           <ArchiveClientForm clientId={client.id} archived={Boolean(client.archivedAt)} />
         </section>
       )}
-    </>
+    </div>
   );
 }

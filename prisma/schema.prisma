@@ -58,6 +58,8 @@ model User {
   memberships            FirmMembership[]
   ownedCases             TrackedCase[]           @relation("CaseOwner")
   addedCases             TrackedCase[]           @relation("CaseAddedBy")
+  assignedCases          TrackedCase[]           @relation("CaseAssignee")
+  defaultAssigneeOf      Firm[]                  @relation("FirmDefaultAssignee")
   clientsCreated         Client[]                @relation("ClientCreatedBy")
   firmUpdatesAssigned    FirmUpdate[]            @relation("FirmUpdateAssignee")
   firmUpdatesResolved    FirmUpdate[]            @relation("FirmUpdateResolver")
@@ -123,6 +125,11 @@ model Firm {
   stuckAfterDays    Int              @default(90)
   /// Remind in Updates this many days before a case deadline.
   deadlineLeadDays  Int              @default(7)
+  /// The firm's time zone (IANA name): "today" for deadlines and reminders.
+  timeZone          String           @default("America/New_York")
+  /// New cases go to this member unless someone else is chosen. Null: whoever adds the case.
+  defaultAssigneeId String?
+  defaultAssignee   User?            @relation("FirmDefaultAssignee", fields: [defaultAssigneeId], references: [id], onDelete: SetNull)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
@@ -182,6 +189,16 @@ model Client {
   firmId           String
   firm             Firm      @relation(fields: [firmId], references: [id], onDelete: Cascade)
   displayName      String
+  firstName        String?
+  lastName         String?
+  /// Encrypted (AES-GCM): "YYYY-MM-DD".
+  dateOfBirthEnc   String?
+  /// ISO 3166 two-letter codes.
+  countryOfBirth   String?
+  citizenship      String?
+  /// Encrypted (AES-GCM): the nine-digit A-Number. Only the last 4 digits are kept in the clear, for display.
+  aNumberEnc       String?
+  aNumberLast4     String?
   email            String?
   phone            String?
   /// The firm's own reference for this client (matter number etc.).
@@ -238,6 +255,9 @@ model TrackedCase {
 
   addedById String?
   addedBy   User?   @relation("CaseAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+  /// The team member responsible for this case: its updates and alerts go to them.
+  assigneeId String?
+  assignee   User?   @relation("CaseAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
 
   /// AES-256-GCM ciphertext of the normalized receipt number.
   receiptEncrypted String
@@ -301,6 +321,7 @@ model TrackedCase {
   @@index([trackingStatus, nextCheckAt])
   @@index([clientId])
   @@index([statusSource, formType])
+  @@index([firmId, assigneeId])
 }
 
 enum ConsentBasis {

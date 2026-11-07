@@ -14,7 +14,7 @@ export async function addFirmCaseAction(_prev: FormState, formData: FormData): P
   const user = await getCurrentUser();
   if (!user) return NOT_SIGNED_IN;
   const get = (k: string) => String(formData.get(k) ?? "");
-  const values = { clientId: get("clientId"), receipt: get("receipt"), nickname: get("nickname"), basis: get("basis"), evidenceRef: get("evidenceRef") };
+  const values = { clientId: get("clientId"), receipt: get("receipt"), nickname: get("nickname"), basis: get("basis"), evidenceRef: get("evidenceRef"), assigneeId: get("assigneeId") };
 
   const fieldErrors: Record<string, string> = {};
   const b = basis.safeParse(values.basis);
@@ -24,7 +24,7 @@ export async function addFirmCaseAction(_prev: FormState, formData: FormData): P
   if (formData.get("attest") !== "on") fieldErrors.attest = "Please confirm the statement to continue.";
   if (Object.keys(fieldErrors).length || !b.success) return { fieldErrors, values };
 
-  const r = await firmCaseService().addCase(user.id, { ...values, basis: b.data });
+  const r = await firmCaseService().addCase(user.id, { ...values, basis: b.data, assigneeId: values.assigneeId || null });
   if (!r.ok) return r.field ? { fieldErrors: { [r.field]: r.error }, values } : { error: r.error, values };
   redirect(`/firm/cases/${r.caseId}?notice=added`);
 }
@@ -67,4 +67,18 @@ export async function removeFirmCaseAction(_prev: FormState, formData: FormData)
   const r = await firmCaseService().removeCase(user.id, String(formData.get("caseId") ?? ""));
   if (!r.ok) return { error: r.error };
   redirect("/firm/cases?notice=removed");
+}
+
+/** Reassign a case from the case list's quick view or the case page; back to where it was done. */
+export async function setCaseAssigneeAction(formData: FormData) {
+  const user = await getCurrentUser();
+  const caseId = String(formData.get("caseId") ?? "");
+  const backRaw = String(formData.get("back") ?? "");
+  const back = backRaw.startsWith("/firm/") && !backRaw.startsWith("//") ? backRaw : `/firm/cases/${encodeURIComponent(caseId)}`;
+  if (!user) redirect(`/login?next=${encodeURIComponent(back)}`);
+  const r = await firmCaseService().setAssignee(user.id, caseId, String(formData.get("assigneeId") ?? "") || null);
+  const url = new URL(back, "http://x");
+  url.searchParams.set("notice", r.ok ? "assigned" : "assign-error");
+  refresh(); // the workspace tabs (badges) re-read their counts
+  redirect(`${url.pathname}${url.search}`);
 }
