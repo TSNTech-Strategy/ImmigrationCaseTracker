@@ -62,6 +62,8 @@ model User {
   firmUpdatesAssigned    FirmUpdate[]            @relation("FirmUpdateAssignee")
   firmUpdatesResolved    FirmUpdate[]            @relation("FirmUpdateResolver")
   firmUpdatesSent        FirmUpdate[]            @relation("FirmUpdateSender")
+  deadlinesCreated       CaseDeadline[]          @relation("DeadlineCreatedBy")
+  deadlinesDone          CaseDeadline[]          @relation("DeadlineDoneBy")
   consentsGranted        CaseConsent[]           @relation("ConsentGrantedBy")
   consentsWithdrawn      CaseConsent[]           @relation("ConsentWithdrawnBy")
   invitationsSent        FirmInvitation[]
@@ -117,6 +119,10 @@ model Firm {
   replyToEmail      String?
   /// One line shown to clients on how to reach the firm (phone, hours).
   clientContactLine String?
+  /// Flag a case in Updates when USCIS hasn't changed it in this many days (0 = off).
+  stuckAfterDays    Int              @default(90)
+  /// Remind in Updates this many days before a case deadline.
+  deadlineLeadDays  Int              @default(7)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
@@ -129,6 +135,7 @@ model Firm {
   subscriptions    Subscription[]
   tags             FirmTag[]
   updates          FirmUpdate[]
+  deadlines        CaseDeadline[]
 }
 
 enum FirmPlan {
@@ -283,6 +290,7 @@ model TrackedCase {
   tags        TrackedCaseTag[]
   firmTags    FirmCaseTag[]
   firmUpdates FirmUpdate[]
+  deadlines   CaseDeadline[]
 
   @@unique([ownerUserId, receiptDigest])
   @@unique([firmId, receiptDigest])
@@ -681,8 +689,16 @@ model FirmUpdate {
   caseId            String
   /// Composite key: the case always belongs to the same firm.
   case              TrackedCase       @relation(fields: [caseId, firmId], references: [id, firmId], onDelete: Cascade)
-  eventId           String            @unique
-  event             CaseStatusEvent   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  /// A status change (event), a case with no change for a long time (stuck), or a deadline reminder.
+  kind              FirmUpdateKind    @default(STATUS_CHANGE)
+  eventId           String?           @unique
+  event             CaseStatusEvent?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  deadlineId        String?
+  deadline          CaseDeadline?     @relation(fields: [deadlineId], references: [id], onDelete: Cascade)
+  /// One alert per situation: "stuck:<case>:<status fingerprint>" or "deadline:<id>:soon|overdue".
+  alertKey          String?           @unique
+  /// Days without a USCIS change when a stuck alert was raised.
+  stuckDays         Int?
   state             FirmUpdateState   @default(OPEN)
   assignedToId      String?
   assignedTo        User?             @relation("FirmUpdateAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
@@ -701,6 +717,45 @@ model FirmUpdate {
 
   @@index([firmId, state, createdAt])
   @@index([caseId])
+  @@index([deadlineId])
+}
+
+/// A date the firm must not miss on a case (from a USCIS notice or the firm's own plan). Entered by the firm.
+model CaseDeadline {
+  id          String       @id @default(cuid())
+  firmId      String
+  firm        Firm         @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  caseId      String
+  case        TrackedCase  @relation(fields: [caseId, firmId], references: [id, firmId], onDelete: Cascade)
+  kind        DeadlineKind
+  dueOn       DateTime     @db.Date
+  note        String?
+  doneAt      DateTime?
+  doneById    String?
+  doneBy      User?        @relation("DeadlineDoneBy", fields: [doneById], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   User?        @relation("DeadlineCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  updates     FirmUpdate[]
+
+  @@index([firmId, doneAt, dueOn])
+  @@index([caseId])
+}
+
+enum FirmUpdateKind {
+  STATUS_CHANGE
+  STUCK
+  DEADLINE
+}
+
+enum DeadlineKind {
+  RFE_RESPONSE
+  NOID_RESPONSE
+  INTERVIEW
+  BIOMETRICS
+  FILING
+  OTHER
 }
 
 enum ClientUpdateMode {

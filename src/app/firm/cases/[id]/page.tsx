@@ -10,7 +10,10 @@ import { caseJourney } from "@/lib/journeys";
 import { LocalTime } from "@/components/local-time";
 import { ModeBanner } from "@/components/mode-banner";
 import { requireUser } from "@/lib/auth/session";
-import { firmCaseService, firmTagService } from "@/lib/firms";
+import { firmAlertService, firmCaseService, firmTagService } from "@/lib/firms";
+import { DEADLINE_KINDS, suggestedDeadline } from "@/lib/firms/alerts";
+import { AddDeadlineForm } from "../../deadlines/add-deadline-form";
+import { DEADLINE_NOTICES, DeadlineList } from "../../deadlines/deadline-list";
 import { CaseTagsPanel } from "@/components/tag-forms";
 import { flatTags } from "@/lib/cases/tags";
 import { FIRM_TAG_LIMITS } from "@/lib/firms/tags";
@@ -25,6 +28,7 @@ const NOTICES: Record<string, string> = {
   added: "Case added. We checked it with USCIS right away.",
   "consent-withdrawn": "Consent withdrawn. We've stopped checking this case.",
   "consent-recorded": "Consent recorded. Automatic checks are back on.",
+  ...DEADLINE_NOTICES,
 };
 const who = (u: { name: string | null; email: string } | null) => (u ? (u.name ?? u.email) : "a former team member");
 
@@ -41,6 +45,11 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
   const active = c.consents.find((x) => !x.withdrawnAt);
   const canRemove = ctx.membership.role !== "STAFF";
   const journey = caseJourney(c);
+  const alerts = firmAlertService();
+  const deadlines = await alerts.caseDeadlines(ctx.firm.id, c.id);
+  const today = alerts.today();
+  const suggested = suggestedDeadline(c.statusTitleEn);
+  const showPrompt = suggested && !deadlines.some((d) => d.kind === suggested && !d.doneAt);
 
   return (
     <>
@@ -89,6 +98,23 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
         }
       />
       <LineMapSection map={journey.lineMap} es={es} />
+      <section aria-labelledby="deadlines-h" className="flex scroll-mt-24 flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+        <h2 id="deadlines-h" className="text-lg font-semibold">
+          Deadlines
+        </h2>
+        {showPrompt && (
+          <p role="note" className="rounded-md border border-[var(--st-action)] bg-[var(--st-action-bg)] px-3 py-2 text-sm">
+            {DEADLINE_KINDS[suggested].prompt}
+          </p>
+        )}
+        {deadlines.length > 0 ? (
+          <DeadlineList items={deadlines} today={today} caseId={c.id} from="case" />
+        ) : (
+          !showPrompt && <p className="text-sm text-[var(--muted)]">Add dates you can&apos;t miss, like an RFE response or an interview. Your team gets a reminder in Updates before each one.</p>
+        )}
+        <AddDeadlineForm caseId={c.id} kinds={Object.entries(DEADLINE_KINDS).map(([value, k]) => ({ value, label: k.label }))} suggested={suggested} defaultOpen={Boolean(showPrompt) || deadlines.length === 0} />
+        <p className="text-xs text-[var(--muted)]">Use the date on the USCIS notice. CasePingo doesn&apos;t calculate legal deadlines.</p>
+      </section>
       <InsightsLink href={`/firm/cases/${c.id}/insights`} es={es} />
       {checklistForForm(c.formType) && <ChecklistLink checklist={checklistForForm(c.formType)!} />}
       <CaseTagsPanel

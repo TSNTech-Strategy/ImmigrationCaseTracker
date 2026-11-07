@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const LINKS = [
   { href: "/firm", label: "Overview" },
   { href: "/firm/updates", label: "Updates" },
+  { href: "/firm/deadlines", label: "Deadlines" },
   { href: "/firm/cases", label: "Cases" },
   { href: "/firm/clients", label: "Clients" },
   { href: "/firm/tags", label: "Tags" },
@@ -14,7 +15,7 @@ const LINKS = [
   { href: "/firm/billing", label: "Billing", managersOnly: true },
 ] as const;
 
-export function FirmNav({ firmName, isManager, openUpdates = 0 }: { firmName: string; isManager: boolean; openUpdates?: number }) {
+export function FirmNav({ firmName, isManager, openUpdates = 0, dueDeadlines = 0 }: { firmName: string; isManager: boolean; openUpdates?: number; dueDeadlines?: number }) {
   const path = usePathname();
   const active = (href: string) => (href === "/firm" ? path === "/firm" : path === href || path.startsWith(`${href}/`));
   return (
@@ -27,6 +28,12 @@ export function FirmNav({ firmName, isManager, openUpdates = 0 }: { firmName: st
           className="rounded-md px-3 py-1.5 hover:bg-[var(--surface)] aria-[current=page]:bg-[var(--surface)] aria-[current=page]:font-semibold aria-[current=page]:text-[var(--accent)]"
         >
           {l.label}
+          {l.href === "/firm/deadlines" && dueDeadlines > 0 && (
+            <span className="ml-1.5 rounded-full bg-[var(--st-action-bg)] px-1.5 py-0.5 text-xs font-semibold tabular-nums text-[var(--st-action)]">
+              {dueDeadlines > 99 ? "99+" : dueDeadlines}
+              <span className="sr-only"> due within a week</span>
+            </span>
+          )}
           {l.href === "/firm/updates" && openUpdates > 0 && (
             <span className="ml-1.5 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-xs font-semibold tabular-nums text-[var(--accent-fg)]">
               {openUpdates > 99 ? "99+" : openUpdates}

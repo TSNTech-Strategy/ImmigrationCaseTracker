@@ -161,4 +161,31 @@ describe.skipIf(!url)("firm CSV import and filters", () => {
     const ctx = (await svc.listCases(a.owner))!.ctx;
     expect(await svc.counts(ctx)).toMatchObject({ cases: 2, changed: 1, failed: 1, unconsented: 1, unchecked: 1 });
   });
+
+  it("reads other tools' exports: first/last name, unlabeled receipt column, several receipts in a cell, tabs", async () => {
+    const a = await mkFirm("ImpExport");
+    // A Docketwise/Clio-style export: no "receipt" header, names split in two, extra columns ignored.
+    const tsv = [
+      "Display Number\tFirst Name\tLast Name\tMatter Title\tUSCIS Numbers\tPractice Area",
+      "00012-Kim\tJi-woo\tKim\tI-485 adjustment\tIOE0912345601, IOE0912345602\tImmigration",
+      "00013-Ray\tSam\tRay\tN-400\tWAC 23 123 45603\tImmigration",
+      "00014-Bad\tNo\tReceipt\tConsult\t\tImmigration",
+    ].join("\n");
+    const p = await imp.preview(a.owner, tsv, g28);
+    if (!p.ok) throw new Error(p.error);
+    expect(p.rows.map((r) => [r.line, r.clientName, r.clientRef, r.label, r.receiptMasked, r.error === null])).toEqual([
+      [2, "Ji-woo Kim", "00012-Kim", "I-485 adjustment", "IOE*******601", true],
+      [2, "Ji-woo Kim", "00012-Kim", "I-485 adjustment", "IOE*******602", true],
+      [3, "Sam Ray", "00013-Ray", "N-400", "WAC*******603", true],
+      [4, "No Receipt", "00014-Bad", "Consult", null, false],
+    ]);
+    expect(p).toMatchObject({ toAdd: 3, newClients: 2, errors: 1 });
+    const r = await imp.run(a.owner, tsv, g28);
+    expect(r).toMatchObject({ ok: true, added: 3, newClients: 2, skipped: 1 });
+    const kim = await db.client.findFirstOrThrow({ where: { firmId: a.firmId, externalRef: "00012-Kim" }, include: { _count: { select: { cases: true } } } });
+    expect(kim).toMatchObject({ displayName: "Ji-woo Kim", _count: { cases: 2 } });
+
+    const none = await imp.preview(a.owner, "Name,Notes\nAna,hello\n", g28);
+    expect(none).toMatchObject({ ok: false, error: expect.stringMatching(/couldn't find receipt numbers/) });
+  });
 });

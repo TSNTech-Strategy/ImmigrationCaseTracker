@@ -1,3 +1,4 @@
+import { createFirmAlertService } from "./alerts";
 import "server-only";
 import { prisma } from "@/lib/db";
 import { getEmailDriver } from "@/lib/email";
@@ -38,4 +39,9 @@ export function firmTagService() {
 /** The status desk: Updates inbox, client updates and client status page links. */
 export function firmUpdateService() {
   return createFirmUpdateService({ db: prisma, mailer: getEmailDriver(), siteUrl: getSiteUrl() });
+}
+
+/** Stuck-case alerts and case deadlines. */
+export function firmAlertService() {
+  return createFirmAlertService({ db: prisma });
 }
