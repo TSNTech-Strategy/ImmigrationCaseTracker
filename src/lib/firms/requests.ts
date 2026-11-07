@@ -5,6 +5,7 @@ import { documentRequestEmail, withFirmLogo } from "@/lib/email/templates";
 import { sign } from "@/lib/crypto";
 import { checklistForForm, checklistItems } from "@/lib/checklists";
 import { logoPath } from "./branding";
+import { inboxOwner } from "./team";
 import { findFirmContext } from "./service";
 import type { FirmDocumentService } from "./documents";
 import { easternDay, formatDue } from "./alerts";
@@ -275,7 +276,7 @@ export function createDocumentRequestService({ db, mailer, siteUrl, docs, now = 
     await db.documentRequestItem.update({ where: { id: item.id }, data: { status: "UPLOADED", rejectReason: null } });
     // The firm's Inbox: to the case's assignee, else whoever made the request.
     const c = r.caseId ? await db.trackedCase.findUnique({ where: { id: r.caseId }, select: { assigneeId: true } }) : null;
-    await db.firmUpdate.create({ data: { firmId: r.firmId, caseId: r.caseId, kind: "DOCUMENT", requestId: r.id, alertKey: `request:${r.id}:upload:${saved.id}`, assignedToId: c?.assigneeId ?? r.createdById } });
+    await db.firmUpdate.create({ data: { firmId: r.firmId, caseId: r.caseId, kind: "DOCUMENT", requestId: r.id, alertKey: `request:${r.id}:upload:${saved.id}`, assignedToId: await inboxOwner(db, r.firmId, c?.assigneeId ?? r.createdById, now()) } });
     await audit(r.firmId, null, "request.client_uploaded", r.id, { title: r.title, item: item.label, file: saved.name });
     return { ok: true, name: saved.name };
   }

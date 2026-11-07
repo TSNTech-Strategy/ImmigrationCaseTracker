@@ -152,6 +152,8 @@ export function describeAudit(action: string, m: Meta, target: string): string {
       return `Downloaded "${str(m.name)}"`;
     case "document.client_downloaded":
       return `The client opened "${str(m.name)}" from their status page`;
+    case "member.title":
+      return m.title ? `Set ${str(m.member)}'s title to ${str(m.title)}` : `Removed ${str(m.member)}'s title`;
     case "firm.logo_updated":
       return "Uploaded a new firm logo";
     case "firm.logo_removed":

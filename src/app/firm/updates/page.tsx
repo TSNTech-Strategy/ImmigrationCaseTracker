@@ -252,10 +252,11 @@ function UpdateCard({ u, tab, members }: { u: Item; tab: string; members: { id: 
 export default async function UpdatesPage({ searchParams }: PageProps<"/firm/updates">) {
   const user = await requireUser("/firm/updates");
   const sp = await searchParams;
-  const tab = (typeof sp.tab === "string" && sp.tab in UPDATES_TABS ? sp.tab : "open") as UpdatesTab;
-  const data = await firmUpdateService().list(user.id, tab);
+  const requested = typeof sp.tab === "string" && sp.tab in UPDATES_TABS ? (sp.tab as UpdatesTab) : undefined;
+  // Without a tab, the Inbox opens where this person chose (Settings › My notifications).
+  const data = await firmUpdateService().list(user.id, requested);
   if (!data) redirect("/firm");
-  const { ctx, counts, members, items } = data;
+  const { ctx, counts, members, items, tab } = data;
   const isManager = ctx.membership.role !== "STAFF";
   const done = typeof sp.done === "string" ? DONE[sp.done] : undefined;
   const error = typeof sp.error === "string" ? (ERRORS[sp.error] ?? ERRORS.invalid) : undefined;
@@ -294,7 +295,7 @@ export default async function UpdatesPage({ searchParams }: PageProps<"/firm/upd
         {(Object.keys(UPDATES_TABS) as UpdatesTab[]).map((t) => (
           <Link
             key={t}
-            href={t === "open" ? "/firm/updates" : `/firm/updates?tab=${t}`}
+            href={`/firm/updates?tab=${t}`}
             aria-current={t === tab ? "page" : undefined}
             className={`flex-1 rounded-md px-3 py-1.5 text-center text-sm font-semibold ${t === tab ? "bg-[var(--surface)] shadow-[var(--shadow)]" : "text-[var(--muted)] hover:text-[var(--foreground)]"}`}
           >
