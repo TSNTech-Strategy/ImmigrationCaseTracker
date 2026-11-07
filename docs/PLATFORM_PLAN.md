@@ -71,7 +71,7 @@ The order a firm meets the product: set up, bring in clients and cases, keep the
 | 5 | Inbox | Status changes, stuck cases, deadline and task reminders, document uploads; assign, snooze, done; "assigned to me" or "whole firm" | Built (later phases add task and document items) |
 | 6 | Tasks and calendar | My tasks and team tasks; list and calendar views; status, type, priority, assignee, due date; linked to a case, client or matter; comments and @mentions | Built (Phase 2B); matter link in Phase 2C |
 | 7 | Matters and groups | Group cases by family, employer, lawsuit or custom; filter every page by matter | Built (Phase 2C) |
-| 8 | Documents | Upload files to a case or client; kind, visibility (internal or shared with the client), size, uploaded by; search and filters | Built (Phase 3A) |
+| 8 | Documents | Upload files to a case or client; kind, visibility (internal or shared with the client), size, uploaded by; search and filters | Built (Phase 3A); uploads checked for harmful content (built-in checks, Cloudmersive malware scan when its key is set) |
 | 9 | Document requests | Firm builds a request from the case-type checklist (or its own list), adds a due date and message; client gets a link by email (or the firm copies it into its own text or WhatsApp) and uploads from a phone; firm accepts or asks again; reminders; progress on case and client pages | Built (Phase 3B) |
 | 10 | Client portal | Client's status page plus open document requests, uploads, firm contact; English and Spanish; firm logo | Built (Phase 4) |
 | 11 | Dashboard | Case volume by form and category, status overview, cases by assignee, days waiting, stuck cases, upcoming deadlines, open document requests; filters by date, assignee, matter | Built (Phase 2A; matter filter Phase 2C; open requests and CSV reports Phase 5) |
@@ -137,7 +137,6 @@ Every phase: database migration with row-level security, server logic with datab
 |---|---|---|
 | Google Calendar | Google OAuth app and verification | Read-only view of meetings beside tasks |
 | Outlook calendar | Microsoft app registration | Same as Google |
-| File scanning | Malware scanning service for uploads | Before Phase 3 goes to all firms |
 | Consular (CEAC) and DOL tracking | An official data source or API | Not built while the only way is scraping |
 | E-signature | Provider such as Dropbox Sign | For engagement letters, later |
 
