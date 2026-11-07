@@ -148,6 +148,12 @@ export default function Privacy() {
         Remove any case from its page. To delete everything, use <strong>Settings → Delete account</strong>; your account, cases,
         history and consent records are deleted immediately. You can also email {SITE.contactEmail}.
       </p>
+      <p>
+        Law firms: an Owner can download everything the firm has in CasePingo from <strong>Settings → Legal &amp; data</strong>, and
+        delete the whole workspace there. Deletion happens 14 days after it is requested (the firm can cancel it until then) and removes
+        the firm&apos;s clients, cases, documents and their files, tasks, requests and logs. A law firm&apos;s client can ask the firm, or us,
+        to remove their information.
+      </p>
 
       <h2>Data breaches</h2>
       <p>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth/session";
-import { firmDashboardService, firmService } from "@/lib/firms";
+import { firmDashboardService, firmDataService, firmService } from "@/lib/firms";
 import { BarList, ChartCard, StatTile } from "@/components/dashboard-charts";
 import { LocalTime } from "@/components/local-time";
 import { btn, btnPrimary, control } from "@/components/workspace-ui";
@@ -73,6 +73,7 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
   if (!d) return null;
   const { ctx } = team;
   const trial = ctx.firm.plan ? null : trialText(ctx.firm.trialEndsAt, new Date());
+  const deletion = await firmDataService().pendingDeletion(ctx.firm.id);
   const k = d.kpis;
   const filtered = Boolean(d.filters.assignee || d.filters.from || d.filters.to || d.filters.matter);
   const qs = new URLSearchParams(Object.entries(d.filters).filter(([, v]) => v)).toString();
@@ -105,6 +106,14 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
         </p>
       )}
       {trial && <p className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm">{trial}</p>}
+      {deletion && (
+        <p role="alert" className="rounded-md border border-[var(--danger)] px-3 py-2 text-sm text-[var(--danger)]">
+          This workspace is scheduled for deletion on {deletion.deleteAfter.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: ctx.firm.timeZone })}.{" "}
+          <Link href="/firm/settings/legal" className="font-medium underline underline-offset-2">
+            Details
+          </Link>
+        </p>
+      )}
 
       <form method="get" aria-label="Dashboard filters" className="flex flex-wrap items-end gap-2 text-sm">
         <label className="flex flex-col gap-1">

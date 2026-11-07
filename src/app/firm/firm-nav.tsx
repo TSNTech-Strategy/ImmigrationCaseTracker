@@ -24,6 +24,7 @@ const SETTINGS: Item[] = [
   { href: "/firm/updates/settings", label: "Client updates & alerts", managersOnly: true },
   { href: "/firm/audit", label: "Activity", managersOnly: true },
   { href: "/firm/billing", label: "Plan & billing", managersOnly: true },
+  { href: "/firm/settings/legal", label: "Legal & data", managersOnly: true },
 ];
 
 const under = (path: string, href: string) => path === href || path.startsWith(`${href}/`);

@@ -28,7 +28,7 @@ export const AUDIT_CATEGORIES = {
   tasks: { label: "Tasks", prefixes: ["task."] },
   matters: { label: "Matters", prefixes: ["matter."] },
   documents: { label: "Documents and requests", prefixes: ["document.", "request."] },
-  exports: { label: "Exports", prefixes: ["audit.", "report.", "cases.exported"] },
+  exports: { label: "Exports", prefixes: ["audit.", "report.", "cases.exported", "firm.exported"] },
 } as const;
 export type AuditCategory = keyof typeof AUDIT_CATEGORIES;
 
@@ -152,6 +152,12 @@ export function describeAudit(action: string, m: Meta, target: string): string {
       return `Downloaded "${str(m.name)}"`;
     case "document.client_downloaded":
       return `The client opened "${str(m.name)}" from their status page`;
+    case "firm.exported":
+      return `Exported everything (${plural(m.clients, "client")}, ${plural(m.cases, "case")}) to a file`;
+    case "firm.deletion_requested":
+      return "Asked to delete the whole workspace (14-day grace period)";
+    case "firm.deletion_canceled":
+      return "Canceled the workspace deletion";
     case "member.title":
       return m.title ? `Set ${str(m.member)}'s title to ${str(m.title)}` : `Removed ${str(m.member)}'s title`;
     case "firm.logo_updated":

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { createFirmAlertService } from "@/lib/firms/alerts";
 import { createFirmTaskService } from "@/lib/firms/tasks";
-import { documentRequestService } from "@/lib/firms";
+import { documentRequestService, firmDataService } from "@/lib/firms";
 import { firmChecksAllowedWhere } from "@/lib/billing/entitlements";
 import { inngest } from "@/lib/inngest/client";
 
@@ -19,6 +19,8 @@ export const firmAlerts = inngest.createFunction(
       return { firms: firms.length, reminders: n };
     });
     const requests = await step.run("document-request-reminders", () => documentRequestService().runReminders());
-    return { alerts, tasks, requests };
+    // Workspaces whose 14-day deletion grace period is over.
+    const deletions = await step.run("firm-deletions", () => firmDataService().runDeletions());
+    return { alerts, tasks, requests, deletions };
   },
 );
