@@ -26,7 +26,17 @@ import { firmCaseTagsSelect } from "./tags";
 type Fail = { ok: false; error: string; field?: string };
 const fail = (error: string, field?: string): Fail => ({ ok: false, error, field });
 
-export type ClientInput = { displayName: string; email?: string | null; phone?: string | null; externalRef?: string | null };
+export type ClientInput = {
+  displayName: string;
+  email?: string | null;
+  phone?: string | null;
+  externalRef?: string | null;
+  /** "en" or "es": the language of the client's update emails and status page. */
+  locale?: string | null;
+  /** The firm records that the client agreed to case updates by email. Left out: unchanged. */
+  updatesConsent?: boolean;
+};
+type CleanClient = { displayName: string; email: string | null; phone: string | null; externalRef: string | null; locale: "en" | "es" };
 export type FirmCaseInput = { clientId: string; receipt: string; nickname?: string | null; basis: FirmConsentBasis; evidenceRef: string };
 
 export const CASE_VIEWS = {
@@ -79,7 +89,7 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     });
   }
 
-  function cleanClient(input: ClientInput): { ok: true; data: Required<ClientInput> } | Fail {
+  function cleanClient(input: ClientInput): { ok: true; data: CleanClient } | Fail {
     const displayName = input.displayName.trim().slice(0, 120);
     if (displayName.length < 2) return fail("Enter the client's name.", "displayName");
     const email = input.email?.trim().toLowerCase() || null;
@@ -88,7 +98,9 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     if (phone && (phone.length > 40 || !/^[0-9+().\-\s]+$/.test(phone))) return fail("Enter a valid phone number, or leave it blank.", "phone");
     const externalRef = input.externalRef?.trim() || null;
     if (externalRef && externalRef.length > 60) return fail("Use 60 characters or fewer.", "externalRef");
-    return { ok: true, data: { displayName, email, phone, externalRef } };
+    const locale = input.locale === "es" ? "es" : "en";
+    if (input.updatesConsent && !email) return fail("Add the client's email address to send them updates.", "email");
+    return { ok: true, data: { displayName, email, phone, externalRef, locale } };
   }
 
   // ---- Clients --------------------------------------------------------------
@@ -119,7 +131,7 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     if (!ctx) return fail("You're not part of a firm workspace.");
     const v = cleanClient(input);
     if (!v.ok) return v;
-    const client = await db.client.create({ data: { ...v.data, firmId: ctx.firm.id, createdById: userId } });
+    const client = await db.client.create({ data: { ...v.data, updatesConsentAt: input.updatesConsent ? now() : null, firmId: ctx.firm.id, createdById: userId } });
     await audit(ctx, "client.created", "Client", client.id);
     return { ok: true, clientId: client.id };
   }
@@ -131,8 +143,10 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     if (!v.ok) return v;
     const before = await db.client.findFirst({ where: { id: clientId, firmId: ctx.firm.id } });
     if (!before) return fail("Client not found.");
-    await db.client.update({ where: { id: before.id }, data: v.data });
-    const changed = (Object.keys(v.data) as (keyof ClientInput)[]).filter((k) => (before[k] ?? null) !== v.data[k]);
+    const updatesConsentAt = input.updatesConsent === undefined ? before.updatesConsentAt : input.updatesConsent ? (before.updatesConsentAt ?? now()) : null;
+    await db.client.update({ where: { id: before.id }, data: { ...v.data, updatesConsentAt } });
+    const changed: string[] = (Object.keys(v.data) as (keyof CleanClient)[]).filter((k) => (before[k] ?? null) !== v.data[k]);
+    if (Boolean(before.updatesConsentAt) !== Boolean(updatesConsentAt)) changed.push(updatesConsentAt ? "update agreement recorded" : "update agreement removed");
     if (changed.length) await audit(ctx, "client.updated", "Client", before.id, { fields: changed });
     return { ok: true };
   }

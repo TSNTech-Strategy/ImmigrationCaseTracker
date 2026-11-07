@@ -5,7 +5,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import type { FormState } from "@/components/form";
 import { getCurrentUser } from "@/lib/auth/session";
-import { firmCaseService } from "@/lib/firms";
+import { firmCaseService, firmUpdateService } from "@/lib/firms";
 
 const NOT_SIGNED_IN: FormState = { error: "Your session has expired. Please sign in again." };
 const basis = z.enum(["LEGAL_REPRESENTATIVE", "AUTHORIZED_BY_APPLICANT"]);
@@ -33,6 +33,8 @@ export async function refreshFirmCaseAction(_prev: FormState, formData: FormData
   const user = await getCurrentUser();
   if (!user) return NOT_SIGNED_IN;
   const r = await firmCaseService().refreshCase(user.id, String(formData.get("caseId") ?? ""));
+  // A change found by hand goes to the Updates inbox (and the client) like one found by a scheduled check.
+  if (r.status === "updated" && r.changed && r.eventId) await firmUpdateService().recordStatusChange(r.eventId);
   refresh();
   return r.status === "updated" ? { success: r.message } : { error: r.message };
 }

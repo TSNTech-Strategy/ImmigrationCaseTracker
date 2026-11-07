@@ -23,6 +23,7 @@ export const AUDIT_CATEGORIES = {
   clients: { label: "Clients", prefixes: ["client."] },
   cases: { label: "Cases and consent", prefixes: ["case.", "cases.", "consent."] },
   tags: { label: "Tags", prefixes: ["tag."] },
+  updates: { label: "Updates and client emails", prefixes: ["update.", "client_update.", "client.portal_", "firm.client_updates"] },
   exports: { label: "Exports", prefixes: ["audit."] },
 } as const;
 export type AuditCategory = keyof typeof AUDIT_CATEGORIES;
@@ -91,6 +92,30 @@ export function describeAudit(action: string, m: Meta, target: string): string {
       return `Deleted tag "${str(m.name)}"${Number(m.cases) ? ` (it came off ${plural(m.cases, "case")})` : ""}`;
     case "cases.imported":
       return `Imported ${plural(m.added, "case")} from CSV (${plural(m.newClients, "new client")}${Number(m.newTags) ? `, ${plural(m.newTags, "new tag")}` : ""}, ${plural(m.skipped, "row")} skipped)`;
+    case "update.assigned":
+      return `Assigned the update on case ${t} to ${str(m.to) || "a team member"}`;
+    case "update.unassigned":
+      return `Unassigned the update on case ${t}`;
+    case "update.snoozed":
+      return `Snoozed the update on case ${t} for ${plural(m.days, "day")}`;
+    case "update.resolved":
+      return `Marked the update on case ${t} done`;
+    case "update.reopened":
+      return `Reopened the update on case ${t}`;
+    case "client_update.sent":
+      return `${m.automatic ? "Automatically emailed" : "Emailed"} the client about case ${t}${m.language === "es" ? " (Spanish)" : ""}`;
+    case "client_update.skipped":
+      return `Chose not to email the client about case ${t}`;
+    case "client.portal_on":
+      return `Turned on the status page link for client ${t}`;
+    case "client.portal_off":
+      return `Turned off the status page link for client ${t}`;
+    case "client.portal_new_link":
+      return `Made a new status page link for client ${t} (the old one stopped working)`;
+    case "firm.client_updates": {
+      const label = (v: unknown) => (v === "AUTO" ? "Automatic" : v === "REVIEW" ? "Review first" : "Off");
+      return `Changed client emails from ${label(m.from)} to ${label(m.to)}`;
+    }
     case "audit.exported":
       return `Exported the activity log (${Number(m.rows) || 0} ${Number(m.rows) === 1 ? "entry" : "entries"})`;
     default:
@@ -139,7 +164,7 @@ export function createFirmAuditService({ db, now = () => new Date() }: { db: Pri
         id: r.id,
         createdAt: r.createdAt,
         action: r.action,
-        actor: r.actor ? (r.actor.name ?? r.actor.email) : r.actorUserId ? "Former user" : "CasePingo billing",
+        actor: r.actor ? (r.actor.name ?? r.actor.email) : r.actorUserId ? "Former user" : r.action.startsWith("client_update.") ? "CasePingo (automatic)" : "CasePingo billing",
         actorEmail: r.actor?.email ?? null,
         description: describeAudit(r.action, (r.metadata ?? {}) as Meta, target?.label ?? ""),
         href: target?.href ?? null,

@@ -5,7 +5,7 @@ import type { EmailDriver } from "./types";
 // Selected whenever SMTP_HOST is set.
 export const smtpDriver: EmailDriver = {
   name: "smtp",
-  async send({ to, subject, body }) {
+  async send({ to, subject, body, fromName, replyTo }) {
     // `||` so empty template values fall back to defaults.
     const port = Number(process.env.SMTP_PORT || 587);
     const transport = nodemailer.createTransport({
@@ -14,11 +14,15 @@ export const smtpDriver: EmailDriver = {
       secure: port === 465,
       auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS ?? "" } : undefined,
     });
+    const from = process.env.EMAIL_FROM || "CasePingo <no-reply@casepingo.com>";
+    // Keep CasePingo's sending address (it's the verified one); only the display name changes.
+    const address = /<([^>]+)>/.exec(from)?.[1] ?? from;
     await transport.sendMail({
-      from: process.env.EMAIL_FROM || "CasePingo <no-reply@casepingo.com>",
+      from: fromName ? { name: fromName, address } : from,
       to,
       subject,
       text: body,
+      ...(replyTo ? { replyTo } : {}),
     });
   },
 };
