@@ -28,7 +28,7 @@ export const AUDIT_CATEGORIES = {
   tasks: { label: "Tasks", prefixes: ["task."] },
   matters: { label: "Matters", prefixes: ["matter."] },
   documents: { label: "Documents and requests", prefixes: ["document.", "request."] },
-  exports: { label: "Exports", prefixes: ["audit."] },
+  exports: { label: "Exports", prefixes: ["audit.", "report.", "cases.exported"] },
 } as const;
 export type AuditCategory = keyof typeof AUDIT_CATEGORIES;
 
@@ -124,6 +124,8 @@ export function describeAudit(action: string, m: Meta, target: string): string {
     }
     case "case.assigned":
       return `Assigned case ${t} to ${str(m.to) || "nobody"}`;
+    case "report.exported":
+      return `Exported the ${str(m.report) === "all" ? "dashboard reports" : `"${str(m.report)}" report`} to CSV`;
     case "cases.exported":
       return `Exported ${plural(m.rows, "case")} to CSV (with full receipt numbers)`;
     case "firm.settings":

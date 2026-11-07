@@ -42,7 +42,9 @@ const bump = (map: Map<string, { label: string; value: number; href?: string }>,
 };
 
 export function createFirmDashboardService({ db, now = () => new Date() }: { db: PrismaClient; now?: () => Date }) {
-  async function getDashboard(userId: string, filters: DashboardFilters = {}) {
+  /** `full`: every row of every report (for CSV), instead of the top 8 with the rest in "Other". */
+  async function getDashboard(userId: string, filters: DashboardFilters = {}, opts: { full?: boolean } = {}) {
+    const n = opts.full ? Infinity : 8;
     const ctx = await findFirmContext(db, userId);
     if (!ctx) return null;
     const t = now();
@@ -63,7 +65,8 @@ export function createFirmDashboardService({ db, now = () => new Date() }: { db:
     const caseScope: Prisma.TrackedCaseWhereInput = { ...(filters.assignee ? { assigneeId } : {}), ...(matterId ? { matterId } : {}) };
     const scoped = Boolean(filters.assignee || matterId);
 
-    const [cases, members, openItems, deadlines, recent] = await Promise.all([
+    const requestScope: Prisma.DocumentRequestWhereInput = { firmId, status: "OPEN", ...(scoped ? { case: caseScope } : {}) };
+    const [cases, members, openItems, deadlines, recent, openRequests] = await Promise.all([
       db.trackedCase.findMany({
         where,
         select: {
@@ -81,13 +84,28 @@ export function createFirmDashboardService({ db, now = () => new Date() }: { db:
         where: { firmId, doneAt: null, dueOn: { lte: new Date(new Date(`${today}T00:00:00Z`).getTime() + 14 * DAY) }, ...(scoped ? { case: caseScope } : {}) },
         select: { id: true, kind: true, dueOn: true, note: true, case: { select: { id: true, receiptMasked: true, nickname: true, client: { select: { displayName: true } } } } },
         orderBy: { dueOn: "asc" },
-        take: 8,
+        take: opts.full ? 1000 : 8,
       }),
       db.firmUpdate.findMany({
         where: { firmId, kind: "STATUS_CHANGE", ...(scoped ? { case: caseScope } : {}) },
         select: { id: true, createdAt: true, event: { select: { statusTitleEn: true } }, case: { select: { id: true, receiptMasked: true, nickname: true, formType: true, client: { select: { displayName: true } } } } },
         orderBy: { createdAt: "desc" },
         take: 6,
+      }),
+      db.documentRequest.findMany({
+        where: requestScope,
+        select: {
+          id: true,
+          title: true,
+          dueOn: true,
+          sentAt: true,
+          createdAt: true,
+          client: { select: { id: true, displayName: true } },
+          case: { select: { receiptMasked: true } },
+          items: { select: { required: true, status: true } },
+        },
+        orderBy: [{ dueOn: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
+        take: 1000,
       }),
     ]);
 
@@ -135,17 +153,37 @@ export function createFirmDashboardService({ db, now = () => new Date() }: { db:
       where: { firmId, doneAt: null, dueOn: { lte: new Date(new Date(`${today}T00:00:00Z`).getTime() + 7 * DAY) }, ...(scoped ? { case: caseScope } : {}) },
     });
 
+    // Open document requests: progress and how close the due date is.
+    const requests = openRequests.map((r) => {
+      const required = r.items.filter((i) => i.required);
+      return {
+        id: r.id,
+        title: r.title,
+        client: r.client,
+        receiptMasked: r.case?.receiptMasked ?? null,
+        dueOn: r.dueOn,
+        daysLeft: r.dueOn ? daysUntil(r.dueOn, today) : null,
+        sent: Boolean(r.sentAt),
+        createdAt: r.createdAt,
+        required: required.length,
+        accepted: required.filter((i) => i.status === "ACCEPTED").length,
+        toReview: r.items.filter((i) => i.status === "UPLOADED").length,
+        waiting: r.items.filter((i) => i.status === "PENDING" || i.status === "REJECTED").length,
+      };
+    });
+
     return {
       ctx,
       filters: { assignee: filters.assignee ?? "", from: from ?? "", to: to ?? "", matter: matterId ?? "" },
       matters: await db.firmMatter.findMany({ where: { firmId, archivedAt: null }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
       members: members.map((m) => ({ id: m.userId, name: m.user.name ?? m.user.email })),
-      kpis: { cases: cases.length, changedWeek, openItems, dueSoon, stuck, stuckDays, noConsent },
-      byForm: top(byForm, 8),
-      byCategory: top(byCategory, 8),
+      kpis: { cases: cases.length, changedWeek, openItems, dueSoon, stuck, stuckDays, noConsent, openRequests: requests.length, overdueRequests: requests.filter((r) => r.daysLeft !== null && r.daysLeft < 0).length, toReview: requests.reduce((s, r) => s + r.toReview, 0) },
+      byForm: top(byForm, n),
+      byCategory: top(byCategory, n),
       byStatus: statusBars,
-      byAssignee: top(byAssignee, 8),
-      byCountry: top(byCountry, 8),
+      byAssignee: top(byAssignee, n),
+      byCountry: top(byCountry, n),
+      requests: requests.slice(0, opts.full ? requests.length : 6),
       waiting: [...waiting.entries()].map(([key, v]) => ({ key, ...v })),
       deadlines: deadlines.map((d) => ({ ...d, daysLeft: daysUntil(d.dueOn, today) })),
       recent: recent.flatMap((r) => (r.case ? [{ ...r, case: r.case }] : [])),

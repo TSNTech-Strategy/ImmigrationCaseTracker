@@ -1,3 +1,4 @@
+import { createFirmReportService } from "./reports";
 import { createDocumentRequestService } from "./requests";
 import { createFirmBrandingService } from "./branding";
 import { createFirmDocumentService } from "./documents";
@@ -81,4 +82,9 @@ export function documentRequestService() {
 /** The firm's logo for the client portal, upload page and client emails. */
 export function firmBrandingService() {
   return createFirmBrandingService({ db: prisma, store: getFileStore() });
+}
+
+/** Dashboard reports as CSV. */
+export function firmReportService() {
+  return createFirmReportService({ db: prisma });
 }

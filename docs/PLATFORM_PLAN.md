@@ -74,7 +74,7 @@ The order a firm meets the product: set up, bring in clients and cases, keep the
 | 8 | Documents | Upload files to a case or client; kind, visibility (internal or shared with the client), size, uploaded by; search and filters | Built (Phase 3A) |
 | 9 | Document requests | Firm builds a request from the case-type checklist (or its own list), adds a due date and message; client gets a link (email now, SMS later) and uploads from a phone; firm accepts or asks again; reminders; progress on case and client pages | Built (Phase 3B); SMS later |
 | 10 | Client portal | Client's status page plus open document requests, uploads, firm contact; English and Spanish; firm logo | Built (Phase 4) |
-| 11 | Dashboard | Case volume by form and category, status overview, cases by assignee, days waiting, stuck cases, upcoming deadlines, open document requests; filters by date, assignee, matter | Built (Phase 2A); matter filter and document requests added with those phases |
+| 11 | Dashboard | Case volume by form and category, status overview, cases by assignee, days waiting, stuck cases, upcoming deadlines, open document requests; filters by date, assignee, matter | Built (Phase 2A; matter filter Phase 2C; open requests and CSV reports Phase 5) |
 | 12 | Notifications | Per person: inbox start view, backup colleague while away, which task updates appear, which case updates email me (by type: approvals, requests, appointments, denials, other) and for which cases (mine, matters, groups, tags) | Phase 6 |
 | 13 | Team and roles | Members with role, active cases, last active; invitations; Owner, Admin, Staff, plus "Attorney" and "Paralegal" labels | Built (Phase 6 adds columns and labels) |
 | 14 | Activity log | Every change in plain language, filters, CSV export; never logs sensitive values (A-Numbers, dates of birth, notes) | Built |
@@ -115,7 +115,7 @@ Every phase: database migration with row-level security, server logic with datab
 - One portal per client: status of every case, open requests, uploads, firm contact, English and Spanish.
 - Firm branding: logo on portal, upload page and client emails (built). A firm's own portal address (custom domain) is left for later.
 
-### Phase 5: Dashboard and reports
+### Phase 5: Dashboard and reports ✅ built
 - Charts from the firm's own data only: volume by form or category, status overview, by assignee, days waiting, stuck cases, upcoming deadlines, open requests.
 - Filters by date range, assignee and matter; CSV export of each report.
 
