@@ -1,20 +1,23 @@
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Platform, Pressable, Text, View } from "react-native";
-import { Banner, Body, Button, Card, Field, H1, H2, Loading, Row, Screen, Small, StatusPill, Timeline } from "../../../components/ui";
+import { Banner, Body, Button, Card, Field, H1, H2, Loading, Row, Screen, Small } from "../../../components/ui";
 import { CongratsCard, StarBurst, takeUnplayed } from "../../../components/celebration";
-import { CaseSubline, Stepper, caseTitles } from "../../../components/cases";
+import { Stepper, caseTitles } from "../../../components/cases";
+import { LineMapView, StepChip } from "../../../components/line-map";
 import { Icon } from "../../../components/icon";
 import { launchDone } from "../../../lib/launch";
 import { markSeen } from "../../../lib/seen";
-import { api, ApiError, type CaseDetail } from "../../../lib/api";
+import { api, ApiError, type CaseDetail, type GuideEntry, type StatusCategory } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { config } from "../../../lib/config";
 import { FEATURES } from "../../../lib/features";
-import { formatDate } from "../../../lib/i18n";
+import { formatDate, formatDay, type Lang } from "../../../lib/i18n";
+import { dayOf } from "../../../lib/days";
+import { loadGuide } from "../../../lib/guide";
 import { useRefreshOnForeground } from "../../../lib/use-refresh";
-import { space, useTheme } from "../../../lib/theme";
+import { font, radius, space, useTheme } from "../../../lib/theme";
 import { CaseTags } from "../../../components/tags";
 
 function confirm(message: string, ok: string, cancel: string): Promise<boolean> {
@@ -37,6 +40,86 @@ function LinkText({ title, onPress }: { title: string; onPress: () => void }) {
     <Pressable accessibilityRole="link" onPress={onPress} hitSlop={6} style={{ alignSelf: "flex-start" }}>
       <Text style={{ color: c.accent, fontWeight: "600", fontSize: 15 }}>{title} ↗</Text>
     </Pressable>
+  );
+}
+
+type HistoryItem = { key: string; titleEn: string | null; title: string; date: string | null; seenAt: string | null; fromUscis: boolean; category: StatusCategory };
+
+/** One list of the case's history: USCIS's own entries and the changes CasePingo saw, newest first, without repeats. */
+function caseHistory(cs: CaseDetail, lang: Lang): HistoryItem[] {
+  const es = lang === "es";
+  const byKey = new Map<string, HistoryItem>();
+  const add = (item: HistoryItem) => {
+    const k = `${(item.titleEn ?? item.title).toLowerCase()}|${item.date ?? ""}`;
+    const prev = byKey.get(k);
+    if (prev) {
+      prev.seenAt ??= item.seenAt;
+      prev.fromUscis ||= item.fromUscis;
+    } else byKey.set(k, item);
+  };
+  (cs.uscisHistory ?? []).forEach((h, i) =>
+    add({ key: `u${i}`, titleEn: h.textEn ?? null, title: (es ? h.textEs : h.textEn) ?? h.textEn ?? "—", date: dayOf(h.date?.raw), seenAt: null, fromUscis: true, category: h.category }),
+  );
+  cs.events.forEach((e) =>
+    add({
+      key: e.id,
+      titleEn: e.statusTitleEn,
+      title: (es ? e.statusTitleEs : e.statusTitleEn) ?? e.statusTitleEn ?? "—",
+      date: dayOf(e.uscisReportedRaw) ?? dayOf(e.firstObservedAt),
+      seenAt: e.firstObservedAt,
+      fromUscis: false,
+      category: e.category,
+    }),
+  );
+  const items = [...byKey.values()].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+  // The current status always leads, even before USCIS lists it in its history.
+  if (cs.statusTitleEn && items[0]?.titleEn?.toLowerCase() !== cs.statusTitleEn.toLowerCase()) {
+    items.unshift({
+      key: "current",
+      titleEn: cs.statusTitleEn,
+      title: (es ? cs.statusTitleEs : cs.statusTitleEn) ?? cs.statusTitleEn,
+      date: cs.days?.lastUpdate ?? dayOf(cs.lastChangeObservedAt),
+      seenAt: cs.lastChangeObservedAt,
+      fromUscis: false,
+      category: cs.category,
+    });
+  }
+  return items;
+}
+
+/** A history entry: date and status; tap to read USCIS's message (current status) or what the status means. */
+function HistoryRow({ item, detail, lang, last }: { item: HistoryItem; detail: string | null; lang: Lang; last: boolean }) {
+  const { c } = useTheme();
+  const { t } = useAuth();
+  const [open, setOpen] = useState(false);
+  const dot = c.st[item.category].fg;
+  const meta = item.fromUscis ? t.reportedByUscis : item.seenAt ? t.seenByUs(formatDate(item.seenAt, lang, "")) : null;
+  return (
+    <View style={{ flexDirection: "row", gap: space(3) }}>
+      <View style={{ alignItems: "center", width: 12 }}>
+        <View style={{ width: 11, height: 11, borderRadius: 6, backgroundColor: dot, marginTop: 5 }} />
+        {!last && <View style={{ flex: 1, width: 2, backgroundColor: c.border, marginTop: 3 }} />}
+      </View>
+      <Pressable
+        accessibilityRole={detail ? "button" : undefined}
+        aria-expanded={detail ? open : undefined}
+        disabled={!detail}
+        onPress={() => setOpen((v) => !v)}
+        style={{ flex: 1, paddingBottom: last ? 0 : space(4), gap: space(1) }}
+      >
+        <Text style={{ fontSize: 14, fontWeight: "700", color: c.accent }}>{formatDay(item.date, lang)}</Text>
+        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space(2) }}>
+          <Text style={{ flex: 1, fontSize: 16, fontWeight: "700", color: c.heading, lineHeight: 21 }}>{item.title}</Text>
+          {detail && <Icon ios={open ? "chevron.up" : "chevron.down"} md={open ? "expand_less" : "expand_more"} size={13} color={c.muted} fallback={open ? "˄" : "˅"} />}
+        </View>
+        {open && detail && (
+          <View style={{ backgroundColor: c.surface2, borderRadius: radius.md, padding: space(3), marginTop: space(1) }}>
+            <Text style={{ fontSize: 14, lineHeight: 20, color: c.text }}>{detail}</Text>
+          </View>
+        )}
+        {meta && <Text style={{ fontSize: 12, color: c.muted }}>{meta}</Text>}
+      </Pressable>
+    </View>
   );
 }
 
@@ -72,6 +155,21 @@ export default function CaseScreen() {
   );
   useRefreshOnForeground(load);
 
+  const [entries, setEntries] = useState<GuideEntry[] | null>(null);
+  const [allHistory, setAllHistory] = useState(false);
+  // The status library explains each past status in the history.
+  useEffect(() => {
+    loadGuide()
+      .then((g) => setEntries(g.entries))
+      .catch(() => {});
+  }, []);
+  const history = useMemo(() => (cs ? caseHistory(cs, lang) : []), [cs, lang]);
+  const meaningOf = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const e of entries ?? []) for (const w of e.wordings) m.set(w.toLowerCase(), e[lang].meaning);
+    return m;
+  }, [entries, lang]);
+
   if (error && !cs) return <Screen><Banner tone="danger">{error}</Banner></Screen>;
   if (!cs) return <Loading />;
 
@@ -82,9 +180,12 @@ export default function CaseScreen() {
   const free = me?.plan.id === "FREE";
   const guide = cs.guide ? cs.guide[lang] : null;
   const officeName = cs.office?.name ? cs.office.name[lang] : null;
-  const history = cs.uscisHistory ?? [];
   const names = caseTitles(cs, lang);
+  const code = cs.form?.code ?? cs.formType;
+  const map = cs.lineMap;
+  const days = cs.days;
   const stepLabel = cs.stage !== null ? t.stepOf(cs.stage + 1, 4, t.stages[cs.stage] ?? "") : undefined;
+  const shownHistory = allHistory ? history : history.slice(0, 4);
 
   async function saveName() {
     if (renaming === null) return;
@@ -121,11 +222,18 @@ export default function CaseScreen() {
           setRefreshing(false);
         }}
       >
-        <Stack.Screen options={{ title: names.title }} />
+        <Stack.Screen options={{ title: code ? `${code} · ${cs.receiptMasked}` : cs.receiptMasked }} />
         {renaming === null ? (
           <View style={{ gap: space(1) }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: space(2) }}>
+              <Text style={[font.mono, { fontSize: 14, color: c.muted }]}>{cs.receiptMasked}</Text>
+              {code ? (
+                <View style={{ paddingHorizontal: space(2), paddingVertical: 2, borderRadius: 6, backgroundColor: c.surface2 }}>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: c.heading }}>{code}</Text>
+                </View>
+              ) : null}
+            </View>
             <H1>{names.title}</H1>
-            <CaseSubline mono={names.mono} text={names.text} />
             <Pressable
               accessibilityRole="button"
               onPress={() => setRenaming(cs.nickname ?? "")}
@@ -184,12 +292,11 @@ export default function CaseScreen() {
         <Card>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space(2), flexWrap: "wrap" }}>
             <Label>{t.currentStatus}</Label>
-            <StatusPill category={cs.category} label={t.category[cs.category]} />
+            {map ? <StepChip map={map} lang={lang} /> : null}
           </View>
           <H2 style={{ fontSize: 22 }}>{title}</H2>
-          {cs.stage !== null && <Stepper stage={cs.stage} total={4} category={cs.category} label={stepLabel} />}
+          {!map && cs.stage !== null && <Stepper stage={cs.stage} total={4} category={cs.category} label={stepLabel} />}
           {desc && <Body>{desc.replace(/<[^>]+>/g, "")}</Body>}
-
           {guide && cs.guide && (
             <View style={{ backgroundColor: c.surface2, borderRadius: 10, padding: space(3), gap: space(3), marginTop: space(1) }}>
               <View style={{ gap: 2 }}>
@@ -210,14 +317,55 @@ export default function CaseScreen() {
               <LinkText title={t.moreAboutStatus} onPress={() => WebBrowser.openBrowserAsync(`${config.apiUrl}${cs.guide!.path}`)} />
             </View>
           )}
+        </Card>
 
-          <View style={{ gap: space(3), marginTop: space(2) }}>
+        {map && map.current >= 0 && (
+          <Card>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space(2) }}>
+              <Label>{t.lineMap}</Label>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: c.heading }}>{map.name[lang]}</Text>
+            </View>
+            <LineMapView map={map} lang={lang} />
+          </Card>
+        )}
+
+        <Card>
+          <Label>{t.caseDetails}</Label>
+          <View style={{ gap: space(3) }}>
+            {cs.form && <Row label={t.form} value={cs.form.name ? `${cs.form.code} · ${cs.form.name[lang]}` : cs.form.code} />}
+            {cs.office && <Row label={t.receivedAt} value={officeName ? `${officeName} (${cs.office.code})` : t.officeCode(cs.office.code)} />}
+            {days?.filed && <Row label={t.filed} value={formatDay(days.filed, lang)} />}
+            {days?.total !== null && days?.total !== undefined && <Row label={t.total} value={t.dayCount(days.total)} />}
+            {days?.sinceUpdate !== null && days?.sinceUpdate !== undefined && <Row label={t.lastUpdate} value={t.daysAgoLong(days.sinceUpdate)} />}
             <Row label={t.lastChecked} value={formatDate(cs.lastCheckedAt, lang, t.never)} />
-            <Row label={t.lastChange} value={formatDate(cs.lastChangeObservedAt, lang, t.noneYet)} />
           </View>
           {!paused && <Button title={busy === "check" ? t.checking : t.checkNow} onPress={checkNow} loading={busy === "check"} />}
           {note && <Banner tone={note.tone}>{note.text}</Banner>}
           <Small>{free ? t.freePlan : t.premiumPlan} {t.uscisSource}</Small>
+        </Card>
+
+        <Card>
+          <Label>{t.caseHistory}</Label>
+          {history.length === 0 ? (
+            <Small>{t.nothingYet}</Small>
+          ) : (
+            <View>
+              {shownHistory.map((item, i) => (
+                <HistoryRow
+                  key={item.key}
+                  item={item}
+                  lang={lang}
+                  last={i === shownHistory.length - 1}
+                  detail={i === 0 && desc ? desc.replace(/<[^>]+>/g, "") : item.titleEn ? (meaningOf.get(item.titleEn.toLowerCase()) ?? null) : null}
+                />
+              ))}
+            </View>
+          )}
+          {history.length > 4 && (
+            <Pressable accessibilityRole="button" onPress={() => setAllHistory((v) => !v)} hitSlop={6} style={{ alignSelf: "flex-start" }}>
+              <Text style={{ color: c.accent, fontWeight: "600", fontSize: 15 }}>{allHistory ? t.showFewer : t.showAllUpdates(history.length)}</Text>
+            </Pressable>
+          )}
         </Card>
 
         <CaseTags caseId={cs.id} value={cs.tags ?? []} onChange={(tags) => setCs((prev) => (prev ? { ...prev, tags } : prev))} />
@@ -235,42 +383,10 @@ export default function CaseScreen() {
 
         {(cs.form || cs.office) && (
           <Card>
-            {cs.form && <Row label={t.form} value={cs.form.name ? `${cs.form.code} · ${cs.form.name[lang]}` : cs.form.code} />}
-            {cs.office && <Row label={t.receivedAt} value={officeName ? `${officeName} (${cs.office.code})` : t.officeCode(cs.office.code)} />}
-            <View style={{ gap: space(1), marginTop: space(1) }}>
-              <Label>{t.howLong}</Label>
-              <Small>{t.processingHint(cs.form?.code ?? null, officeName)}</Small>
-              <LinkText title={t.processingTimes} onPress={() => WebBrowser.openBrowserAsync(cs.processingTimesUrl)} />
-            </View>
+            <Label>{t.howLong}</Label>
+            <Small>{t.processingHint(cs.form?.code ?? null, officeName)}</Small>
+            <LinkText title={t.processingTimes} onPress={() => WebBrowser.openBrowserAsync(cs.processingTimesUrl)} />
           </Card>
-        )}
-
-        <H2>{t.changesSeen}</H2>
-        {cs.events.length === 0 ? (
-          <Small>{t.nothingYet}</Small>
-        ) : (
-          <Timeline
-            items={cs.events.map((e) => ({
-              key: e.id,
-              title: (es ? e.statusTitleEs : e.statusTitleEn) ?? e.statusTitleEn ?? "—",
-              meta: formatDate(e.firstObservedAt, lang, ""),
-              category: e.category,
-            }))}
-          />
-        )}
-
-        {history.length > 0 && (
-          <>
-            <H2>{t.uscisHistory}</H2>
-            <Timeline
-              items={history.map((h, i) => ({
-                key: String(i),
-                title: (es ? h.textEs : h.textEn) ?? h.textEn ?? "—",
-                meta: h.date?.raw ?? undefined,
-                category: h.category,
-              }))}
-            />
-          </>
         )}
 
         <Button

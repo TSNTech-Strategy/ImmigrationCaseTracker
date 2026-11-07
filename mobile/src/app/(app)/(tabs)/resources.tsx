@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Banner, Loading, Screen, Small } from "../../../components/ui";
@@ -9,7 +10,7 @@ import { FadeInDown, stagger } from "../../../components/motion";
 import { ApiError, type GuideEntry } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { loadGuide } from "../../../lib/guide";
-import { loadResources, resourceLook, type ResourcesResponse } from "../../../lib/resources";
+import { loadResources, resourceLook, toolLook, type OfficialTool, type ResourcesResponse } from "../../../lib/resources";
 import { radius, space, useTheme } from "../../../lib/theme";
 
 /** One guide: tinted icon, title, one line, chevron. */
@@ -85,6 +86,50 @@ function Results({ title, rows }: { title: string; rows: { key: string; title: s
   );
 }
 
+/** Official government tools (USCIS, CBP): one box of rows that open the official site. */
+function OfficialTools({ tools, lang, title, note }: { tools: OfficialTool[]; lang: "en" | "es"; title: string; note: string }) {
+  const { c } = useTheme();
+  if (tools.length === 0) return null;
+  return (
+    <View style={{ gap: space(2) }}>
+      <Text accessibilityRole="header" style={{ fontSize: 13, fontWeight: "700", color: c.muted, textTransform: "uppercase", letterSpacing: 0.5, marginLeft: space(1) }}>
+        {title}
+      </Text>
+      <View style={{ backgroundColor: c.surface, borderRadius: radius.lg + 4, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: c.border, overflow: "hidden" }}>
+        {tools.map((tool, i) => {
+          const look = toolLook(tool.key);
+          return (
+            <Pressable
+              key={tool.key}
+              accessibilityRole="link"
+              accessibilityLabel={`${tool.title[lang]}. ${tool.summary[lang]}`}
+              onPress={() => WebBrowser.openBrowserAsync(tool.url)}
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                gap: space(3),
+                paddingHorizontal: space(4),
+                paddingVertical: space(3),
+                backgroundColor: pressed ? c.surface2 : c.surface,
+                borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                borderTopColor: c.border,
+              })}
+            >
+              <IconTile glyph={look.glyph} tint={look.tint} size={40} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: c.heading }}>{tool.title[lang]}</Text>
+                <Text style={{ fontSize: 13, color: c.muted, lineHeight: 18 }}>{tool.summary[lang]}</Text>
+              </View>
+              <Icon ios="arrow.up.right" md="open_in_new" size={13} color={c.accent} fallback="↗" />
+            </Pressable>
+          );
+        })}
+      </View>
+      <Small style={{ fontSize: 12, marginLeft: space(1) }}>{note}</Small>
+    </View>
+  );
+}
+
 /** The Resources tab: guides for every step of a case, with one search over guides, questions and statuses. */
 export default function ResourcesTab() {
   const { t, lang } = useAuth();
@@ -112,7 +157,9 @@ export default function ResourcesTab() {
   const faq = resources.find((r) => r.slug === "faq")?.faq ?? [];
   const questionHits = q ? faq.map((f, i) => ({ f, i })).filter(({ f }) => has(f.q[lang], f.a[lang])) : [];
   const statusHits = q ? statuses.filter((e) => has(e.heading, ...e.wordings, e[lang].meaning)).slice(0, 8) : [];
-  const nothing = q && guideHits.length + questionHits.length + statusHits.length === 0;
+  const tools = data?.tools ?? [];
+  const toolHits = q ? tools.filter((x) => has(x.title[lang], x.summary[lang])) : [];
+  const nothing = q && guideHits.length + questionHits.length + statusHits.length + toolHits.length === 0;
 
   return (
     <Screen tab>
@@ -129,6 +176,10 @@ export default function ResourcesTab() {
           <Results
             title={t.resultsQuestions}
             rows={questionHits.map(({ f, i }) => ({ key: `q${i}`, title: f.q[lang], sub: f.a[lang], onPress: () => router.push(`/resources/faq?open=${i}`) }))}
+          />
+          <Results
+            title={t.officialTools}
+            rows={toolHits.map((x) => ({ key: x.key, title: x.title[lang], sub: x.summary[lang], onPress: () => WebBrowser.openBrowserAsync(x.url) }))}
           />
           <Results
             title={t.resultsStatuses}
@@ -153,6 +204,11 @@ export default function ResourcesTab() {
               <HubCard slug={r.slug} title={r.title[lang]} summary={r.summary[lang]} onPress={() => router.push(`/resources/${r.slug}`)} />
             </FadeInDown>
           ))}
+          {tools.length > 0 && (
+            <FadeInDown delay={stagger(resources.length + 2, 60)} style={{ marginTop: space(2) }}>
+              <OfficialTools tools={tools} lang={lang} title={t.officialTools} note={t.officialToolsNote} />
+            </FadeInDown>
+          )}
         </View>
       )}
 

@@ -4,19 +4,22 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Banner, Body, Button, Card, Screen, Small } from "../../../components/ui";
 import { CaseCard, CaseCardSkeleton, FilterChips, IconButton, LargeHeader, SearchField, caseTitles } from "../../../components/cases";
 import { FlagStripe, StarBurst, StarsMark, dismissApproval, dismissedApprovals, takeUnplayed } from "../../../components/celebration";
-import { FeatureRow, TwoToneTitle, type Glyph, type Tint } from "../../../components/feature";
+import { FeatureRow, IconTile, TwoToneTitle, type Glyph, type Tint } from "../../../components/feature";
+import { Icon } from "../../../components/icon";
 import { FadeInDown, stagger, useSpotlight } from "../../../components/motion";
 import { api, ApiError, type CaseSummary, type StatusCategory } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { takePrefetchedCases, type CasesResponse } from "../../../lib/cases-prefetch";
 import { launchDone } from "../../../lib/launch";
 import { timeAgo, trialDaysLeft } from "../../../lib/i18n";
+import { journeySpan } from "../../../lib/days";
 import { hasNewChange, seenChanges } from "../../../lib/seen";
 import { radius, space, useTheme } from "../../../lib/theme";
 import { useRefreshOnForeground } from "../../../lib/use-refresh";
 import { canScanReceipts } from "../../../lib/scan";
 import { NewTagChip, TagChip } from "../../../components/tags";
 import { tagsInUse } from "../../../lib/tags";
+import { setUnreadUpdates } from "../../../lib/updates-badge";
 
 const FILTER_ORDER: StatusCategory[] = ["action", "progress", "done", "stop", "none"];
 
@@ -118,6 +121,13 @@ export default function Cases() {
     return [title, sub, x.statusTitleEn, x.statusTitleEs, x.formType, ...(x.tags ?? []).map((tg) => tg.name)].some((v) => v?.toLowerCase().includes(q));
   });
   const approvals = dismissed ? list.filter((x) => x.recentApprovalAt && !dismissed.includes(x.id)) : [];
+  // The Updates tab's badge: cases with changes this phone hasn't shown yet.
+  const unseen = seen ? list.filter((x) => hasNewChange(seen, x)).length : 0;
+  useEffect(() => {
+    if (seen) setUnreadUpdates(unseen);
+  }, [seen, unseen]);
+  // My timeline: the same span the timeline screen shows.
+  const span = journeySpan(list);
   const days = trialDaysLeft(me?.plan.trialEndsAt ?? null);
   const showFilters = list.length >= 2 && counts.size > 1;
 
@@ -175,6 +185,31 @@ export default function Cases() {
         {days > 0 ? <Banner tone="info">{t.trialLeft(days)}</Banner> : me?.plan.id === "FREE" ? <Small>{t.freePlanShort}</Small> : null}
         {note && <Banner tone={note.tone}>{note.text}</Banner>}
         {error && <Banner tone="danger">{error}</Banner>}
+
+        {loaded && span && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${t.journeyTitle}. ${t.journeyCard(span.days, span.cases)}`}
+            onPress={() => router.push("/journey")}
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space(3),
+              padding: space(3.5),
+              borderRadius: radius.lg,
+              backgroundColor: pressed ? c.surface2 : c.surface,
+              borderWidth: StyleSheet.hairlineWidth * 2,
+              borderColor: c.border,
+            })}
+          >
+            <IconTile glyph={{ ios: "chart.bar.xaxis", md: "timeline", fallback: "▤" }} tint="blue" size={40} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: c.heading }}>{t.journeyTitle}</Text>
+              <Text style={{ fontSize: 13, color: c.muted }}>{t.journeyCard(span.days, span.cases)}</Text>
+            </View>
+            <Icon ios="chevron.right" md="chevron_right" size={14} color={c.accent} fallback="›" />
+          </Pressable>
+        )}
 
         {list.length >= 3 && <SearchField value={query} onChangeText={setQuery} placeholder={t.searchCases} />}
         {showFilters && (

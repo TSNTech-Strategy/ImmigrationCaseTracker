@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CaseStatusPanel, ObservedChanges, UscisHistory, USCIS_SOURCE_NOTE } from "@/components/case-status";
+import { LineMapSection } from "@/components/line-map";
+import { caseJourney } from "@/lib/journeys";
 import { LocalTime } from "@/components/local-time";
 import { ModeBanner } from "@/components/mode-banner";
 import { requireUser } from "@/lib/auth/session";
@@ -35,6 +37,7 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
   const es = user.locale === "es";
   const active = c.consents.find((x) => !x.withdrawnAt);
   const canRemove = ctx.membership.role !== "STAFF";
+  const journey = caseJourney(c);
 
   return (
     <>
@@ -74,6 +77,7 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
         c={c}
         es={es}
         guideCollapsed
+        journey={journey}
         actions={active ? <FirmRefreshButton caseId={c.id} /> : undefined}
         footnote={
           <>
@@ -81,6 +85,7 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
           </>
         }
       />
+      <LineMapSection map={journey.lineMap} es={es} />
       <CaseTagsPanel
         caseId={c.id}
         tags={allTags}

@@ -3,12 +3,13 @@ import { ActivityIndicator, Pressable, ScrollView, type ScrollViewInstance, Styl
 import type { AndroidSymbol, SFSymbol } from "expo-symbols";
 import type { CaseSummary, StatusCategory } from "../lib/api";
 import type { Lang } from "../lib/i18n";
-import { shortDate, strings, timeAgo } from "../lib/i18n";
+import { formatDay, shortDate, strings, timeAgo } from "../lib/i18n";
 import { font, radius, space, useTheme } from "../lib/theme";
 import { Icon } from "./icon";
 import { Pulse } from "./motion";
-import { StatusPill } from "./ui";
+
 import { CardTags } from "./tags";
+import { MiniLine, StepChip } from "./line-map";
 
 /** Big screen title with an optional line under it and round action buttons on the right. */
 export function LargeHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: ReactNode }) {
@@ -237,18 +238,18 @@ export function CaseCard({ cs, stageCount, isNew, lang, onPress }: { cs: CaseSum
   const { c } = useTheme();
   const t = strings(lang);
   const names = caseTitles(cs, lang);
-  const { title } = names;
   const status = (lang === "es" ? cs.statusTitleEs : cs.statusTitleEn) ?? cs.statusTitleEn ?? t.notChecked;
   const edge = c.st[cs.category].fg;
   const paused = cs.pausedReason === "plan_limit";
+  const map = cs.lineMap;
+  const code = cs.form?.code ?? cs.formType;
+  // The status date USCIS reports, else when CasePingo saw the change.
+  const updated = cs.days?.lastUpdate ? formatDay(cs.days.lastUpdate, lang) : cs.lastChangeObservedAt ? shortDate(cs.lastChangeObservedAt, lang) : null;
   const stepLabel = cs.stage !== null ? t.stepOf(cs.stage + 1, stageCount, t.stages[cs.stage] ?? "") : undefined;
-  const meta = [cs.lastChangeObservedAt ? t.changedOn(shortDate(cs.lastChangeObservedAt, lang)) : null, cs.lastCheckedAt ? t.checkedShort(timeAgo(cs.lastCheckedAt, lang)) : null]
-    .filter(Boolean)
-    .join(" · ");
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${title}. ${status}.${isNew ? ` ${t.newBadge}.` : ""}`}
+      accessibilityLabel={`${names.title}. ${status}.${map?.marker ? ` ${map.marker[lang]}.` : ""}${isNew ? ` ${t.newBadge}.` : ""}`}
       onPress={onPress}
       style={({ pressed }) => ({
         flexDirection: "row",
@@ -260,29 +261,48 @@ export function CaseCard({ cs, stageCount, isNew, lang, onPress }: { cs: CaseSum
       })}
     >
       <View style={{ width: 4, backgroundColor: edge }} />
-      <View style={{ flex: 1, padding: space(4), gap: space(1.5) }}>
-        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space(2) }}>
-          <Text style={{ flex: 1, fontSize: 17, fontWeight: "700", color: c.heading }} numberOfLines={2}>
-            {title}
+      <View style={{ flex: 1, padding: space(4), gap: space(2) }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space(2) }}>
+          <Text style={[font.mono, { flex: 1, fontSize: 14, color: c.muted }]} numberOfLines={1}>
+            {cs.receiptMasked}
           </Text>
-          <StatusPill category={cs.category} label={t.category[cs.category]} />
-        </View>
-        <CaseSubline mono={names.mono} text={names.text} />
-        <CardTags tags={cs.tags ?? []} />
-        <Text style={{ fontSize: 16, fontWeight: "600", color: c.text, marginTop: space(0.5) }}>{status}</Text>
-        {cs.stage !== null && <Stepper stage={cs.stage} total={stageCount} category={cs.category} label={stepLabel} />}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: space(2), marginTop: space(0.5) }}>
-          {isNew && (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: space(1) }}>
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.brandRed }} />
-              <Text style={{ color: c.brandRed, fontWeight: "700", fontSize: 13 }}>{t.newBadge}</Text>
+          {code ? (
+            <View style={{ paddingHorizontal: space(2), paddingVertical: 2, borderRadius: 6, backgroundColor: c.surface2, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: c.border }}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: c.heading }}>{code}</Text>
             </View>
-          )}
-          <Text style={{ flex: 1, fontSize: 13, color: c.muted }} numberOfLines={1}>
-            {meta}
-          </Text>
-          <Icon ios="chevron.right" md="chevron_right" size={14} color={c.muted} fallback="›" />
+          ) : null}
         </View>
+        {cs.nickname ? (
+          <Text style={{ fontSize: 17, fontWeight: "800", color: c.heading }} numberOfLines={1}>
+            {cs.nickname}
+          </Text>
+        ) : null}
+        <Text style={{ fontSize: cs.nickname ? 16 : 17, fontWeight: cs.nickname ? "600" : "700", color: cs.nickname ? c.text : c.heading, lineHeight: 22 }}>{status}</Text>
+        {map && map.current >= 0 ? <MiniLine map={map} lang={lang} /> : cs.stage !== null ? <Stepper stage={cs.stage} total={stageCount} category={cs.category} label={stepLabel} /> : null}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space(2) }}>
+          {map?.marker ? (
+            <>
+              <Text style={{ fontSize: 12, fontWeight: "700", letterSpacing: 0.6, color: c.muted, textTransform: "uppercase" }}>{t.stepLabel}</Text>
+              <StepChip map={map} lang={lang} small />
+            </>
+          ) : null}
+          <Text style={{ flex: 1, textAlign: "right", fontSize: 13, color: c.muted }} numberOfLines={1}>
+            {updated ?? (cs.lastCheckedAt ? t.checkedShort(timeAgo(cs.lastCheckedAt, lang)) : "")}
+          </Text>
+        </View>
+        {(cs.tags?.length || isNew) && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space(2) }}>
+            <View style={{ flex: 1 }}>
+              <CardTags tags={cs.tags ?? []} />
+            </View>
+            {isNew && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: space(1) }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.brandRed }} />
+                <Text style={{ color: c.brandRed, fontWeight: "700", fontSize: 13 }}>{t.newBadge}</Text>
+              </View>
+            )}
+          </View>
+        )}
         {paused && <Text style={{ color: c.danger, fontWeight: "600", fontSize: 13 }}>{t.pausedPlan}</Text>}
       </View>
     </Pressable>
