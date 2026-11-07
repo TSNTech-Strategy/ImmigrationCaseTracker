@@ -189,7 +189,7 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
       db.firmUpdate.findMany({ where: { firmId: ctx.firm.id, OR: [{ state: "OPEN" }, { state: "SNOOZED", snoozedUntil: { lte: now() } }] }, select: { case: { select: { clientId: true } } } }),
     ]);
     const needs = new Map<string, number>();
-    for (const u of open) if (u.case.clientId) needs.set(u.case.clientId, (needs.get(u.case.clientId) ?? 0) + 1);
+    for (const u of open) if (u.case?.clientId) needs.set(u.case.clientId, (needs.get(u.case.clientId) ?? 0) + 1);
     const clients = rows.map((c) => ({ ...c, countryName: countryName(c.countryOfBirth), needsAction: needs.get(c.id) ?? 0 }));
     return { ctx, clients };
   }

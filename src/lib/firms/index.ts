@@ -1,3 +1,4 @@
+import { createFirmTaskService } from "./tasks";
 import { createFirmDashboardService } from "./dashboard";
 import { createFirmAlertService } from "./alerts";
 import "server-only";
@@ -50,4 +51,9 @@ export function firmAlertService() {
 /** The firm dashboard (numbers from the firm's own cases). */
 export function firmDashboardService() {
   return createFirmDashboardService({ db: prisma });
+}
+
+/** Team tasks, comments and the task calendar. */
+export function firmTaskService() {
+  return createFirmTaskService({ db: prisma });
 }

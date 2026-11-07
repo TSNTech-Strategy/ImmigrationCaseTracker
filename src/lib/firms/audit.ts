@@ -25,6 +25,7 @@ export const AUDIT_CATEGORIES = {
   cases: { label: "Cases and consent", prefixes: ["case.", "cases.", "consent."] },
   tags: { label: "Tags", prefixes: ["tag."] },
   updates: { label: "Updates, deadlines and client emails", prefixes: ["update.", "client_update.", "client.portal_", "firm.client_updates", "deadline.", "firm.alerts"] },
+  tasks: { label: "Tasks", prefixes: ["task."] },
   exports: { label: "Exports", prefixes: ["audit."] },
 } as const;
 export type AuditCategory = keyof typeof AUDIT_CATEGORIES;
@@ -125,6 +126,18 @@ export function describeAudit(action: string, m: Meta, target: string): string {
       return `Exported ${plural(m.rows, "case")} to CSV (with full receipt numbers)`;
     case "firm.settings":
       return `Changed firm settings (${(Array.isArray(m.fields) ? m.fields : []).join(", ") || "details"})`;
+    case "task.created":
+      return `Created task "${str(m.title)}"`;
+    case "task.updated":
+      return `Changed task "${str(m.title)}" (${(Array.isArray(m.fields) ? m.fields : []).join(", ") || "details"})`;
+    case "task.completed":
+      return `Completed task "${str(m.title)}"`;
+    case "task.reopened":
+      return `Reopened task "${str(m.title)}"`;
+    case "task.deleted":
+      return `Deleted task "${str(m.title)}"`;
+    case "task.commented":
+      return `Commented on task "${str(m.title)}"${Number(m.mentions) ? ` and mentioned ${plural(m.mentions, "teammate")}` : ""}`;
     case "deadline.added":
       return `Added a deadline on case ${t}: ${deadlineLabel(m.kind)} ${str(m.dueOn)}`;
     case "deadline.done":

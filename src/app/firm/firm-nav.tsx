@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type Item = { href: string; label: string; managersOnly?: boolean; badge?: "updates" | "deadlines" };
+type Item = { href: string; label: string; managersOnly?: boolean; badge?: "updates" | "deadlines" | "tasks" };
 
 const MAIN: Item[] = [
   { href: "/firm", label: "Dashboard" },
   { href: "/firm/updates", label: "Inbox", badge: "updates" },
+  { href: "/firm/tasks", label: "Tasks", badge: "tasks" },
   { href: "/firm/cases", label: "Cases" },
   { href: "/firm/clients", label: "Clients" },
   { href: "/firm/deadlines", label: "Deadlines", badge: "deadlines" },
@@ -36,12 +37,12 @@ const tab =
   "relative inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)] aria-[current=page]:text-[var(--foreground)] aria-[current=page]:after:absolute aria-[current=page]:after:inset-x-3 aria-[current=page]:after:-bottom-px aria-[current=page]:after:h-0.5 aria-[current=page]:after:rounded-full aria-[current=page]:after:bg-[var(--accent)]";
 
 /** The firm workspace's tabs, and the settings tabs when inside settings. */
-export function FirmNav({ firmName, isManager, openUpdates = 0, dueDeadlines = 0 }: { firmName: string; isManager: boolean; openUpdates?: number; dueDeadlines?: number }) {
+export function FirmNav({ firmName, isManager, openUpdates = 0, dueDeadlines = 0, dueTasks = 0 }: { firmName: string; isManager: boolean; openUpdates?: number; dueDeadlines?: number; dueTasks?: number }) {
   const path = usePathname();
   const settings = SETTINGS.filter((l) => isManager || !l.managersOnly);
   const inSettings = SETTINGS.some((l) => under(path, l.href));
   const mainActive = (href: string) => !inSettings && (href === "/firm" ? path === "/firm" : under(path, href));
-  const count = (b: Item["badge"]) => (b === "updates" ? openUpdates : b === "deadlines" ? dueDeadlines : 0);
+  const count = (b: Item["badge"]) => (b === "updates" ? openUpdates : b === "deadlines" ? dueDeadlines : b === "tasks" ? dueTasks : 0);
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-end justify-between gap-3 border-b border-[var(--border)]">
@@ -56,7 +57,7 @@ export function FirmNav({ firmName, isManager, openUpdates = 0, dueDeadlines = 0
                     className={`rounded-full px-1.5 text-[11px] font-semibold leading-[18px] tabular-nums ${l.badge === "updates" ? "bg-[var(--accent)] text-[var(--accent-fg)]" : "bg-[var(--st-action-bg)] text-[var(--st-action)]"}`}
                   >
                     {n > 99 ? "99+" : n}
-                    <span className="sr-only">{l.badge === "updates" ? " open" : " due within a week"}</span>
+                    <span className="sr-only">{l.badge === "updates" ? " open" : l.badge === "tasks" ? " due today or overdue" : " due within a week"}</span>
                   </span>
                 )}
               </Link>

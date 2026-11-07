@@ -10,7 +10,8 @@ import { caseJourney } from "@/lib/journeys";
 import { LocalTime } from "@/components/local-time";
 import { ModeBanner } from "@/components/mode-banner";
 import { requireUser } from "@/lib/auth/session";
-import { firmAlertService, firmCaseService, firmService, firmTagService } from "@/lib/firms";
+import { firmAlertService, firmCaseService, firmService, firmTagService, firmTaskService } from "@/lib/firms";
+import { TaskTable } from "../../tasks/task-list";
 import { setCaseAssigneeAction } from "../actions";
 import { DEADLINE_KINDS, suggestedDeadline } from "@/lib/firms/alerts";
 import { AddDeadlineForm } from "../../deadlines/add-deadline-form";
@@ -49,6 +50,7 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
   const journey = caseJourney(c);
   const team = await firmService().listTeam(user.id);
   const members = (team?.members ?? []).map((m) => ({ id: m.userId, name: m.user.name ?? m.user.email }));
+  const caseTasks = await firmTaskService().list(user.id, { scope: "team", status: "all", caseId: c.id });
   const alerts = firmAlertService();
   const deadlines = await alerts.caseDeadlines(ctx.firm.id, c.id);
   const today = alerts.today(ctx.firm.timeZone);
@@ -137,6 +139,21 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
         )}
         <AddDeadlineForm caseId={c.id} kinds={Object.entries(DEADLINE_KINDS).map(([value, k]) => ({ value, label: k.label }))} suggested={suggested} defaultOpen={Boolean(showPrompt) || deadlines.length === 0} />
         <p className="text-xs text-[var(--muted)]">Use the date on the USCIS notice. CasePingo doesn&apos;t calculate legal deadlines.</p>
+      </section>
+      <section aria-labelledby="tasks-h" className="flex scroll-mt-24 flex-col gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 id="tasks-h" className="text-lg font-semibold">
+            Tasks
+          </h2>
+          <Link href={`/firm/tasks/new?case=${c.id}`} className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm font-medium hover:border-[var(--accent)]">
+            New task
+          </Link>
+        </div>
+        {caseTasks && caseTasks.tasks.length > 0 ? (
+          <TaskTable tasks={caseTasks.tasks} today={caseTasks.today} back={`/firm/cases/${c.id}#tasks-h`} compact />
+        ) : (
+          <p className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">No tasks on this case yet.</p>
+        )}
       </section>
       <InsightsLink href={`/firm/cases/${c.id}/insights`} es={es} />
       {checklistForForm(c.formType) && <ChecklistLink checklist={checklistForForm(c.formType)!} />}
