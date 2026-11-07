@@ -105,7 +105,22 @@ function ClientEmail({ u, tab }: { u: Item; tab: string }) {
 }
 
 function UpdateCard({ u, tab, members }: { u: Item; tab: string; members: { id: string; name: string }[] }) {
-  const code = formInfo(u.event?.formType ?? u.case.formType)?.code;
+  const code = formInfo(u.event?.formType ?? u.case?.formType)?.code;
+  const taskReason = u.kind === "TASK" ? (u.alertKey?.split(":")[2] ?? "assigned") : null;
+  const badge =
+    u.kind === "STUCK"
+      ? "Stuck case"
+      : u.kind === "TASK"
+        ? taskReason === "mention"
+          ? "Mentioned in a task"
+          : taskReason === "assigned"
+            ? "Task assigned to you"
+            : u.overdue
+              ? "Task overdue"
+              : "Task due soon"
+        : u.overdue
+          ? "Deadline overdue"
+          : "Deadline coming up";
   const snoozed = u.snoozedActive;
   return (
     <li id={`u-${u.id}`} className="flex scroll-mt-24 flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
@@ -118,11 +133,15 @@ function UpdateCard({ u, tab, members }: { u: Item; tab: string; members: { id: 
           ) : (
             "No client"
           )}
-          <span className="font-normal text-[var(--muted)]"> · </span>
-          <Link href={`/firm/cases/${u.case.id}`} className="font-mono text-sm font-normal hover:underline">
-            {code ? `${code} · ` : ""}
-            {u.case.receiptMasked}
-          </Link>
+          {u.case && (
+            <>
+              <span className="font-normal text-[var(--muted)]"> · </span>
+              <Link href={`/firm/cases/${u.case.id}`} className="font-mono text-sm font-normal hover:underline">
+                {code ? `${code} · ` : ""}
+                {u.case.receiptMasked}
+              </Link>
+            </>
+          )}
         </p>
         <span className="text-sm text-[var(--muted)]">
           <LocalTime iso={u.at.toISOString()} />
@@ -136,21 +155,28 @@ function UpdateCard({ u, tab, members }: { u: Item; tab: string; members: { id: 
             className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold ${u.overdue ? "bg-[var(--st-stop-bg)] text-[var(--st-stop)]" : "bg-[var(--st-action-bg)] text-[var(--st-action)]"}`}
           >
             <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
-            {u.kind === "STUCK" ? "Stuck case" : u.overdue ? "Deadline overdue" : "Deadline coming up"}
+            {badge}
           </span>
         )}
         <p className="text-base font-medium">{u.title}</p>
-        {u.kind === "STUCK" && u.case.statusTitleEn && <p className="text-sm text-[var(--muted)]">Current status: {u.case.statusTitleEn}</p>}
+        {u.kind === "STUCK" && u.case?.statusTitleEn && <p className="text-sm text-[var(--muted)]">Current status: {u.case.statusTitleEn}</p>}
         <p className="rounded-md bg-[var(--surface-2)] px-2 py-1 text-sm">
           <span aria-hidden="true" className="text-[var(--accent)]">
             →{" "}
           </span>
-          <strong className="font-semibold">{u.kind === "DEADLINE" ? "When:" : "Next step:"}</strong> {u.nextStep}
+          <strong className="font-semibold">{u.kind === "DEADLINE" ? "When:" : u.kind === "TASK" ? "Task:" : "Next step:"}</strong> {u.nextStep}
         </p>
       </div>
       {u.kind === "STATUS_CHANGE" ? (
         <ClientEmail u={u} tab={tab} />
-      ) : u.kind === "DEADLINE" ? (
+      ) : u.kind === "TASK" && u.task ? (
+        <p className="text-sm">
+          <Link href={`/firm/tasks/${u.task.id}`} className="font-medium text-[var(--accent)] hover:underline">
+            Open the task
+          </Link>
+          <span className="text-[var(--muted)]"> · finishing the task also closes this.</span>
+        </p>
+      ) : u.kind === "DEADLINE" && u.case ? (
         <p className="text-sm">
           <Link href={`/firm/cases/${u.case.id}#deadlines-h`} className="font-medium text-[var(--accent)] hover:underline">
             Open the case&apos;s deadlines
@@ -231,7 +257,7 @@ export default async function UpdatesPage({ searchParams }: PageProps<"/firm/upd
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Updates</h1>
-          <p className="text-sm text-[var(--muted)]">Every USCIS status change on your clients&apos; cases, stuck cases and deadline reminders, in one place. Assign it, snooze it, or mark it done.</p>
+          <p className="text-sm text-[var(--muted)]">USCIS status changes, stuck cases, deadline reminders and task updates, in one place. Assign it, snooze it, or mark it done.</p>
         </div>
         <p className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm">
           Client emails: <strong>{CLIENT_UPDATE_MODES[ctx.firm.clientUpdates].label}</strong>

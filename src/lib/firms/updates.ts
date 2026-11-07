@@ -124,11 +124,11 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
       where: { id: updateId },
       select: { id: true, firmId: true, caseId: true, event: { select: { statusTitleEn: true, statusTitleEs: true, formType: true } }, firm: true, case: { select: { receiptMasked: true, formType: true, client: true } } },
     });
-    const client = u.case.client;
-    if (!u.event) {
+    if (!u.event || !u.case || !u.caseId) {
       await db.firmUpdate.update({ where: { id: u.id }, data: { clientUpdate: "NONE" } });
       return "NONE";
     }
+    const client = u.case.client;
     // Checked again at send time: the address or the agreement may have been removed since.
     if (!canEmail(client)) {
       await db.firmUpdate.update({ where: { id: u.id }, data: { clientUpdate: "NO_CLIENT" } });
@@ -186,6 +186,8 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
           kind: true,
           stuckDays: true,
           deadline: { select: { id: true, kind: true, dueOn: true, note: true, doneAt: true } },
+          alertKey: true,
+          task: { select: { id: true, title: true, status: true, dueOn: true } },
           event: { select: { statusTitleEn: true, statusTitleEs: true, formType: true, firstObservedAt: true } },
           case: { select: { id: true, receiptMasked: true, nickname: true, formType: true, statusTitleEn: true, client: true } },
         },
@@ -200,28 +202,40 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
       counts: { open, mine, snoozed },
       members: members.map((m) => ({ id: m.userId, name: m.user.name ?? m.user.email })),
       items: items.map((u) => {
-        const client = u.case.client;
-        const preview = (u.clientUpdate === "PENDING" || u.clientUpdate === "FAILED") && canEmail(client) && u.event ? buildClientUpdate(ctx.firm, client, u.case, u.event) : null;
-        const caseView = { id: u.case.id, receiptMasked: u.case.receiptMasked, nickname: u.case.nickname, formType: u.case.formType, statusTitleEn: u.case.statusTitleEn };
+        const client = u.case?.client ?? null;
+        const preview = (u.clientUpdate === "PENDING" || u.clientUpdate === "FAILED") && canEmail(client) && u.event && u.case ? buildClientUpdate(ctx.firm, client, u.case, u.event) : null;
+        const caseView = u.case ? { id: u.case.id, receiptMasked: u.case.receiptMasked, nickname: u.case.nickname, formType: u.case.formType, statusTitleEn: u.case.statusTitleEn } : null;
         const today = easternDay(t, ctx.firm.timeZone);
         const d = u.deadline;
-        const overdue = Boolean(d && !d.doneAt && daysUntil(d.dueOn, today) < 0);
+        const tk = u.task;
+        const taskReason = u.kind === "TASK" ? (u.alertKey?.split(":")[2] ?? "assigned") : null;
+        const overdue = Boolean((d && !d.doneAt && daysUntil(d.dueOn, today) < 0) || (taskReason === "overdue" && tk && tk.status !== "DONE"));
         const title = u.event
           ? (u.event.statusTitleEn ?? "Status updated")
           : u.kind === "STUCK"
             ? `No change from USCIS in ${u.stuckDays?.toLocaleString("en-US") ?? "many"} days`
-            : d
-              ? `${DEADLINE_KINDS[d.kind].label}: ${formatDue(d.dueOn)}`
-              : "Deadline";
+            : tk
+              ? tk.title
+              : d
+                ? `${DEADLINE_KINDS[d.kind].label}: ${formatDue(d.dueOn)}`
+                : "Deadline";
+        const taskLine = () => {
+          if (!tk) return "";
+          if (tk.status === "DONE") return "Task done.";
+          const due = tk.dueOn ? `Due ${formatDue(tk.dueOn)} (${dueText(tk.dueOn, today)})` : "No due date";
+          return taskReason === "mention" ? `You were mentioned in a comment. ${due}.` : taskReason === "assigned" ? `Assigned to you. ${due}.` : `${due}.`;
+        };
         const nextStep = u.event
-          ? nextStepFor(u.event.statusTitleEn, u.event.formType ?? u.case.formType).en
+          ? nextStepFor(u.event.statusTitleEn, u.event.formType ?? u.case?.formType).en
           : u.kind === "STUCK"
             ? "Review the case. If it's outside normal processing time, consider an inquiry with USCIS."
-            : d
-              ? d.doneAt
-                ? "Deadline marked done."
-                : `${dueText(d.dueOn, today).replace(/^./, (c) => c.toUpperCase())}${d.note ? ` · ${d.note}` : ""}`
-              : "";
+            : tk
+              ? taskLine()
+              : d
+                ? d.doneAt
+                  ? "Deadline marked done."
+                  : `${dueText(d.dueOn, today).replace(/^./, (c) => c.toUpperCase())}${d.note ? ` · ${d.note}` : ""}`
+                : "";
         return {
           ...u,
           case: caseView,
@@ -247,9 +261,9 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
     const no = (code: string, error: string) => ({ ...fail(error), code });
     const ctx = await findFirmContext(db, userId);
     if (!ctx) return no("no_firm", "You're not part of a firm workspace.");
-    const u = await db.firmUpdate.findFirst({ where: { id: updateId, firmId: ctx.firm.id }, select: { id: true, caseId: true, clientUpdate: true } });
+    const u = await db.firmUpdate.findFirst({ where: { id: updateId, firmId: ctx.firm.id }, select: { id: true, caseId: true, taskId: true, clientUpdate: true } });
     if (!u) return no("not_found", "That update isn't in your inbox.");
-    const log = (a: string, metadata?: object) => audit(ctx.firm.id, userId, a, "TrackedCase", u.caseId, metadata);
+    const log = (a: string, metadata?: object) => audit(ctx.firm.id, userId, a, u.caseId ? "TrackedCase" : "FirmTask", u.caseId ?? u.taskId ?? u.id, metadata);
 
     switch (action.type) {
       case "assign": {

@@ -144,7 +144,7 @@ export function createFirmDashboardService({ db, now = () => new Date() }: { db:
       byCountry: top(byCountry, 8),
       waiting: [...waiting.entries()].map(([key, v]) => ({ key, ...v })),
       deadlines: deadlines.map((d) => ({ ...d, daysLeft: daysUntil(d.dueOn, today) })),
-      recent,
+      recent: recent.flatMap((r) => (r.case ? [{ ...r, case: r.case }] : [])),
     };
   }
 

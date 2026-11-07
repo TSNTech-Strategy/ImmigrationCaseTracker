@@ -65,6 +65,10 @@ model User {
   firmUpdatesResolved    FirmUpdate[]            @relation("FirmUpdateResolver")
   firmUpdatesSent        FirmUpdate[]            @relation("FirmUpdateSender")
   deadlinesCreated       CaseDeadline[]          @relation("DeadlineCreatedBy")
+  tasksAssigned          FirmTask[]              @relation("TaskAssignee")
+  tasksCreated           FirmTask[]              @relation("TaskCreatedBy")
+  tasksCompleted         FirmTask[]              @relation("TaskCompletedBy")
+  taskComments           FirmTaskComment[]       @relation("TaskCommentAuthor")
   deadlinesDone          CaseDeadline[]          @relation("DeadlineDoneBy")
   consentsGranted        CaseConsent[]           @relation("ConsentGrantedBy")
   consentsWithdrawn      CaseConsent[]           @relation("ConsentWithdrawnBy")
@@ -143,6 +147,8 @@ model Firm {
   tags             FirmTag[]
   updates          FirmUpdate[]
   deadlines        CaseDeadline[]
+  tasks            FirmTask[]
+  taskComments     FirmTaskComment[]
 }
 
 enum FirmPlan {
@@ -217,6 +223,7 @@ model Client {
   updatedAt        DateTime  @updatedAt
 
   cases TrackedCase[]
+  tasks FirmTask[]
 
   /// Lets TrackedCase reference (clientId, firmId) so a case can never point
   /// at another firm's client.
@@ -311,6 +318,7 @@ model TrackedCase {
   firmTags    FirmCaseTag[]
   firmUpdates FirmUpdate[]
   deadlines   CaseDeadline[]
+  tasks       FirmTask[]
 
   @@unique([ownerUserId, receiptDigest])
   @@unique([firmId, receiptDigest])
@@ -707,15 +715,18 @@ model FirmUpdate {
   id                String            @id @default(cuid())
   firmId            String
   firm              Firm              @relation(fields: [firmId], references: [id], onDelete: Cascade)
-  caseId            String
+  /// Null for task items that aren't about a case.
+  caseId            String?
   /// Composite key: the case always belongs to the same firm.
-  case              TrackedCase       @relation(fields: [caseId, firmId], references: [id, firmId], onDelete: Cascade)
+  case              TrackedCase?      @relation(fields: [caseId, firmId], references: [id, firmId], onDelete: Cascade)
   /// A status change (event), a case with no change for a long time (stuck), or a deadline reminder.
   kind              FirmUpdateKind    @default(STATUS_CHANGE)
   eventId           String?           @unique
   event             CaseStatusEvent?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
   deadlineId        String?
   deadline          CaseDeadline?     @relation(fields: [deadlineId], references: [id], onDelete: Cascade)
+  taskId            String?
+  task              FirmTask?         @relation(fields: [taskId], references: [id], onDelete: Cascade)
   /// One alert per situation: "stuck:<case>:<status fingerprint>" or "deadline:<id>:soon|overdue".
   alertKey          String?           @unique
   /// Days without a USCIS change when a stuck alert was raised.
@@ -739,6 +750,81 @@ model FirmUpdate {
   @@index([firmId, state, createdAt])
   @@index([caseId])
   @@index([deadlineId])
+  @@index([taskId])
+}
+
+/// A to-do for the firm's team, optionally about a case or a client.
+model FirmTask {
+  id            String           @id @default(cuid())
+  firmId        String
+  firm          Firm             @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  status        FirmTaskStatus   @default(TODO)
+  type          FirmTaskType     @default(GENERAL)
+  priority      FirmTaskPriority @default(NONE)
+  dueOn         DateTime?        @db.Date
+  assigneeId    String?
+  assignee      User?            @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  /// Same firm, checked by the service; the link clears if the case or client is removed.
+  caseId        String?
+  case          TrackedCase?     @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  clientId      String?
+  client        Client?          @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  createdById   String?
+  createdBy     User?            @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  completedAt   DateTime?
+  completedById String?
+  completedBy   User?            @relation("TaskCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  comments      FirmTaskComment[]
+  updates       FirmUpdate[]
+
+  @@index([firmId, status, dueOn])
+  @@index([firmId, assigneeId, status])
+  @@index([caseId])
+  @@index([clientId])
+}
+
+model FirmTaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      FirmTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  firmId    String
+  firm      Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation("TaskCommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  body      String
+  /// Team members @mentioned in the comment (user ids).
+  mentions  String[]
+  createdAt DateTime @default(now())
+
+  @@index([taskId, createdAt])
+}
+
+enum FirmTaskStatus {
+  TODO
+  IN_PROGRESS
+  WAITING
+  DONE
+}
+
+enum FirmTaskType {
+  GENERAL
+  CLIENT_FOLLOW_UP
+  FORM_PREP
+  FILING
+  RESPONSE
+  REVIEW
+}
+
+enum FirmTaskPriority {
+  NONE
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
 }
 
 /// A date the firm must not miss on a case (from a USCIS notice or the firm's own plan). Entered by the firm.
@@ -768,6 +854,7 @@ enum FirmUpdateKind {
   STATUS_CHANGE
   STUCK
   DEADLINE
+  TASK
 }
 
 enum DeadlineKind {

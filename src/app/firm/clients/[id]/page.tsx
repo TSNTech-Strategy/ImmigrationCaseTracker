@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
-import { firmCaseService, firmUpdateService } from "@/lib/firms";
+import { firmCaseService, firmTaskService, firmUpdateService } from "@/lib/firms";
+import { TaskTable } from "../../tasks/task-list";
 import { CopyLink } from "@/components/copy-link";
 import { LocalTime } from "@/components/local-time";
 import { ArchiveClientForm, EditClientForm } from "../forms";
@@ -80,6 +81,7 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
   const message = typeof notice === "string" ? NOTICES[notice] : undefined;
   const error = typeof notice === "string" ? ERRORS[notice] : undefined;
   const portalUrl = firmUpdateService().portalUrl(client);
+  const clientTasks = await firmTaskService().list(user.id, { scope: "team", status: "active", clientId: client.id });
   const canArchive = ctx.membership.role !== "STAFF";
 
   return (
@@ -132,6 +134,22 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
           Cases
         </h2>
         <FirmCaseList cases={client.cases.map((c) => ({ ...c, client: null }))} empty="No cases for this client yet." />
+      </section>
+
+      <section aria-labelledby="client-tasks-h" className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 id="client-tasks-h" className="text-lg font-semibold">
+            Open tasks
+          </h2>
+          <Link href={`/firm/tasks/new?client=${client.id}`} className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm font-medium hover:border-[var(--accent)]">
+            New task
+          </Link>
+        </div>
+        {clientTasks && clientTasks.tasks.length > 0 ? (
+          <TaskTable tasks={clientTasks.tasks} today={clientTasks.today} back={`/firm/clients/${client.id}`} compact />
+        ) : (
+          <p className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">No open tasks for this client.</p>
+        )}
       </section>
 
       <section aria-labelledby="client-details-h" className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
