@@ -53,7 +53,8 @@ export function ImportForm({ maxRows }: { maxRows: number }) {
           className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
         />
         <p id="field-file-hint" className="text-xs text-[var(--muted)]">
-          Up to {maxRows} cases. Columns: client_name, receipt_number, and optionally client_ref, label, evidence.{" "}
+          Up to {maxRows} cases. Columns: client_name, receipt_number, and optionally client_ref, label, evidence, tags (separate several with
+          a semicolon, e.g. &quot;Attorney: Rivera; H-1B&quot;; new tags are created).{" "}
           <a href="/firm/cases/import/template" download className="underline underline-offset-2">
             Download the template
           </a>
@@ -110,6 +111,12 @@ export function ImportForm({ maxRows }: { maxRows: number }) {
                 , with <strong>{plan.newClients}</strong> new client{plan.newClients === 1 ? "" : "s"}
               </>
             )}
+            {plan.newTags > 0 && (
+              <>
+                {plan.newClients > 0 ? " and " : ", with "}
+                <strong>{plan.newTags}</strong> new tag{plan.newTags === 1 ? "" : "s"}
+              </>
+            )}
             .{" "}
             {plan.errors > 0 && (
               <span className="text-[var(--danger)]">
@@ -125,6 +132,7 @@ export function ImportForm({ maxRows }: { maxRows: number }) {
                   <th scope="col" className="px-3 py-2 font-medium">Client</th>
                   <th scope="col" className="px-3 py-2 font-medium">Receipt</th>
                   <th scope="col" className="px-3 py-2 font-medium">Label</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Tags</th>
                   <th scope="col" className="px-3 py-2 font-medium">Result</th>
                 </tr>
               </thead>
@@ -138,6 +146,15 @@ export function ImportForm({ maxRows }: { maxRows: number }) {
                     </td>
                     <td className="px-3 py-2 font-mono">{r.receiptMasked ?? "—"}</td>
                     <td className="px-3 py-2">{r.label ?? ""}</td>
+                    <td className="px-3 py-2">
+                      {r.tags.map((tg) => (
+                        <span key={tg.name} className="mr-1 inline-block whitespace-nowrap">
+                          {tg.name}
+                          {tg.isNew && <span className="ml-1 rounded-full border border-[var(--border)] px-1.5 text-xs">new</span>}
+                          {tg !== r.tags[r.tags.length - 1] && ";"}
+                        </span>
+                      ))}
+                    </td>
                     <td className={`px-3 py-2 ${r.error ? "text-[var(--danger)]" : "text-[var(--success)]"}`}>{r.error ?? "Will be added"}</td>
                   </tr>
                 ))}

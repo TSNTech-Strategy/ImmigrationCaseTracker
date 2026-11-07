@@ -42,7 +42,7 @@ export async function importAction(_prev: ImportState, formData: FormData): Prom
   if (intent === "preview") {
     const p = await svc.preview(user.id, csv, defaults);
     if (!p.ok) return { error: p.error, csv, ...echo };
-    return { plan: { rows: p.rows, toAdd: p.toAdd, newClients: p.newClients, errors: p.errors }, csv, ...echo };
+    return { plan: { rows: p.rows, toAdd: p.toAdd, newClients: p.newClients, newTags: p.newTags, errors: p.errors }, csv, ...echo };
   }
   const r = await svc.run(user.id, csv, defaults);
   if (!r.ok) return { error: r.error, csv, ...echo };

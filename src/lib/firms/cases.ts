@@ -5,6 +5,8 @@ import { InvalidReceiptError, protectReceipt, receiptDigestOf } from "@/lib/case
 import { FIRM_CONSENT_VERSION, type FirmConsentBasis } from "./consent";
 import { findFirmContext, type FirmContext } from "./service";
 import { firmChecksAllowed } from "@/lib/billing/entitlements";
+import { flatTags } from "@/lib/cases/tags";
+import { firmCaseTagsSelect } from "./tags";
 
 /**
  * A firm's clients and the cases it tracks for them (CasePingo Pro).
@@ -41,7 +43,7 @@ export const CASE_SORTS = {
   client: "Client name",
 } as const;
 export type CaseSort = keyof typeof CASE_SORTS;
-export type CaseFilters = { clientId?: string; q?: string; view?: CaseListView; sort?: CaseSort };
+export type CaseFilters = { clientId?: string; tagId?: string; q?: string; view?: CaseListView; sort?: CaseSort };
 export const LIST_LIMIT = 100;
 
 const SORTS: Record<CaseSort, Prisma.TrackedCaseOrderByWithRelationInput[]> = {
@@ -107,9 +109,9 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     if (!ctx) return null;
     const client = await db.client.findFirst({
       where: { id: clientId, firmId: ctx.firm.id },
-      include: { cases: { select: caseViewSelect, orderBy: { createdAt: "desc" } } },
+      include: { cases: { select: { ...caseViewSelect, ...firmCaseTagsSelect }, orderBy: { createdAt: "desc" } } },
     });
-    return client ? { ctx, client } : null;
+    return client ? { ctx, client: { ...client, cases: client.cases.map(({ firmTags, ...c }) => ({ ...c, tags: flatTags(firmTags) })) } } : null;
   }
 
   async function createClient(userId: string, input: ClientInput): Promise<{ ok: true; clientId: string } | Fail> {
@@ -156,6 +158,7 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     const t = now();
     const and: Prisma.TrackedCaseWhereInput[] = [{ firmId: ctx.firm.id }];
     if (filters.clientId) and.push({ clientId: filters.clientId });
+    if (filters.tagId) and.push({ firmTags: { some: { tagId: filters.tagId } } });
     if (filters.view) and.push(viewWhere(filters.view, t));
     const q = filters.q?.trim().slice(0, 80);
     if (q) {
@@ -171,6 +174,7 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
             { formType: contains },
             { client: { displayName: contains } },
             { client: { externalRef: contains } },
+            { firmTags: { some: { tag: { name: contains } } } },
             ...(/^\d{1,3}$/.test(q) ? [{ receiptMasked: { endsWith: q } }] : []),
           ],
         });
@@ -180,6 +184,7 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
       where: { AND: and },
       select: {
         ...caseViewSelect,
+        ...firmCaseTagsSelect,
         client: { select: { id: true, displayName: true } },
         consents: { where: { withdrawnAt: null }, select: { id: true }, take: 1 },
       },
@@ -189,7 +194,7 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     return {
       ctx,
       truncated: rows.length > LIST_LIMIT,
-      cases: rows.slice(0, LIST_LIMIT).map(({ consents, ...c }) => ({ ...c, hasConsent: consents.length > 0 })),
+      cases: rows.slice(0, LIST_LIMIT).map(({ consents, firmTags, ...c }) => ({ ...c, tags: flatTags(firmTags), hasConsent: consents.length > 0 })),
     };
   }
 
@@ -200,6 +205,7 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
       where: { id: caseId, firmId: ctx.firm.id },
       select: {
         ...caseViewSelect,
+        ...firmCaseTagsSelect,
         client: { select: { id: true, displayName: true, externalRef: true } },
         addedBy: { select: { name: true, email: true } },
         events: { orderBy: { firstObservedAt: "desc" }, take: 50 },

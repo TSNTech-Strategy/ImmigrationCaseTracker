@@ -93,7 +93,7 @@ describe.skipIf(!url)("firm CSV import and filters", () => {
     const a = await mkFirm("Imp2");
     const csv = "client_name,client_ref,receipt_number,label,evidence\nAna Ruiz,R-1,EAC9999103402,I-485,Engagement letter 2027-04-01\nAna Ruiz,R-1,EAC9999103403,I-765,\nBen Cho,,NOPE,,\n";
     const r = await imp.run(a.owner, csv, { basis: "AUTHORIZED_BY_APPLICANT", evidenceRef: "Written consent on file" });
-    expect(r).toEqual({ ok: true, added: 2, newClients: 1, skipped: 1 });
+    expect(r).toEqual({ ok: true, added: 2, newClients: 1, newTags: 0, skipped: 1 });
     expect(calls).toEqual([]); // no inline USCIS calls
 
     const rows = await db.trackedCase.findMany({ where: { firmId: a.firmId }, include: { consents: true, client: true }, orderBy: { nickname: "asc" } });

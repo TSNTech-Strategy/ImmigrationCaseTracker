@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ModeBanner } from "@/components/mode-banner";
 import { requireUser } from "@/lib/auth/session";
-import { firmCaseService } from "@/lib/firms";
+import { firmCaseService, firmTagService } from "@/lib/firms";
 import { CASE_SORTS, CASE_VIEWS, LIST_LIMIT, type CaseListView, type CaseSort } from "@/lib/firms/cases";
 import { getUscisClient } from "@/lib/uscis";
 import { FirmCaseList } from "./case-list";
@@ -19,15 +19,18 @@ export default async function FirmCasesPage({ searchParams }: PageProps<"/firm/c
   const sp = await searchParams;
   const filters = {
     clientId: one(sp.client),
+    tagId: one(sp.tag),
     q: one(sp.q),
     view: pick<CaseListView>(one(sp.view), CASE_VIEWS),
     sort: pick<CaseSort>(one(sp.sort), CASE_SORTS),
   };
   const svc = firmCaseService();
-  const [data, clients] = await Promise.all([svc.listCases(user.id, filters), svc.listClients(user.id)]);
-  if (!data || !clients) redirect("/firm");
+  const [data, clients, tagList] = await Promise.all([svc.listCases(user.id, filters), svc.listClients(user.id), firmTagService().list(user.id)]);
+  if (!data || !clients || !tagList) redirect("/firm");
   const n = await svc.counts(data.ctx);
-  const filtered = Boolean(filters.clientId || filters.q || filters.view);
+  const tags = tagList.tags;
+  const activeTag = tags.find((tg) => tg.id === filters.tagId);
+  const filtered = Boolean(filters.clientId || filters.tagId || filters.q || filters.view);
 
   const notice = one(sp.notice);
   const message =
@@ -40,6 +43,7 @@ export default async function FirmCasesPage({ searchParams }: PageProps<"/firm/c
   const viewHref = (view?: CaseListView) => {
     const q = new URLSearchParams();
     if (filters.clientId) q.set("client", filters.clientId);
+    if (filters.tagId) q.set("tag", filters.tagId);
     if (filters.q) q.set("q", filters.q);
     if (filters.sort) q.set("sort", filters.sort);
     if (view) q.set("view", view);
@@ -88,7 +92,7 @@ export default async function FirmCasesPage({ searchParams }: PageProps<"/firm/c
         ))}
       </nav>
 
-      <form method="get" role="search" className="grid gap-3 text-sm sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
+      <form method="get" role="search" className="grid gap-3 text-sm sm:grid-cols-[1fr_auto_auto] lg:grid-cols-[1fr_auto_auto_auto_auto] sm:items-end">
         {filters.view && <input type="hidden" name="view" value={filters.view} />}
         <div className="flex flex-col gap-1">
           <label htmlFor="filter-q" className="font-medium">
@@ -99,7 +103,7 @@ export default async function FirmCasesPage({ searchParams }: PageProps<"/firm/c
             name="q"
             type="search"
             defaultValue={filters.q}
-            placeholder="Client, label, form or full receipt number"
+            placeholder="Client, label, tag, form or full receipt number"
             className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
           />
         </div>
@@ -112,6 +116,19 @@ export default async function FirmCasesPage({ searchParams }: PageProps<"/firm/c
             {clients.clients.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.displayName}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="filter-tag" className="font-medium">
+            Tag
+          </label>
+          <select id="filter-tag" name="tag" defaultValue={filters.tagId ?? ""} className={select}>
+            <option value="">All tags</option>
+            {tags.map((tg) => (
+              <option key={tg.id} value={tg.id}>
+                {tg.name} ({tg.caseCount})
               </option>
             ))}
           </select>
@@ -140,11 +157,16 @@ export default async function FirmCasesPage({ searchParams }: PageProps<"/firm/c
         </div>
       </form>
 
-      <p className="text-sm text-[var(--muted)]" role="status">
-        {data.truncated
-          ? `Showing the first ${LIST_LIMIT} matching cases. Narrow the search to see others.`
-          : `${data.cases.length} case${data.cases.length === 1 ? "" : "s"}${filtered ? " match" : ""}.`}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+        <p className="text-[var(--muted)]" role="status">
+          {data.truncated
+            ? `Showing the first ${LIST_LIMIT} matching cases. Narrow the search to see others.`
+            : `${data.cases.length} case${data.cases.length === 1 ? "" : "s"}${filtered ? " match" : ""}${activeTag ? ` the tag "${activeTag.name}"` : ""}.`}
+        </p>
+        <Link href="/firm/tags" className="font-medium text-[var(--accent)] hover:underline">
+          {tags.length ? "Manage tags" : "Set up tags for your team"}
+        </Link>
+      </div>
       <FirmCaseList
         cases={data.cases}
         empty={filtered ? "No cases match these filters." : "Your firm isn't tracking any cases yet. Add a case or import a CSV file."}

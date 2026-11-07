@@ -5,6 +5,8 @@ import { protectReceipt, receiptDigestOf } from "@/lib/cases/receipt-store";
 import { FIRM_CONSENT_VERSION, type FirmConsentBasis } from "./consent";
 import { findFirmContext, type FirmContext } from "./service";
 import { firmChecksAllowed } from "@/lib/billing/entitlements";
+import { normalizeTagName, tagKey } from "@/lib/cases/tags";
+import { FIRM_TAG_LIMITS, nextTagColor } from "./tags";
 
 /**
  * Bulk-add a firm's cases from a CSV file, in two steps:
@@ -38,10 +40,12 @@ export type ImportRow = {
   label: string | null;
   evidenceRef: string;
   newClient: boolean;
+  /** Firm tags for the case (from a "tags" column); `isNew` when the firm doesn't have it yet. */
+  tags: { name: string; isNew: boolean }[];
   error: string | null;
 };
 
-export type ImportPlan = { ok: true; rows: ImportRow[]; toAdd: number; newClients: number; errors: number };
+export type ImportPlan = { ok: true; rows: ImportRow[]; toAdd: number; newClients: number; newTags: number; errors: number };
 
 type Resolved = ImportRow & {
   receipt?: string;
@@ -55,6 +59,7 @@ const COLUMNS = {
   client: ["client", "client_name", "name", "applicant", "applicant_name", "beneficiary"],
   clientRef: ["client_ref", "client_reference", "reference", "ref", "matter", "matter_number", "matter_no", "file_number"],
   label: ["label", "nickname", "case_label", "case", "description"],
+  tags: ["tags", "tag", "case_tags", "firm_tags"],
   evidence: ["evidence", "evidence_ref", "consent_evidence", "g28", "g_28"],
   email: ["email", "client_email"],
 } as const;
@@ -64,9 +69,12 @@ const normHeader = (h: string) => h.toLowerCase().replace(/#/g, "number").replac
 const key = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
 
 export const IMPORT_TEMPLATE =
-  "client_name,client_ref,receipt_number,label,evidence\n" +
-  "Maria Lopez,M-1001,EAC9999103402,I-130 for spouse,G-28 signed 2026-10-01\n" +
-  "John Doe,M-1002,EAC9999103403,I-765,\n";
+  "client_name,client_ref,receipt_number,label,evidence,tags\n" +
+  "Maria Lopez,M-1001,EAC9999103402,I-130 for spouse,G-28 signed 2026-10-01,Attorney: Rivera; Family\n" +
+  "John Doe,M-1002,EAC9999103403,I-765,,EAD\n";
+
+/** Tag names in a "tags" cell, separated by ";" or "|". */
+const splitTags = (cell: string) => cell.split(/[;|]/).map((t) => t.trim()).filter(Boolean);
 
 export function createFirmImportService({ db, now = () => new Date() }: { db: PrismaClient; now?: () => Date }) {
   async function plan(ctx: FirmContext, text: string, defaults: ImportDefaults): Promise<{ ok: true; rows: Resolved[] } | Fail> {
@@ -90,6 +98,8 @@ export function createFirmImportService({ db, now = () => new Date() }: { db: Pr
       where: { firmId: ctx.firm.id },
       select: { id: true, displayName: true, externalRef: true, archivedAt: true },
     });
+    const firmTags = new Map((await db.firmTag.findMany({ where: { firmId: ctx.firm.id }, select: { nameKey: true, name: true } })).map((t) => [t.nameKey, t.name]));
+    const newTagNames = new Map<string, string>();
     const receipts = body.map((r) => normalizeReceiptNumber(cell(r, "receipt")));
     const existing = new Set(
       (
@@ -118,6 +128,7 @@ export function createFirmImportService({ db, now = () => new Date() }: { db: Pr
         label,
         evidenceRef,
         newClient: false,
+        tags: [],
         error: null,
         clientEmail: cell(r, "email").toLowerCase() || null,
       };
@@ -144,14 +155,27 @@ export function createFirmImportService({ db, now = () => new Date() }: { db: Pr
         resolved = { ...row, newClient: !newKeys.has(nk), newClientKey: nk, receipt };
         newKeys.add(nk);
       }
+      // Tags: existing ones by name (any capitals); new ones are created on import.
+      const tags = new Map<string, { name: string; isNew: boolean }>();
+      for (const raw of splitTags(cell(r, "tags"))) {
+        const name = normalizeTagName(raw, FIRM_TAG_LIMITS.name);
+        if (!name) return err(`Tag "${raw.slice(0, 40)}" is longer than ${FIRM_TAG_LIMITS.name} characters.`);
+        const k = tagKey(name);
+        const known = firmTags.get(k) ?? newTagNames.get(k);
+        tags.set(k, { name: known ?? name, isNew: !firmTags.has(k) });
+      }
+      if (tags.size > FIRM_TAG_LIMITS.perCase) return err(`A case can have up to ${FIRM_TAG_LIMITS.perCase} tags.`);
+      const fresh = [...tags.keys()].filter((k) => !firmTags.has(k) && !newTagNames.has(k));
+      if (firmTags.size + newTagNames.size + fresh.length > FIRM_TAG_LIMITS.perFirm) return err(`Over your firm's limit of ${FIRM_TAG_LIMITS.perFirm} tags.`);
       if (remaining <= 0) return err(`Over your firm's limit of ${ctx.firm.caseLimit} cases.`);
       remaining--;
-      return resolved;
+      for (const k of fresh) newTagNames.set(k, tags.get(k)!.name);
+      return { ...resolved, tags: [...tags.values()] };
     });
     return { ok: true, rows };
   }
 
-  const publicRow = ({ line, clientName, clientRef, receiptMasked, label, evidenceRef, newClient, error }: Resolved): ImportRow => ({
+  const publicRow = ({ line, clientName, clientRef, receiptMasked, label, evidenceRef, newClient, tags, error }: Resolved): ImportRow => ({
     line,
     clientName,
     clientRef,
@@ -159,8 +183,16 @@ export function createFirmImportService({ db, now = () => new Date() }: { db: Pr
     label,
     evidenceRef,
     newClient,
+    tags,
     error,
   });
+
+  /** The distinct new tags the rows that will be imported need, by key. */
+  const newTagsOf = (rows: Resolved[]) => {
+    const m = new Map<string, string>();
+    for (const r of rows) if (!r.error) for (const tg of r.tags) if (tg.isNew) m.set(tagKey(tg.name), tg.name);
+    return m;
+  };
 
   function summarize(rows: Resolved[]): ImportPlan {
     const ok = rows.filter((r) => !r.error);
@@ -169,6 +201,7 @@ export function createFirmImportService({ db, now = () => new Date() }: { db: Pr
       rows: rows.map(publicRow),
       toAdd: ok.length,
       newClients: ok.filter((r) => r.newClient).length,
+      newTags: newTagsOf(rows).size,
       errors: rows.length - ok.length,
     };
   }
@@ -184,7 +217,7 @@ export function createFirmImportService({ db, now = () => new Date() }: { db: Pr
     userId: string,
     text: string,
     defaults: ImportDefaults,
-  ): Promise<{ ok: true; added: number; newClients: number; skipped: number } | Fail> {
+  ): Promise<{ ok: true; added: number; newClients: number; newTags: number; skipped: number } | Fail> {
     const ctx = await findFirmContext(db, userId);
     if (!ctx) return fail("You're not part of a firm workspace.");
     const p = await plan(ctx, text, defaults);
@@ -194,9 +227,23 @@ export function createFirmImportService({ db, now = () => new Date() }: { db: Pr
     const t = now();
 
     try {
+      const newTags = newTagsOf(p.rows);
       const newClientIds = await db.$transaction(
         async (tx) => {
           const ids = new Map<string, string>();
+          // Firm tags by key: the existing ones, plus the new ones this file needs.
+          const existingTags = await tx.firmTag.findMany({ where: { firmId: ctx.firm.id }, select: { id: true, nameKey: true, color: true } });
+          const tagIds = new Map(existingTags.map((t) => [t.nameKey, t.id]));
+          const colors = existingTags.map((t) => ({ color: t.color }));
+          for (const [k, name] of newTags) {
+            const color = nextTagColor(colors);
+            colors.push({ color });
+            const tag = await tx.firmTag.create({ data: { firmId: ctx.firm.id, name, nameKey: k, color }, select: { id: true } });
+            tagIds.set(k, tag.id);
+            await tx.auditLog.create({
+              data: { firmId: ctx.firm.id, actorUserId: userId, action: "tag.created", targetType: "FirmTag", targetId: tag.id, metadata: { name, color, source: "csv" } },
+            });
+          }
           for (const r of good) {
             let clientId = r.clientId;
             if (!clientId) {
@@ -242,6 +289,12 @@ export function createFirmImportService({ db, now = () => new Date() }: { db: Pr
                 metadata: { basis: defaults.basis, clientId, source: "csv" },
               },
             });
+            if (r.tags.length) {
+              await tx.firmCaseTag.createMany({
+                data: r.tags.map((tg) => ({ caseId: created.id, tagId: tagIds.get(tagKey(tg.name))!, firmId: ctx.firm.id })),
+                skipDuplicates: true,
+              });
+            }
           }
           await tx.auditLog.create({
             data: {
@@ -250,17 +303,17 @@ export function createFirmImportService({ db, now = () => new Date() }: { db: Pr
               action: "cases.imported",
               targetType: "Firm",
               targetId: ctx.firm.id,
-              metadata: { added: good.length, newClients: ids.size, skipped: p.rows.length - good.length },
+              metadata: { added: good.length, newClients: ids.size, ...(newTags.size ? { newTags: newTags.size } : {}), skipped: p.rows.length - good.length },
             },
           });
           return ids;
         },
         { timeout: 60_000 },
       );
-      return { ok: true, added: good.length, newClients: newClientIds.size, skipped: p.rows.length - good.length };
+      return { ok: true, added: good.length, newClients: newClientIds.size, newTags: newTags.size, skipped: p.rows.length - good.length };
     } catch (err) {
       if ((err as { code?: string }).code === "P2002") {
-        return fail("Some of these cases were added by someone else in the meantime. Preview the file again.");
+        return fail("Some of these cases or tags were added by someone else in the meantime. Preview the file again.");
       }
       throw err;
     }

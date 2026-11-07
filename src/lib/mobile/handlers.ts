@@ -259,7 +259,7 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
   }
 
   // ---- Tags (personal cases) ----
-  const TAG_STATUS = { invalid: 400, duplicate: 409, limit: 403, not_found: 404 } as const;
+  const TAG_STATUS = { invalid: 400, duplicate: 409, limit: 403, not_found: 404, forbidden: 403 } as const;
   const tagResult = <T>(r: TagResult<T>, body: (v: T) => unknown, status = 200): ApiResult =>
     r.ok ? ok(body(r.value), status) : err(TAG_STATUS[r.error], r.error, r.message, r.error === "invalid" || r.error === "duplicate" ? "name" : undefined);
 

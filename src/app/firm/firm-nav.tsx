@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/firm", label: "Overview" },
   { href: "/firm/cases", label: "Cases" },
   { href: "/firm/clients", label: "Clients" },
+  { href: "/firm/tags", label: "Tags" },
   { href: "/firm/team", label: "Team" },
   { href: "/firm/audit", label: "Activity", managersOnly: true },
   { href: "/firm/billing", label: "Billing", managersOnly: true },
