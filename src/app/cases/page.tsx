@@ -13,6 +13,8 @@ import { recentApprovalAt } from "@/lib/case-insights";
 import { caseJourney } from "@/lib/journeys";
 import { COMPLETED_PREVIEW, GROUP_ORDER, caseGlance, glanceCounts, matchesFilter, parseCaseFilter, type CaseFilter, type CaseGroup } from "@/lib/my-cases";
 import { CasesTabs, SummaryTiles, TILE_LABEL } from "@/components/my-cases-ui";
+import { checklistForForm, checklistPath, checklistProgress } from "@/lib/checklists";
+import { createChecklistService } from "@/lib/checklists-service";
 
 export const metadata: Metadata = { title: "My cases · CasePingo" };
 
@@ -32,11 +34,24 @@ export default async function CasesPage({ searchParams }: PageProps<"/cases">) {
   const { notice, tag, show } = await searchParams;
   const message = typeof notice === "string" ? NOTICES[notice] : undefined;
   const now = new Date();
-  // Each case with its line map, group (needs attention, in progress, completed), tiles and next step.
-  const cases = (await caseService().listCases(user.id)).map((c) => {
+  const [rows, ticked] = await Promise.all([caseService().listCases(user.id), createChecklistService({ db: prisma }).all(user.id)]);
+  // Each case with its line map, group (needs attention, in progress, completed), tiles, next step,
+  // and either Share my journey (approved) or how ready its documents are (in progress).
+  const cases = rows.map((c) => {
     const journey = caseJourney(c, now);
     const observedApprovalAt = recentApprovalAt(c.statusTitleEn, c.events, now);
-    return { ...c, tags: flatTags(c.tags), journey, observedApprovalAt, ...caseGlance(c, journey, { now, observedApprovalAt }) };
+    const approved = journey.lineMap.outcome === "approved";
+    const cl = checklistForForm(c.formType);
+    const p = cl && !approved && !journey.lineMap.finished ? checklistProgress(cl, ticked.get(cl.key) ?? []) : null;
+    return {
+      ...c,
+      tags: flatTags(c.tags),
+      journey,
+      observedApprovalAt,
+      ...caseGlance(c, journey, { now, observedApprovalAt }),
+      approvedHref: approved ? `/cases/${c.id}/approved` : null,
+      docs: cl && p && p.required > 0 ? { href: checklistPath(cl.key), pct: Math.round((p.requiredDone / p.required) * 100) } : null,
+    };
   });
   // Tags on any case, A to Z, with how many cases have each: the filter.
   const inUse = new Map<string, { id: string; name: string; color: TagColor; count: number }>();

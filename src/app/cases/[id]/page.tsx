@@ -109,7 +109,7 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
         }
       />
       <LineMapSection map={journey.lineMap} es={es} />
-      {share && <ShareJourneyCard share={share} formCode={c.formType} es={es} />}
+      {share && <ShareJourneyCard share={share} formCode={c.formType} href={`/cases/${c.id}/approved`} es={es} />}
       <InsightsLink href={`/cases/${c.id}/insights`} es={es} />
       {checklistForForm(c.formType) && <ChecklistLink checklist={checklistForForm(c.formType)!} />}
       {FEATURES.assistant && (

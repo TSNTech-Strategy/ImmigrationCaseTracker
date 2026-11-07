@@ -4,8 +4,9 @@
  * Immigration courts belong to the Department of Justice's Executive Office
  * for Immigration Review (EOIR), not USCIS. EOIR has no public API, and its
  * case information site isn't for automated use, so CasePingo never checks
- * court cases and never stores A-Numbers: it explains where to look and links
- * to the official sites. The website shows this guide and the API sends it to
+ * court cases and its servers never receive A-Numbers: it explains where to
+ * look and links to the official sites. (The app can keep a court case and its
+ * next hearing on the phone, for reminders.) The website shows this guide and the API sends it to
  * the app, so wording can improve without an app release.
  */
 
@@ -36,8 +37,8 @@ export const COURT_GUIDE = {
       key: "online",
       title: { en: "Check online", es: "Consulte en línea" },
       text: {
-        en: "EOIR's case information site shows your next hearing (date, time and court) and the judge's decision.",
-        es: "El sitio de información de casos de EOIR muestra su próxima audiencia (fecha, hora y corte) y la decisión del juez.",
+        en: "Enter your A-Number and your nationality on EOIR's case information site to see your next hearing (date, time and court) and the judge's decision.",
+        es: "Ingrese su número A y su nacionalidad en el sitio de información de casos de EOIR para ver su próxima audiencia (fecha, hora y corte) y la decisión del juez.",
       },
       link: { url: EOIR_CASE_INFO_URL, label: { en: "Open EOIR case information", es: "Abrir la información de casos de EOIR" } },
     },
@@ -89,8 +90,8 @@ export const COURT_GUIDE = {
     },
   ] satisfies CourtLink[],
   note: {
-    en: "CasePingo doesn't check immigration court cases or keep A-Numbers. These links open EOIR's official websites.",
-    es: "CasePingo no consulta casos de la corte de inmigración ni guarda números A. Estos enlaces abren los sitios oficiales de EOIR.",
+    en: "CasePingo doesn't check immigration court cases, and its servers never receive A-Numbers (court cases you add in the app stay on your phone). These links open EOIR's official websites.",
+    es: "CasePingo no consulta casos de la corte de inmigración y sus servidores nunca reciben números A (los casos de la corte que agregue en la aplicación se quedan en su teléfono). Estos enlaces abren los sitios oficiales de EOIR.",
   },
 };
 

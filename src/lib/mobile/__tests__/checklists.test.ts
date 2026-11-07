@@ -49,6 +49,19 @@ describe.skipIf(!url)("app API: document checklists", () => {
     expect((await api.setChecklistItem(a, "i-485", { item: "nope", done: true })).status).toBe(404);
     expect((await api.setChecklistItem(a, "i-485", { item: "form" })).status).toBe(400);
 
+    // The case list shows each case's checklist progress (the "ready" ring on the card).
+    await db.trackedCase.create({
+      data: { ownerUserId: a, receiptEncrypted: "test", receiptDigest: `cl-${a}`, receiptMasked: "LIN*******777", formType: "I485", statusTitleEn: "Case Was Received" },
+    });
+    await db.trackedCase.create({
+      data: { ownerUserId: a, receiptEncrypted: "test", receiptDigest: `cl2-${a}`, receiptMasked: "LIN*******778", formType: "I-129", statusTitleEn: "Case Was Received" },
+    });
+    const cases = body(await api.listCases(a)).cases as { formType: string; checklist: { key: string; required: number; requiredDone: number } | null }[];
+    const gc = cases.find((x) => x.formType === "I485")!;
+    expect(gc.checklist).toMatchObject({ key: "i-485", requiredDone: 1 });
+    expect(gc.checklist!.required).toBeGreaterThan(3);
+    expect(cases.find((x) => x.formType === "I-129")!.checklist).toBeNull();
+
     // Deleting the account deletes the ticks.
     await db.user.delete({ where: { id: a } });
     expect(await db.checklistCheck.count({ where: { userId: a } })).toBe(0);

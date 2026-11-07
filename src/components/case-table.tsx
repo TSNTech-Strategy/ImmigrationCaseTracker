@@ -3,6 +3,7 @@ import { LocalTime } from "@/components/local-time";
 import { StatusBadge } from "@/components/status-badge";
 import { TagList } from "@/components/case-tags";
 import type { TagView } from "@/lib/cases/tags";
+import { ReadyRing, TrophyIcon } from "@/components/my-cases-ui";
 
 export type CaseRow = {
   id: string;
@@ -20,7 +21,32 @@ export type CaseRow = {
   tags?: TagView[];
   /** A few words on what to do now ("Prepare for your interview"). */
   nextStep?: { en: string; es: string } | null;
+  /** Approved cases: the Journey approved page. */
+  approvedHref?: string | null;
+  /** Cases in progress with a document checklist: how many required documents are ticked. */
+  docs?: { href: string; pct: number } | null;
 };
+
+/** Share my journey (approved) or the documents ring (in progress), above the row's own link. */
+function RowExtras({ c, es }: { c: CaseRow; es: boolean }) {
+  if (!c.approvedHref && !c.docs) return null;
+  return (
+    <span className="relative z-10 flex flex-wrap items-center gap-2">
+      {c.approvedHref && (
+        <Link href={c.approvedHref} className="inline-flex items-center gap-1.5 rounded-lg border border-[#d9a632] bg-[#f2c14e] px-2.5 py-1 text-xs font-extrabold text-[#0f1b2d] hover:bg-[#e0ae3a]">
+          <TrophyIcon size={13} />
+          {es ? "Compartir mi trayectoria" : "Share my journey"}
+        </Link>
+      )}
+      {c.docs && (
+        <Link href={c.docs.href} className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-xs font-semibold hover:border-[var(--accent)]">
+          <ReadyRing pct={c.docs.pct} size={20} />
+          {es ? `Documentos: ${c.docs.pct}% listo` : `Documents ${c.docs.pct}% ready`}
+        </Link>
+      )}
+    </span>
+  );
+}
 
 function NextStep({ step, es }: { step: { en: string; es: string }; es: boolean }) {
   return (
@@ -87,6 +113,7 @@ export function CaseTable({ rows, hrefBase, es = false, showClient = false, fixe
                     <StatusBadge titleEn={c.statusTitleEn} es={es} />
                     <span>{title(c)}</span>
                     {c.nextStep && <NextStep step={c.nextStep} es={es} />}
+                    <RowExtras c={c} es={es} />
                     {note(c) && <span className="text-xs font-medium text-[var(--danger)]">{note(c)}</span>}
                   </div>
                 </td>
@@ -124,6 +151,11 @@ export function CaseTable({ rows, hrefBase, es = false, showClient = false, fixe
               </span>
               {note(c) && <span className="text-xs font-medium text-[var(--danger)]">{note(c)}</span>}
             </Link>
+            {(c.approvedHref || c.docs) && (
+              <div className="px-4 pb-4">
+                <RowExtras c={c} es={es} />
+              </div>
+            )}
           </li>
         ))}
       </ul>

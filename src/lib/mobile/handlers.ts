@@ -149,7 +149,14 @@ export function createMobileApi({
       select: { ...caseViewSelect, ...caseTagsSelect, events: { select: { statusTitleEn: true, uscisReportedRaw: true, firstObservedAt: true }, orderBy: { firstObservedAt: "asc" } } },
       orderBy: { createdAt: "desc" },
     });
-    const approvals = await recentApprovals(db, rows, now());
+    const [approvals, ticked] = await Promise.all([recentApprovals(db, rows, now()), checklists.all(userId)]);
+    /** The case's document checklist with how many required documents are ticked: the "ready" ring on the card. */
+    const checklistOf = (formType: string | null) => {
+      const cl = checklistForForm(formType);
+      if (!cl) return null;
+      const p = checklistProgress(cl, ticked.get(cl.key) ?? []);
+      return { key: cl.key, required: p.required, requiredDone: p.requiredDone };
+    };
     return ok({
       stageCount: STAGE_COUNT,
       // The list leaves out the long USCIS history and the changes we saw (the case screen has them); they're only used for the line map and days here,
@@ -167,6 +174,7 @@ export function createMobileApi({
           stage: caseStage(r.statusTitleEn),
           form: formInfo(r.formType),
           recentApprovalAt: observed,
+          checklist: checklistOf(r.formType),
         };
       }),
     });

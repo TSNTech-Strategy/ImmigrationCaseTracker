@@ -154,6 +154,8 @@ export function Field({ label, error, hint, secure, ...input }: { label: string;
           secureTextEntry={secure && !reveal}
           style={{
             flex: 1,
+            // Lets two fields share a row (a web input otherwise keeps its default width).
+            minWidth: 0,
             minHeight: 48,
             borderWidth: 1,
             borderColor: error ? c.danger : c.border,

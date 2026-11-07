@@ -37,6 +37,13 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
   return json as T;
 }
 
+/** The signed-in user's Authorization header, for downloads that don't go through api() (the share picture). */
+export async function authHeaders(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { authorization: `Bearer ${token}` } : {};
+}
+
 // ---- Shapes returned by the API -------------------------------------------------
 
 export type Plan = {
@@ -107,6 +114,8 @@ export type CaseSummary = {
   interview?: boolean;
   approvedRecently?: boolean;
   nextStep?: Bilingual;
+  /** The case's document checklist and how many required documents are ticked (older servers don't send it). */
+  checklist?: { key: string; required: number; requiredDone: number } | null;
 };
 export type CaseGroup = "attention" | "progress" | "completed";
 export type CaseFilter = "attention" | "interview" | "approved" | "active" | "completed";
