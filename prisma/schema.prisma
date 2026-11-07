@@ -166,6 +166,7 @@ model Firm {
 enum FirmPlan {
   SOLO
   FIRM
+  PLUS
 }
 
 model FirmMembership {
@@ -533,6 +534,7 @@ enum BillingProduct {
   PREMIUM
   FIRM_SOLO
   FIRM
+  FIRM_PLUS
 }
 
 /// A Stripe subscription, mirrored from Stripe webhooks (Stripe stays the

@@ -49,24 +49,20 @@ const INDIVIDUAL: Card[] = [
   },
 ];
 
-const FIRMS: Card[] = [
-  {
-    name: FIRM_PLANS.SOLO.label,
-    for: "Solo attorneys and accredited representatives",
-    price: formatUsd(FIRM_PLANS.SOLO.price),
-    period: "/month",
-    features: [`Up to ${FIRM_PLANS.SOLO.maxCases} client cases`, `${FIRM_PLANS.SOLO.maxUsers} team members`, "Clients, consent records (G-28)", "Shared tags by attorney, visa type or deadline", "CSV import, activity log and export"],
-    cta: { label: "Start your free trial", href: "/firm" },
-  },
-  {
-    name: FIRM_PLANS.FIRM.label,
-    for: "Growing immigration practices",
-    price: formatUsd(FIRM_PLANS.FIRM.price),
-    period: "/month",
-    features: [`Up to ${FIRM_PLANS.FIRM.maxCases} client cases`, "Unlimited team members and roles", "Everything in Firm Solo", "Alerts to the person who added each case"],
-    cta: { label: "Start your free trial", href: "/firm" },
-  },
-];
+const FIRM_FEATURES: Record<"SOLO" | "FIRM" | "PLUS", string[]> = {
+  SOLO: ["Inbox, tasks, deadlines and stuck-case alerts", "Client document requests with phone uploads", "Client status page with your logo, English and Spanish", "Dashboard, CSV reports and matters"],
+  FIRM: ["Everything in Solo", "Room for a team of 10", "Team titles, roles and time-away cover"],
+  PLUS: ["Everything in Firm", "Priority support", "Help moving your cases in"],
+};const FIRMS: Card[] = (["SOLO", "FIRM", "PLUS"] as const).map((k) => ({
+  name: FIRM_PLANS[k].label,
+  for: FIRM_PLANS[k].for,
+  price: formatUsd(FIRM_PLANS[k].price),
+  period: "/month",
+  note: `Or ${formatUsd(FIRM_PLANS[k].yearly)} a year (2 months free).`,
+  features: [`Up to ${FIRM_PLANS[k].maxCases.toLocaleString("en-US")} client cases`, FIRM_PLANS[k].maxUsers ? `${FIRM_PLANS[k].maxUsers} team members included` : "Unlimited team members", ...FIRM_FEATURES[k]],
+  highlight: k === "FIRM",
+  cta: { label: "Start your free trial", href: "/firm" },
+}));
 
 function PlanCard({ p: card }: { p: Card }) {
   const p = billingEnabled() && card.paid ? { ...card, cta: card.paid } : card;
@@ -75,7 +71,7 @@ function PlanCard({ p: card }: { p: Card }) {
       className={`relative flex flex-col gap-5 rounded-xl border bg-[var(--surface)] p-7 ${p.highlight ? "border-2 border-[var(--accent)] shadow-[var(--shadow)]" : "border-[var(--border)]"}`}
     >
       {p.highlight && (
-        <span className="absolute -top-3 left-7 rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-semibold text-[var(--accent-fg)]">Best value</span>
+        <span className="absolute -top-3 left-7 rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-semibold text-[var(--accent-fg)]">{p.name === "Firm" ? "Most firms" : "Best value"}</span>
       )}
       <div>
         <h3 className="text-lg font-bold">{p.name}</h3>
@@ -152,12 +148,14 @@ export default function Pricing() {
           <strong>Founding firm offer:</strong> the first {FOUNDING_FIRM_OFFER.firms} firms get {FOUNDING_FIRM_OFFER.percentOff}% off for
           their first {FOUNDING_FIRM_OFFER.months} months.
         </p>
-        <ul className="grid gap-6 md:grid-cols-2">
+        <ul className="grid gap-6 md:grid-cols-3">
           {FIRMS.map((p) => (
             <PlanCard key={p.name} p={p} />
           ))}
         </ul>
-        <p className="text-sm text-[var(--muted)]">Larger firms: higher volumes and onboarding are available by quote.</p>
+        <p className="text-sm text-[var(--muted)]">
+          Price per firm, not per person: your whole team is included. Every plan has every workspace feature; plans differ by team size and cases. More than {FIRM_PLANS.PLUS.maxCases.toLocaleString("en-US")} cases? Ask us for a quote.
+        </p>
       </section>
 
       <section aria-labelledby="promise-h" className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-7 text-sm">

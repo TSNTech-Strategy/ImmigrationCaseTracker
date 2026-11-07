@@ -9,7 +9,7 @@
  * CasePingo Stripe account, in test mode first (sk_test_...).
  *
  * Creates or updates, from src/lib/billing/catalog.ts and src/lib/plans.ts:
- * - the 3 products and 4 prices (found by lookup key, so no price IDs to copy)
+ * - the 4 products and 8 prices (found by lookup key, so no price IDs to copy)
  * - the founding-firm coupon (50% off for 12 months, first 25 firms)
  * - the customer portal (two-click cancel at period end, card and plan changes)
  * - the webhook endpoint for /api/stripe/webhook, printing its signing secret once
@@ -85,7 +85,7 @@ async function ensureCoupon() {
       duration: "repeating",
       duration_in_months: FOUNDING_FIRM_OFFER.months,
       max_redemptions: FOUNDING_FIRM_OFFER.firms,
-      applies_to: { products: [PRODUCTS.FIRM_SOLO.id, PRODUCTS.FIRM.id] },
+      applies_to: { products: [PRODUCTS.FIRM_SOLO.id, PRODUCTS.FIRM.id, PRODUCTS.FIRM_PLUS.id] },
     });
     console.log("  founding-firm coupon: created");
   }
@@ -115,6 +115,7 @@ async function ensurePortal() {
           { product: PRODUCTS.PREMIUM.id, prices: ids(PRODUCTS.PREMIUM.id) },
           { product: PRODUCTS.FIRM_SOLO.id, prices: ids(PRODUCTS.FIRM_SOLO.id) },
           { product: PRODUCTS.FIRM.id, prices: ids(PRODUCTS.FIRM.id) },
+          { product: PRODUCTS.FIRM_PLUS.id, prices: ids(PRODUCTS.FIRM_PLUS.id) },
         ],
       },
     },

@@ -41,9 +41,9 @@ const fail = (error: string): Fail => ({ ok: false, error });
 
 export type CheckoutChoice =
   | { kind: "premium"; interval: "month" | "year" }
-  | { kind: "firm"; plan: "SOLO" | "FIRM" };
+  | { kind: "firm"; plan: "SOLO" | "FIRM" | "PLUS"; interval?: "month" | "year" };
 
-const PLAN_NAMES: Record<BillingProduct, string> = { PREMIUM: "Premium", FIRM_SOLO: "Firm Solo", FIRM: "Firm" };
+const PLAN_NAMES: Record<BillingProduct, string> = { PREMIUM: "Premium", FIRM_SOLO: "Solo", FIRM: "Firm", FIRM_PLUS: "Firm Plus" };
 const usd = (cents: number, currency: string) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
 
@@ -130,7 +130,7 @@ export function createBillingService({ db, stripe, mailer, siteUrl, automaticTax
     if (existing.some((s) => isEntitled(s, t))) return openPortal(userId, choice.kind === "firm" ? "firm" : "user");
 
     const product: BillingProduct = choice.kind === "premium" ? "PREMIUM" : productForFirmPlan(choice.plan);
-    const key = lookupKeyFor(product, choice.kind === "premium" ? choice.interval : "month")!;
+    const key = lookupKeyFor(product, choice.interval ?? "month")!;
     const customer = await ensureCustomer(p);
     const back = choice.kind === "premium" ? `${siteUrl}/settings` : `${siteUrl}/firm/billing`;
     const discounts = choice.kind === "firm" ? await foundingDiscount() : undefined;

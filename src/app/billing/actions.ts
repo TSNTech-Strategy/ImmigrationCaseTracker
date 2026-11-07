@@ -21,7 +21,11 @@ export async function checkoutAction(_prev: FormState, formData: FormData): Prom
     kind === "premium"
       ? { kind: "premium" as const, interval: formData.get("interval") === "year" ? ("year" as const) : ("month" as const) }
       : kind === "firm"
-        ? { kind: "firm" as const, plan: formData.get("plan") === "SOLO" ? ("SOLO" as const) : ("FIRM" as const) }
+        ? {
+            kind: "firm" as const,
+            plan: formData.get("plan") === "SOLO" ? ("SOLO" as const) : formData.get("plan") === "PLUS" ? ("PLUS" as const) : ("FIRM" as const),
+            interval: formData.get("interval") === "year" ? ("year" as const) : ("month" as const),
+          }
         : null;
   if (!choice) return { error: "Choose a plan." };
   let url: string;

@@ -49,22 +49,27 @@ export function describeCadence(plan: Plan): string {
  */
 export const PRICES = {
   premium: { monthly: 3.99, yearly: 29 },
-  firmSolo: { monthly: 39 },
-  firm: { monthly: 99 },
+  // Firm prices confirmed Nov 7, 2026: per firm, team members included; yearly = 10 months (2 months free).
+  firmSolo: { monthly: 49, yearly: 490 },
+  firm: { monthly: 129, yearly: 1290 },
+  firmPlus: { monthly: 249, yearly: 2490 },
 } as const;
 
-/** Firm plans (billing in Step 8). The free trial is TRIAL_DAYS / TRIAL_CASE_LIMIT in lib/firms. */
-export const FIRM_PLANS: Record<"SOLO" | "FIRM", { label: string; maxCases: number; maxUsers: number | null; price: number }> = {
-  SOLO: { label: "Firm Solo", maxCases: 50, maxUsers: 2, price: PRICES.firmSolo.monthly },
-  FIRM: { label: "Firm", maxCases: 300, maxUsers: null, price: PRICES.firm.monthly },
+/** Firm plans. Every plan has every workspace feature; they differ by team size and cases. The free trial is TRIAL_DAYS / TRIAL_CASE_LIMIT in lib/firms. */
+export const FIRM_PLANS: Record<"SOLO" | "FIRM" | "PLUS", { label: string; maxCases: number; maxUsers: number | null; price: number; yearly: number; for: string }> = {
+  SOLO: { label: "Solo", maxCases: 150, maxUsers: 2, price: PRICES.firmSolo.monthly, yearly: PRICES.firmSolo.yearly, for: "One attorney and an assistant" },
+  FIRM: { label: "Firm", maxCases: 600, maxUsers: 10, price: PRICES.firm.monthly, yearly: PRICES.firm.yearly, for: "Small firms" },
+  PLUS: { label: "Firm Plus", maxCases: 2000, maxUsers: null, price: PRICES.firmPlus.monthly, yearly: PRICES.firmPlus.yearly, for: "Growing firms" },
 };
+/** Smallest to largest. */
+export const FIRM_PLAN_ORDER = ["SOLO", "FIRM", "PLUS"] as const;
 
 /** Founding-firm launch offer, applied as a Stripe coupon in Step 8. */
 export const FOUNDING_FIRM_OFFER = { percentOff: 50, months: 12, firms: 25 } as const;
 
 /** 3.99 -> "$3.99", 29 -> "$29". */
 export function formatUsd(amount: number): string {
-  return Number.isInteger(amount) ? `$${amount}` : `$${amount.toFixed(2)}`;
+  return `$${amount.toLocaleString("en-US", Number.isInteger(amount) ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /** What a yearly price works out to per month, rounded down (29 -> "$2.41"). */

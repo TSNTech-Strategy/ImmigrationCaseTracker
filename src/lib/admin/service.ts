@@ -82,7 +82,7 @@ export function createAdminService({ db, now = () => new Date(), env = process.e
       }),
     ]);
 
-    const planCount = (p: "SOLO" | "FIRM" | null) => firmsByPlan.find((f) => f.plan === p)?._count._all ?? 0;
+    const planCount = (p: "SOLO" | "FIRM" | "PLUS" | null) => firmsByPlan.find((f) => f.plan === p)?._count._all ?? 0;
     return {
       uscis: {
         usedToday,
@@ -105,6 +105,7 @@ export function createAdminService({ db, now = () => new Date(), env = process.e
         firms,
         firmSolo: planCount("SOLO"),
         firmFirm: planCount("FIRM"),
+        firmPlus: planCount("PLUS"),
         trialFirms,
         lapsedFirms: planCount(null) - trialFirms,
         individualCases: casesByOwner[0],

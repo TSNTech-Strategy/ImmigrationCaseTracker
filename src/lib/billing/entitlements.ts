@@ -124,7 +124,8 @@ export function createEntitlements({ db, now = () => new Date() }: { db: PrismaC
     const t = now();
     const subs = await db.subscription.findMany({ where: { firmId } });
     const paid = subs.filter((s) => isEntitled(s, t)).map((s) => firmPlanForProduct(s.product as BillingProduct)).filter(Boolean) as FirmPlan[];
-    const plan: FirmPlan | null = paid.includes("FIRM") ? "FIRM" : paid.includes("SOLO") ? "SOLO" : null;
+    // The biggest plan wins (e.g. during a switch, both subscriptions can be active for a moment).
+    const plan: FirmPlan | null = paid.includes("PLUS") ? "PLUS" : paid.includes("FIRM") ? "FIRM" : paid.includes("SOLO") ? "SOLO" : null;
     const caseLimit = plan ? FIRM_PLANS[plan].maxCases : TRIAL_CASE_LIMIT;
     if (plan !== firm.plan || caseLimit !== firm.caseLimit) {
       await db.firm.update({ where: { id: firmId }, data: { plan, caseLimit } });

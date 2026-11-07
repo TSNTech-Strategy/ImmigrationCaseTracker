@@ -127,7 +127,7 @@ export default async function AdminPage() {
         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Tile label="Users" value={String(o.people.users)} note={`${o.people.newUsers} new this week`} />
           <Tile label="Premium" value={String(o.people.premium)} />
-          <Tile label="Firms" value={String(o.people.firms)} note={`Solo ${o.people.firmSolo} · Firm ${o.people.firmFirm} · trial ${o.people.trialFirms} · lapsed ${o.people.lapsedFirms}`} />
+          <Tile label="Firms" value={String(o.people.firms)} note={`Solo ${o.people.firmSolo} · Firm ${o.people.firmFirm} · Plus ${o.people.firmPlus} · trial ${o.people.trialFirms} · lapsed ${o.people.lapsedFirms}`} />
           <Tile label="Cases" value={String(o.people.individualCases + o.people.firmCases)} note={`${o.people.individualCases} personal · ${o.people.firmCases} firm · ${o.people.pausedCases} paused`} />
         </dl>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm">
