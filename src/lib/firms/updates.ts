@@ -3,6 +3,7 @@ import type { EmailDriver, EmailMessage } from "@/lib/email";
 import { clientUpdateEmail, withFirmLogo } from "@/lib/email/templates";
 import { logoPath } from "./branding";
 import { requestToken } from "./requests";
+import { createFirmTeamService, inboxOwner } from "./team";
 import { formInfo } from "@/lib/case-insights";
 import { caseViewSelect } from "@/lib/cases/service";
 import { caseJourney } from "@/lib/journeys";
@@ -54,6 +55,7 @@ type EventForUpdate = { statusTitleEn: string | null; statusTitleEs: string | nu
 const canEmail = (c: ClientForUpdate | null | undefined): c is ClientForUpdate & { email: string } => Boolean(c && !c.archivedAt && c.email && c.updatesConsentAt);
 
 export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new Date() }: { db: PrismaClient; mailer: EmailDriver; siteUrl: string; now?: () => Date }) {
+  const team = createFirmTeamService({ db, mailer, siteUrl, now });
   async function audit(firmId: string, actorUserId: string | null, action: string, targetType: string, targetId: string, metadata?: object) {
     await db.auditLog.create({ data: { firmId, actorUserId, action, targetType, targetId, metadata: metadata ?? undefined } });
   }
@@ -105,7 +107,9 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
     let update = await db.firmUpdate.findUnique({ where: { eventId } });
     if (!update) {
       try {
-        update = await db.firmUpdate.create({ data: { firmId, caseId: event.caseId, eventId, clientUpdate: initial, assignedToId: event.case.assigneeId } });
+        update = await db.firmUpdate.create({ data: { firmId, caseId: event.caseId, eventId, clientUpdate: initial, assignedToId: await inboxOwner(db, firmId, event.case.assigneeId, now()) } });
+        // Team members who asked to hear about changes like this one (once: only when the item is new).
+        await team.notifyCaseChange(update.id).catch((err) => console.error("[firm] staff case email failed", err));
       } catch (err) {
         // Another run created it a moment ago.
         if ((err as { code?: string }).code !== "P2002") throw err;
@@ -165,9 +169,10 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
     }
   }
 
-  async function list(userId: string, tab: UpdatesTab = "open") {
+  async function list(userId: string, requested?: UpdatesTab) {
     const ctx = await findFirmContext(db, userId);
     if (!ctx) return null;
+    const tab: UpdatesTab = requested ?? (ctx.membership.inboxView === "all" ? "open" : "mine");
     const t = now();
     const firmId = ctx.firm.id;
     const [items, open, mine, snoozed, members] = await Promise.all([
@@ -204,6 +209,7 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
     ]);
     return {
       ctx,
+      tab,
       counts: { open, mine, snoozed },
       members: members.map((m) => ({ id: m.userId, name: m.user.name ?? m.user.email })),
       items: items.map((u) => {

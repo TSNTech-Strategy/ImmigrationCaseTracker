@@ -9,6 +9,7 @@ import {
   inviteAction,
   removeMemberAction,
   revokeInviteAction,
+  setTitleAction,
 } from "./actions";
 import { ROLE_LABELS } from "@/lib/firms/roles";
 
@@ -134,6 +135,37 @@ export function AcceptInviteForm({ token }: { token: string }) {
       <div>
         <SubmitButton pendingText="Joining…">Accept invitation</SubmitButton>
       </div>
+    </form>
+  );
+}
+
+/** Job title (Attorney, Paralegal…): Owners and Admins pick it for each member. */
+export function TitleControl({ membershipId, title, titles }: { membershipId: string; title: string; titles: Record<string, string> }) {
+  const [state, action] = useActionState<FormState, FormData>(setTitleAction, {});
+  return (
+    <form action={action} className="flex flex-col gap-1">
+      <input type="hidden" name="membershipId" value={membershipId} />
+      <span className="flex items-center gap-2">
+        <label className="sr-only" htmlFor={`title-${membershipId}`}>
+          Title
+        </label>
+        <select id={`title-${membershipId}`} name="title" defaultValue={title} key={title} className={`${select} py-1.5 text-sm`}>
+          <option value="">No title</option>
+          {Object.entries(titles).map(([v, l]) => (
+            <option key={v} value={v}>
+              {l}
+            </option>
+          ))}
+        </select>
+        <button type="submit" className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm">
+          Save
+        </button>
+      </span>
+      {(state.error ?? state.success) && (
+        <span role={state.error ? "alert" : "status"} className={`text-xs ${state.error ? "text-[var(--danger)]" : "text-[var(--success)]"}`}>
+          {state.error ?? state.success}
+        </span>
+      )}
     </form>
   );
 }

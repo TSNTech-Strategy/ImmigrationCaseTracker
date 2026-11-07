@@ -19,6 +19,8 @@ const SETTINGS: Item[] = [
   { href: "/firm/settings", label: "General" },
   { href: "/firm/team", label: "Team" },
   { href: "/firm/tags", label: "Tags" },
+  { href: "/firm/settings/notifications", label: "My notifications" },
+  { href: "/firm/settings/sync", label: "Sync" },
   { href: "/firm/updates/settings", label: "Client updates & alerts", managersOnly: true },
   { href: "/firm/audit", label: "Activity", managersOnly: true },
   { href: "/firm/billing", label: "Plan & billing", managersOnly: true },
@@ -43,6 +45,8 @@ export function FirmNav({ firmName, isManager, openUpdates = 0, dueDeadlines = 0
   const path = usePathname();
   const settings = SETTINGS.filter((l) => isManager || !l.managersOnly);
   const inSettings = SETTINGS.some((l) => under(path, l.href));
+  // The most specific match wins (/firm/settings/sync is Sync, not General).
+  const activeSetting = SETTINGS.filter((l) => under(path, l.href)).sort((a, b) => b.href.length - a.href.length)[0]?.href;
   const mainActive = (href: string) => !inSettings && (href === "/firm" ? path === "/firm" : under(path, href));
   const count = (b: Item["badge"]) => (b === "updates" ? openUpdates : b === "deadlines" ? dueDeadlines : b === "tasks" ? dueTasks : 0);
   return (
@@ -77,7 +81,7 @@ export function FirmNav({ firmName, isManager, openUpdates = 0, dueDeadlines = 0
             <Link
               key={l.href}
               href={l.href}
-              aria-current={under(path, l.href) ? "page" : undefined}
+              aria-current={l.href === activeSetting ? "page" : undefined}
               className="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)] aria-[current=page]:bg-[var(--surface)] aria-[current=page]:text-[var(--foreground)] aria-[current=page]:shadow-[var(--shadow)]"
             >
               {l.label}

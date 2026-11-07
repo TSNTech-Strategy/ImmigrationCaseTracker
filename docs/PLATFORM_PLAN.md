@@ -64,10 +64,10 @@ The order a firm meets the product: set up, bring in clients and cases, keep the
 
 | # | Area | What it does | Status |
 |---|---|---|---|
-| 1 | Workspace and settings | Firm profile (name, logo, time zone, default assignee), my profile, appearance; settings tabs: General, Team, Tags, Client updates and alerts, Activity, Plan and billing (Sync, Notifications, Legal and data come later) | Built (Phase 1; logo in Phase 4) |
+| 1 | Workspace and settings | Firm profile (name, logo, time zone, default assignee), my profile, appearance; settings tabs: General, Team, Tags, Client updates and alerts, Activity, Plan and billing (Sync and My notifications added in Phase 6; Legal and data in Phase 7) | Built (Phase 1; logo in Phase 4) |
 | 2 | Clients | Client list with search and filters; client profile: first and last name, date of birth, country of birth, citizenship, email, phone, preferred language, A-Number (encrypted), tags, family links; cases, documents, tasks and activity on one page | Profile, table and filters built (Phase 1); family links with matters (Phase 2) |
 | 3 | Cases | Case table: receipt, client, form, category, assignee, status, tags, last change; side panel with details; new case form (receipt, client, assignee, matter, tags); bulk import (paste or file); export CSV | Built (matter added in Phase 2) |
-| 4 | Sync | USCIS checks per plan schedule, "check now", last runs and health; consent records | Built (Phase 6 adds schedule settings and history page) |
+| 4 | Sync | USCIS checks per plan schedule, "check now", last runs and health; consent records | Built (Sync page in Phase 6) |
 | 5 | Inbox | Status changes, stuck cases, deadline and task reminders, document uploads; assign, snooze, done; "assigned to me" or "whole firm" | Built (later phases add task and document items) |
 | 6 | Tasks and calendar | My tasks and team tasks; list and calendar views; status, type, priority, assignee, due date; linked to a case, client or matter; comments and @mentions | Built (Phase 2B); matter link in Phase 2C |
 | 7 | Matters and groups | Group cases by family, employer, lawsuit or custom; filter every page by matter | Built (Phase 2C) |
@@ -75,8 +75,8 @@ The order a firm meets the product: set up, bring in clients and cases, keep the
 | 9 | Document requests | Firm builds a request from the case-type checklist (or its own list), adds a due date and message; client gets a link (email now, SMS later) and uploads from a phone; firm accepts or asks again; reminders; progress on case and client pages | Built (Phase 3B); SMS later |
 | 10 | Client portal | Client's status page plus open document requests, uploads, firm contact; English and Spanish; firm logo | Built (Phase 4) |
 | 11 | Dashboard | Case volume by form and category, status overview, cases by assignee, days waiting, stuck cases, upcoming deadlines, open document requests; filters by date, assignee, matter | Built (Phase 2A; matter filter Phase 2C; open requests and CSV reports Phase 5) |
-| 12 | Notifications | Per person: inbox start view, backup colleague while away, which task updates appear, which case updates email me (by type: approvals, requests, appointments, denials, other) and for which cases (mine, matters, groups, tags) | Phase 6 |
-| 13 | Team and roles | Members with role, active cases, last active; invitations; Owner, Admin, Staff, plus "Attorney" and "Paralegal" labels | Built (Phase 6 adds columns and labels) |
+| 12 | Notifications | Per person: inbox start view, backup colleague while away, which task updates appear, which case updates email me (by type: approvals, requests, appointments, denials, other) and for which cases (mine, matters, groups, tags) | Built (Phase 6) |
+| 13 | Team and roles | Members with role, active cases, last active; invitations; Owner, Admin, Staff, plus "Attorney" and "Paralegal" labels | Built (titles, cases, last active in Phase 6) |
 | 14 | Activity log | Every change in plain language, filters, CSV export; never logs sensitive values (A-Numbers, dates of birth, notes) | Built |
 | 15 | Plan and billing | Plan, seats or users, cases used, next charge, invoices, change plan | Built on Stripe (Phase 7 new tiers) |
 | 16 | Legal and data | Terms and privacy, export everything, delete everything, inactivity policy, analytics choice | Phase 7 |
@@ -119,7 +119,7 @@ Every phase: database migration with row-level security, server logic with datab
 - Charts from the firm's own data only: volume by form or category, status overview, by assignee, days waiting, stuck cases, upcoming deadlines, open requests.
 - Filters by date range, assignee and matter; CSV export of each report.
 
-### Phase 6: Notifications, sync and team
+### Phase 6: Notifications, sync and team ✅ built
 - Personal notification settings (inbox view, backup while away, task updates, case update emails by type and by case set).
 - Sync page: schedule by plan, check now, recent runs and health.
 - Team page: role labels (Attorney, Paralegal), active cases, last active.

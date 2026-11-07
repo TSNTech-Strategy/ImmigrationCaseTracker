@@ -3,6 +3,7 @@ import { caseViewSelect } from "@/lib/cases/service";
 import { caseJourney } from "@/lib/journeys";
 import { firmChecksAllowedWhere } from "@/lib/billing/entitlements";
 import { findFirmContext } from "./service";
+import { inboxOwner } from "./team";
 
 /**
  * Two kinds of alerts in a firm's Updates inbox, beside USCIS status changes:
@@ -90,7 +91,16 @@ export function createFirmAlertService({ db, now = () => new Date() }: { db: Pri
       data.push({ firmId: firm.id, caseId: c.id, kind: "STUCK", alertKey: `stuck:${c.id}:${c.statusFingerprint}`, stuckDays: since, assignedToId: c.assigneeId });
     }
     if (!data.length) return 0;
-    return (await db.firmUpdate.createMany({ data, skipDuplicates: true })).count;
+    return (await db.firmUpdate.createMany({ data: await routeAway(firm.id, data), skipDuplicates: true })).count;
+  }
+
+  /** New alerts for someone who's away go to their backup (Settings › My notifications). */
+  async function routeAway(firmId: string, rows: Prisma.FirmUpdateCreateManyInput[]) {
+    const fresh = await db.firmUpdate.findMany({ where: { alertKey: { in: rows.map((r) => r.alertKey!).filter(Boolean) } }, select: { alertKey: true } });
+    const exists = new Set(fresh.map((f) => f.alertKey));
+    const owners = new Map<string, string | null>();
+    for (const id of new Set(rows.map((r) => r.assignedToId).filter((x): x is string => Boolean(x)))) owners.set(id, await inboxOwner(db, firmId, id, now()));
+    return rows.filter((r) => !exists.has(r.alertKey ?? null)).map((r) => (r.assignedToId ? { ...r, assignedToId: owners.get(r.assignedToId) ?? r.assignedToId } : r));
   }
 
   type DeadlineRow = { id: string; firmId: string; caseId: string; dueOn: Date; case: { assigneeId: string | null } };
@@ -109,7 +119,7 @@ export function createFirmAlertService({ db, now = () => new Date() }: { db: Pri
     });
     const data = due.map((d) => deadlineAlert(d, today, firm.deadlineLeadDays)).filter((x): x is Prisma.FirmUpdateCreateManyInput => x !== null);
     if (!data.length) return 0;
-    return (await db.firmUpdate.createMany({ data, skipDuplicates: true })).count;
+    return (await db.firmUpdate.createMany({ data: await routeAway(firm.id, data), skipDuplicates: true })).count;
   }
 
   /** The daily run over every firm whose cases are being checked (Inngest cron). */
@@ -132,7 +142,7 @@ export function createFirmAlertService({ db, now = () => new Date() }: { db: Pri
     });
     if (!d || d.doneAt) return;
     const a = deadlineAlert(d, easternDay(now(), d.firm.timeZone), d.firm.deadlineLeadDays);
-    if (a) await db.firmUpdate.createMany({ data: [a], skipDuplicates: true });
+    if (a) await db.firmUpdate.createMany({ data: await routeAway(d.firmId, [a]), skipDuplicates: true });
   }
 
   // ---- Deadlines (any member) ------------------------------------------------------------------

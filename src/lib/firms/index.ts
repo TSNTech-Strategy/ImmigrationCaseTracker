@@ -1,3 +1,5 @@
+import { createFirmSyncService } from "./sync";
+import { createFirmTeamService } from "./team";
 import { createFirmReportService } from "./reports";
 import { createDocumentRequestService } from "./requests";
 import { createFirmBrandingService } from "./branding";
@@ -87,4 +89,14 @@ export function firmBrandingService() {
 /** Dashboard reports as CSV. */
 export function firmReportService() {
   return createFirmReportService({ db: prisma });
+}
+
+/** Team titles, last active, and each member's own notification settings. */
+export function firmTeamService() {
+  return createFirmTeamService({ db: prisma, mailer: getEmailDriver(), siteUrl: getSiteUrl() });
+}
+
+/** Sync: the firm's USCIS check schedule, recent checks and problems. */
+export function firmSyncService() {
+  return createFirmSyncService({ db: prisma });
 }

@@ -1,5 +1,6 @@
 import type { FirmTaskPriority, FirmTaskStatus, FirmTaskType, Prisma, PrismaClient } from "@prisma/client";
 import { findFirmContext, type FirmContext } from "./service";
+import { inboxOwner } from "./team";
 import { easternDay } from "./alerts";
 
 /**
@@ -133,7 +134,9 @@ export function createFirmTaskService({ db, now = () => new Date() }: { db: Pris
     const days = Math.round((task.dueOn.getTime() - asDate(today).getTime()) / DAY);
     if (days > 1) return 0;
     const key = `task:${task.id}:${days < 0 ? "overdue" : "due"}:${dayOf(task.dueOn)}`;
-    return (await db.firmUpdate.createMany({ data: [{ firmId: task.firmId, caseId: task.caseId, kind: "TASK", taskId: task.id, alertKey: key, assignedToId: task.assigneeId }], skipDuplicates: true })).count;
+    if (await db.firmUpdate.findUnique({ where: { alertKey: key }, select: { id: true } })) return 0;
+    const owner = await inboxOwner(db, task.firmId, task.assigneeId, now());
+    return (await db.firmUpdate.createMany({ data: [{ firmId: task.firmId, caseId: task.caseId, kind: "TASK", taskId: task.id, alertKey: key, assignedToId: owner }], skipDuplicates: true })).count;
   }
 
   async function raiseDue(firm: { id: string; timeZone: string }) {

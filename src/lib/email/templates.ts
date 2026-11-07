@@ -327,3 +327,26 @@ ${paragraphs}
 </div></body></html>`;
   return { ...message, html };
 }
+
+/** To a firm member who asked to hear about USCIS changes (Settings › My notifications). No client details beyond the name. */
+export function staffCaseUpdateEmail(p: { to: string; name: string | null; firmName: string; clientName: string | null; caseLabel: string; status: string; caseUrl: string; settingsUrl: string }): EmailMessage {
+  const who = p.clientName ? `${p.clientName} · ${p.caseLabel}` : p.caseLabel;
+  return {
+    to: p.to,
+    subject: `${p.status}: ${who}`,
+    body: [
+      `Hi ${p.name ?? "there"},`,
+      "",
+      `USCIS changed a ${p.firmName} case.`,
+      "",
+      `Case: ${who}`,
+      `New status: ${p.status}`,
+      "",
+      `Open the case: ${p.caseUrl}`,
+      "",
+      `You get these emails because of your notification settings. Change them: ${p.settingsUrl}`,
+      "",
+      "— CasePingo",
+    ].join("\n"),
+  };
+}

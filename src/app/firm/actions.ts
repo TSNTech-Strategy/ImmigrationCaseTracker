@@ -5,7 +5,7 @@ import { refresh, revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { FormState } from "@/components/form";
 import { getCurrentUser } from "@/lib/auth/session";
-import { firmService } from "@/lib/firms";
+import { firmService, firmTeamService } from "@/lib/firms";
 
 const NOT_SIGNED_IN: FormState = { error: "Your session has expired. Please sign in again." };
 const role = z.enum(["OWNER", "ADMIN", "STAFF"]);
@@ -76,4 +76,13 @@ export async function acceptInviteAction(_prev: FormState, formData: FormData): 
   if (!r.ok) return { error: r.error };
   revalidatePath("/firm", "layout");
   redirect("/firm?notice=joined");
+}
+
+export async function setTitleAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await getCurrentUser();
+  if (!user) return NOT_SIGNED_IN;
+  const r = await firmTeamService().setTitle(user.id, String(formData.get("membershipId") ?? ""), String(formData.get("title") ?? ""));
+  if (!r.ok) return { error: r.error };
+  refresh();
+  return { success: "Title saved." };
 }
