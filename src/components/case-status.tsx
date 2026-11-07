@@ -8,6 +8,8 @@ import { checkFailureMessage } from "@/lib/cases/policy";
 import type { CaseView } from "@/lib/cases/service";
 import { PROCESSING_TIMES_URL, formInfo, receivingOffice } from "@/lib/case-insights";
 import { findStatusGuide, guidePath, guideText } from "@/lib/status-guide";
+import type { CaseJourney } from "@/lib/journeys";
+import { formatDay } from "@/components/line-map";
 
 type HistoryItem = { date?: { raw?: string } | null; textEn?: string | null; textEs?: string | null };
 
@@ -104,13 +106,17 @@ export function CaseStatusPanel({
   actions,
   footnote,
   guideCollapsed = false,
+  journey,
 }: {
   c: CaseView;
   es: boolean;
   actions?: ReactNode;
   footnote?: ReactNode;
   guideCollapsed?: boolean;
+  /** Day counts from the line map (filed, total, since the last update). */
+  journey?: CaseJourney;
 }) {
+  const days = journey?.days;
   const primary = { title: es ? c.statusTitleEs : c.statusTitleEn, desc: es ? c.statusDescriptionEs : c.statusDescriptionEn };
   const secondary = { title: es ? c.statusTitleEn : c.statusTitleEs, desc: es ? c.statusDescriptionEn : c.statusDescriptionEs };
   const failed = c.lastCheckOutcome && c.lastCheckOutcome !== "ok";
@@ -146,6 +152,26 @@ export function CaseStatusPanel({
         </p>
       )}
       <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+        {days?.filed && (
+          <div>
+            <dt className="text-[var(--muted)]">Filed</dt>
+            <dd>{formatDay(days.filed, false)}</dd>
+          </div>
+        )}
+        {days?.total != null && (
+          <div>
+            <dt className="text-[var(--muted)]">{journey?.lineMap.finished ? "Total time" : "Time so far"}</dt>
+            <dd>
+              {days.total.toLocaleString("en-US")} {days.total === 1 ? "day" : "days"}
+            </dd>
+          </div>
+        )}
+        {days?.sinceUpdate != null && (
+          <div>
+            <dt className="text-[var(--muted)]">Last USCIS update</dt>
+            <dd>{days.sinceUpdate === 0 ? "Today" : days.sinceUpdate === 1 ? "Yesterday" : `${days.sinceUpdate.toLocaleString("en-US")} days ago`}</dd>
+          </div>
+        )}
         <div>
           <dt className="text-[var(--muted)]">Last checked with USCIS</dt>
           <dd>
@@ -164,7 +190,7 @@ export function CaseStatusPanel({
             <dd>{c.uscisModifiedRaw}</dd>
           </div>
         )}
-        {c.uscisSubmittedRaw && (
+        {c.uscisSubmittedRaw && !days?.filed && (
           <div>
             <dt className="text-[var(--muted)]">Submitted (as reported)</dt>
             <dd>{c.uscisSubmittedRaw}</dd>

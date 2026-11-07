@@ -361,6 +361,49 @@ export const RESOURCES: Resource[] = [
   },
 ];
 
+/** Official tools, one tap away (USCIS and CBP sites). Shown as a list on the resources hub. */
+export type OfficialTool = { key: string; icon: { ios: string; md: string }; title: Text; summary: Text; url: string };
+export const OFFICIAL_TOOLS: OfficialTool[] = [
+  {
+    key: "e-request",
+    icon: { ios: "envelope.badge", md: "contact_mail" },
+    title: { en: "e-Request", es: "e-Request (solicitud en línea)" },
+    summary: {
+      en: "Ask USCIS about a case outside normal processing times, a notice you never got, or a typo on a notice.",
+      es: "Consulte a USCIS por un caso fuera del tiempo normal, un aviso que no recibió o un error en un aviso.",
+    },
+    url: "https://egov.uscis.gov/e-request/Intro.do",
+  },
+  {
+    key: "processing-times",
+    icon: { ios: "clock", md: "schedule" },
+    title: { en: "Official processing times", es: "Tiempos oficiales de procesamiento" },
+    summary: { en: "USCIS's own estimates for your form and office.", es: "Las estimaciones de USCIS para su formulario y oficina." },
+    url: "https://egov.uscis.gov/processing-times/",
+  },
+  {
+    key: "i94",
+    icon: { ios: "airplane", md: "flight" },
+    title: { en: "I-94 travel record", es: "Registro de viaje I-94" },
+    summary: { en: "Get your most recent I-94 arrival and departure record from CBP.", es: "Obtenga su registro I-94 de entrada y salida más reciente de CBP." },
+    url: "https://i94.cbp.dhs.gov/",
+  },
+  {
+    key: "fee-calculator",
+    icon: { ios: "dollarsign.circle", md: "payments" },
+    title: { en: "Filing fee calculator", es: "Calculadora de tarifas" },
+    summary: { en: "Work out the USCIS filing fee for your form.", es: "Calcule la tarifa de USCIS para su formulario." },
+    url: "https://www.uscis.gov/feecalculator",
+  },
+  {
+    key: "address-change",
+    icon: { ios: "house", md: "home" },
+    title: { en: "Change of address", es: "Cambio de dirección" },
+    summary: { en: "Moved? Tell USCIS so your notices and cards reach you.", es: "¿Se mudó? Avísele a USCIS para que sus avisos y tarjetas le lleguen." },
+    url: "https://www.uscis.gov/addresschange",
+  },
+];
+
 /** The status library is its own section of the site; the hub shows it first. */
 export const STATUS_LIBRARY_CARD = {
   icon: { ios: "book", md: "menu_book", tint: "blue" } satisfies ResourceIcon,

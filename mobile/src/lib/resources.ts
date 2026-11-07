@@ -14,7 +14,8 @@ export type ResourceLink = { label: Bilingual; url: string };
 export type ResourceSection = { heading: Bilingual; paragraphs?: Bilingual[]; bullets?: Bilingual[] };
 export type FaqItem = { q: Bilingual; a: Bilingual; links?: ResourceLink[] };
 export type Resource = { slug: string; title: Bilingual; summary: Bilingual; intro: Bilingual; sections: ResourceSection[]; faq?: FaqItem[]; links: ResourceLink[] };
-export type ResourcesResponse = { statusLibrary: { title: Bilingual; summary: Bilingual }; resources: Resource[]; contactEmail: string | null };
+export type OfficialTool = { key: string; icon: { ios: string; md: string }; title: Bilingual; summary: Bilingual; url: string };
+export type ResourcesResponse = { statusLibrary: { title: Bilingual; summary: Bilingual }; resources: Resource[]; tools?: OfficialTool[]; contactEmail: string | null };
 
 let cache: ResourcesResponse | null = null;
 let pending: Promise<ResourcesResponse> | null = null;
@@ -41,6 +42,16 @@ const LOOK: Record<string, { glyph: Glyph; tint: Tint }> = {
   civics: { glyph: { ios: "graduationcap", md: "school", fallback: "🎓" }, tint: "navy" },
 };
 export const resourceLook = (slug: string) => LOOK[slug] ?? LOOK.library;
+
+/** Icons and colours per official tool (a tool the app doesn't know yet gets a generic link icon). */
+const TOOL_LOOK: Record<string, { glyph: Glyph; tint: Tint }> = {
+  "e-request": { glyph: { ios: "envelope.badge", md: "contact_mail", fallback: "✉" }, tint: "blue" },
+  "processing-times": { glyph: { ios: "clock", md: "schedule", fallback: "⏱" }, tint: "navy" },
+  i94: { glyph: { ios: "airplane", md: "flight", fallback: "✈" }, tint: "green" },
+  "fee-calculator": { glyph: { ios: "dollarsign.circle", md: "payments", fallback: "$" }, tint: "amber" },
+  "address-change": { glyph: { ios: "house", md: "home", fallback: "⌂" }, tint: "red" },
+};
+export const toolLook = (key: string): { glyph: Glyph; tint: Tint } => TOOL_LOOK[key] ?? { glyph: { ios: "safari", md: "open_in_new", fallback: "↗" }, tint: "blue" };
 
 /** Website paths used in the content, as app screens (null: not in the app). */
 export function appRouteFor(url: string): string | null {

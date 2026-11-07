@@ -11,6 +11,7 @@ import { STATUS_GUIDE, findStatusGuide, guideCategory, guideHeading, guidePath, 
 import { PROCESSING_TIMES_URL, STAGE_COUNT, approvalNextStep, caseStage, formInfo, receivingOffice, recentApprovalAt } from "@/lib/case-insights";
 import { recentApprovals } from "@/lib/cases/approvals";
 import { caseTagsSelect, createTagService, flatTags, TAG_COLORS, TAG_LIMITS, type TagResult } from "@/lib/cases/tags";
+import { caseJourney, dayOf, daysBetween } from "@/lib/journeys";
 
 /**
  * The mobile app's API (/api/v1/*), as plain functions so they can be tested
@@ -125,15 +126,19 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
   }
 
   async function listCases(userId: string): Promise<ApiResult> {
-    // The list leaves out the long USCIS history; the case screen has it.
-    const { uscisHistory: _omit, ...listSelect } = caseViewSelect;
-    void _omit;
-    const rows = await db.trackedCase.findMany({ where: { ownerUserId: userId }, select: { ...listSelect, ...caseTagsSelect }, orderBy: { createdAt: "desc" } });
+    const rows = await db.trackedCase.findMany({
+      where: { ownerUserId: userId },
+      select: { ...caseViewSelect, ...caseTagsSelect, events: { select: { statusTitleEn: true, uscisReportedRaw: true, firstObservedAt: true }, orderBy: { firstObservedAt: "asc" } } },
+      orderBy: { createdAt: "desc" },
+    });
     const approvals = await recentApprovals(db, rows, now());
     return ok({
       stageCount: STAGE_COUNT,
-      cases: rows.map((r) => ({
+      // The list leaves out the long USCIS history and the changes we saw (the case screen has them); they're only used for the line map and days here,
+      // with the same inputs as the journey, so My cases and My timeline count the same days.
+      cases: rows.map(({ uscisHistory, events, ...r }) => ({
         ...r,
+        ...caseJourney({ ...r, uscisHistory, events }, now()),
         tags: flatTags(r.tags),
         category: statusCategory(r.statusTitleEn),
         stage: caseStage(r.statusTitleEn),
@@ -153,6 +158,7 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
     return ok({
       case: {
         ...Object.fromEntries(Object.entries(c).filter(([k]) => k !== "consents" && k !== "events" && k !== "uscisHistory" && k !== "tags")),
+        ...caseJourney(c, now()),
         tags: flatTags(c.tags),
         category: statusCategory(c.statusTitleEn),
         stage: caseStage(c.statusTitleEn),
@@ -258,6 +264,114 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
     return ok({ unregistered: true });
   }
 
+  // ---- Updates (the app's notifications tab) and the journey ----
+
+  /** Status changes CasePingo saw across the person's cases, newest first. `first` marks when tracking started. */
+  async function updates(userId: string): Promise<ApiResult> {
+    const where = { case: { ownerUserId: userId } };
+    const [events, firsts] = await Promise.all([
+      db.caseStatusEvent.findMany({
+        where,
+        orderBy: { firstObservedAt: "desc" },
+        take: 60,
+        select: {
+          id: true,
+          statusTitleEn: true,
+          statusTitleEs: true,
+          uscisReportedRaw: true,
+          firstObservedAt: true,
+          case: { select: { id: true, nickname: true, receiptMasked: true, formType: true } },
+        },
+      }),
+      db.caseStatusEvent.groupBy({ by: ["caseId"], where, _min: { firstObservedAt: true } }),
+    ]);
+    const firstAt = new Map(firsts.map((f) => [f.caseId, f._min.firstObservedAt?.getTime()]));
+    return ok({
+      updates: events.map((e) => ({
+        id: e.id,
+        caseId: e.case.id,
+        nickname: e.case.nickname,
+        receiptMasked: e.case.receiptMasked,
+        form: formInfo(e.case.formType),
+        statusTitleEn: e.statusTitleEn,
+        statusTitleEs: e.statusTitleEs,
+        category: statusCategory(e.statusTitleEn),
+        at: e.firstObservedAt,
+        reportedDate: dayOf(e.uscisReportedRaw),
+        first: firstAt.get(e.case.id) === e.firstObservedAt.getTime(),
+      })),
+    });
+  }
+
+  /** All of the person's cases on one timeline: total days, a bar per case and the milestones with day counts. */
+  async function journey(userId: string): Promise<ApiResult> {
+    const rows = await db.trackedCase.findMany({
+      where: { ownerUserId: userId },
+      select: {
+        id: true,
+        nickname: true,
+        receiptMasked: true,
+        formType: true,
+        statusTitleEn: true,
+        statusTitleEs: true,
+        uscisHistory: true,
+        uscisSubmittedRaw: true,
+        uscisModifiedRaw: true,
+        lastChangeObservedAt: true,
+        events: { select: { statusTitleEn: true, statusTitleEs: true, uscisReportedRaw: true, firstObservedAt: true }, orderBy: { firstObservedAt: "asc" } },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    const today = dayOf(now())!;
+    const cases = rows.map((r) => {
+      const j = caseJourney(r, now());
+      const start = j.days.filed;
+      const end = j.lineMap.finished ? (j.days.lastUpdate ?? today) : today;
+      return { r, j, start, end };
+    });
+    const dated = cases.filter((x) => x.start);
+    if (!dated.length) return ok({ start: null, end: null, totalDays: null, cases: [], milestones: [] });
+    const start = dated.map((x) => x.start!).sort()[0];
+    const end = dated.map((x) => x.end).sort().at(-1)!;
+    type Milestone = { date: string; day: number; caseId: string; form: string | null; titleEn: string | null; titleEs: string | null; category: ReturnType<typeof statusCategory> };
+    const milestones: Milestone[] = [];
+    const seen = new Set<string>();
+    for (const { r } of dated) {
+      const form = formInfo(r.formType)?.code ?? null;
+      const add = (date: string | null, titleEn: string | null, titleEs: string | null) => {
+        if (!date || !titleEn) return;
+        const k = `${r.id}|${titleEn.toLowerCase()}|${date}`;
+        if (seen.has(k)) return;
+        seen.add(k);
+        milestones.push({ date, day: daysBetween(start, date), caseId: r.id, form, titleEn, titleEs, category: statusCategory(titleEn) });
+      };
+      const history = Array.isArray(r.uscisHistory) ? (r.uscisHistory as { date?: { raw?: string; local?: string | null } | null; textEn?: string | null; textEs?: string | null }[]) : [];
+      for (const h of history) add(dayOf(h?.date?.local ?? h?.date?.raw ?? null), h?.textEn ?? null, h?.textEs ?? null);
+      for (const e of r.events) add(dayOf(e.uscisReportedRaw) ?? dayOf(e.firstObservedAt), e.statusTitleEn, e.statusTitleEs);
+    }
+    milestones.sort((a, b) => (a.date === b.date ? 0 : a.date < b.date ? -1 : 1));
+    return ok({
+      start,
+      end,
+      totalDays: daysBetween(start, end),
+      cases: dated.map(({ r, j, start: s, end: e }) => ({
+        id: r.id,
+        nickname: r.nickname,
+        receiptMasked: r.receiptMasked,
+        form: formInfo(r.formType),
+        office: receivingOffice(r.receiptMasked),
+        statusTitleEn: r.statusTitleEn,
+        statusTitleEs: r.statusTitleEs,
+        start: s,
+        end: e,
+        days: daysBetween(s!, e),
+        finished: j.lineMap.finished,
+        tone: j.lineMap.tone,
+      })),
+      milestones,
+    });
+  }
+
   // ---- Tags (personal cases) ----
   const TAG_STATUS = { invalid: 400, duplicate: 409, limit: 403, not_found: 404, forbidden: 403 } as const;
   const tagResult = <T>(r: TagResult<T>, body: (v: T) => unknown, status = 200): ApiResult =>
@@ -287,7 +401,7 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
     return tagResult(await tags.setCaseTags(userId, caseId, ids), (list) => ({ tags: list }));
   }
 
-  return { me, updateMe, config, guide, listCases, getCase, addCase, refreshCase, renameCase, removeCase, checkInstead, registerDevice, unregisterDevice, listTags, createTag, updateTag, deleteTag, setCaseTags };
+  return { me, updateMe, config, guide, listCases, getCase, addCase, refreshCase, renameCase, removeCase, checkInstead, registerDevice, unregisterDevice, listTags, createTag, updateTag, deleteTag, setCaseTags, updates, journey };
 }
 
 export type MobileApi = ReturnType<typeof createMobileApi>;

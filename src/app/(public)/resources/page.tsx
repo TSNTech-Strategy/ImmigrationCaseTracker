@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ResourceCard } from "@/components/resource-ui";
-import { RESOURCES, resourcePath, STATUS_LIBRARY_CARD } from "@/lib/resources";
+import { OFFICIAL_TOOLS, RESOURCES, resourcePath, STATUS_LIBRARY_CARD } from "@/lib/resources";
 
 export const metadata: Metadata = {
   title: "Resources: guides for your USCIS case · CasePingo",
@@ -41,6 +41,33 @@ export default function ResourcesPage() {
           <ResourceCard key={r.slug} href={resourcePath(r.slug)} icon={r.icon} title={r.title.en} summary={r.summary.en} />
         ))}
       </div>
+      <section aria-labelledby="tools-h" className="flex flex-col gap-3">
+        <h2 id="tools-h" className="text-xl font-bold tracking-tight">
+          Official tools
+        </h2>
+        <p className="text-sm text-[var(--muted)]">Straight to the USCIS and CBP pages people use most. They open on the official sites.</p>
+        <ul className="flex flex-col divide-y divide-[var(--border)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+          {OFFICIAL_TOOLS.map((t) => (
+            <li key={t.key}>
+              <a
+                href={t.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-[var(--surface-2)] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--accent)]"
+              >
+                <span className="flex flex-col gap-0.5">
+                  <span className="font-semibold">{t.title.en}</span>
+                  <span className="text-sm text-[var(--muted)]">{t.summary.en}</span>
+                </span>
+                <span aria-hidden="true" className="text-[var(--accent)]">
+                  ↗
+                </span>
+                <span className="sr-only">(opens the official site in a new tab)</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

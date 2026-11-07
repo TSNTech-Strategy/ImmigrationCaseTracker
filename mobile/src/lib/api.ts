@@ -63,6 +63,21 @@ export type StatusCategory = "progress" | "action" | "done" | "stop" | "none";
 export type GuideText = { meaning: string; next: string; todo: string | null };
 type Bilingual = { en: string; es: string };
 
+/** The steps this kind of case goes through and where it is (server: src/lib/journeys.ts). */
+export type LineMapTone = "progress" | "action" | "done" | "stop";
+export type LineMapStep = { key: string; label: Bilingual; state: "done" | "current" | "upcoming"; /** "YYYY-MM-DD" */ date: string | null };
+export type LineMap = {
+  scenario: string;
+  name: Bilingual;
+  steps: LineMapStep[];
+  current: number;
+  tone: LineMapTone;
+  marker: Bilingual | null;
+  outcome: "approved" | "denied" | "rejected" | "withdrawn" | "closed" | null;
+  finished: boolean;
+};
+export type CaseDays = { filed: string | null; lastUpdate: string | null; total: number | null; sinceUpdate: number | null };
+
 export type CaseSummary = {
   id: string;
   receiptMasked: string;
@@ -84,6 +99,9 @@ export type CaseSummary = {
   recentApprovalAt: string | null;
   /** The person's own tags on this case, A to Z. */
   tags: Tag[];
+  /** Missing from servers older than the line map. */
+  lineMap?: LineMap;
+  days?: CaseDays;
 };
 export type CaseDetail = Omit<CaseSummary, "recentApprovalAt"> & {
   statusDescriptionEn: string | null;
@@ -113,4 +131,41 @@ export type GuideEntry = {
   path: string;
   en: GuideText;
   es: GuideText;
+};
+
+/** One status change in the Updates tab. `first` is the status when tracking started. */
+export type UpdateItem = {
+  id: string;
+  caseId: string;
+  nickname: string | null;
+  receiptMasked: string;
+  form: { code: string; name: Bilingual | null } | null;
+  statusTitleEn: string | null;
+  statusTitleEs: string | null;
+  category: StatusCategory;
+  at: string;
+  reportedDate: string | null;
+  first: boolean;
+};
+
+/** All of the person's cases on one timeline. */
+export type JourneyResponse = {
+  start: string | null;
+  end: string | null;
+  totalDays: number | null;
+  cases: {
+    id: string;
+    nickname: string | null;
+    receiptMasked: string;
+    form: { code: string; name: Bilingual | null } | null;
+    office: { code: string; name: Bilingual | null } | null;
+    statusTitleEn: string | null;
+    statusTitleEs: string | null;
+    start: string;
+    end: string;
+    days: number;
+    finished: boolean;
+    tone: LineMapTone;
+  }[];
+  milestones: { date: string; day: number; caseId: string; form: string | null; titleEn: string | null; titleEs: string | null; category: StatusCategory }[];
 };

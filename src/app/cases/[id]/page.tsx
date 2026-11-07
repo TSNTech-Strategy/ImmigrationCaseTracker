@@ -17,6 +17,8 @@ import { TAG_LIMITS } from "@/lib/cases/tags";
 import { RefreshButton, RemoveCaseForm } from "./case-actions";
 import { CheckThisCaseButton } from "@/app/billing/buttons";
 import { CaseStatusPanel, ObservedChanges, UscisHistory, USCIS_SOURCE_NOTE } from "@/components/case-status";
+import { LineMapSection } from "@/components/line-map";
+import { caseJourney } from "@/lib/journeys";
 import { ApprovalCelebration } from "@/components/approval-celebration";
 import { approvalNextStep, recentApprovalAt } from "@/lib/case-insights";
 
@@ -42,6 +44,7 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
   const plan = (await prisma.user.findUnique({ where: { id: user.id }, select: { plan: true } }))?.plan ?? "FREE";
   const approvedAt = recentApprovalAt(c.statusTitleEn, c.events);
   const nextStep = approvedAt ? approvalNextStep(c.formType, c.statusTitleEn) : null;
+  const journey = caseJourney(c);
 
   return (
     <>
@@ -85,6 +88,7 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
       <CaseStatusPanel
         c={c}
         es={es}
+        journey={journey}
         actions={c.trackingStatus === "ACTIVE" ? <RefreshButton caseId={c.id} free={plan === "FREE"} /> : undefined}
         footnote={
           plan === "FREE" ? (
@@ -98,6 +102,7 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
           )
         }
       />
+      <LineMapSection map={journey.lineMap} es={es} />
       {FEATURES.assistant && (
         <Link
           href={`/assistant?case=${c.id}`}
