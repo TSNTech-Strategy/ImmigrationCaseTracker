@@ -40,6 +40,7 @@ const LOOK: Record<string, { glyph: Glyph; tint: Tint }> = {
   "how-casepingo-helps": { glyph: { ios: "sparkles", md: "auto_awesome", fallback: "✦" }, tint: "navy" },
   contact: { glyph: { ios: "bubble.left", md: "chat_bubble", fallback: "✉" }, tint: "green" },
   civics: { glyph: { ios: "graduationcap", md: "school", fallback: "🎓" }, tint: "navy" },
+  checklists: { glyph: { ios: "checklist", md: "checklist", fallback: "☑" }, tint: "green" },
 };
 export const resourceLook = (slug: string) => LOOK[slug] ?? LOOK.library;
 

@@ -330,6 +330,17 @@ export default function CaseScreen() {
           </Card>
         )}
 
+        {cs.checklist && (
+          <Card onPress={() => router.push(`/checklists/${cs.checklist!.key}`)} label={t.checklistDocsFor(cs.checklist.form)} style={{ flexDirection: "row", alignItems: "center", gap: space(3) }}>
+            <IconTile glyph={{ ios: "checklist", md: "checklist", fallback: "☑" }} tint="green" size={40} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: c.heading }}>{t.checklistDocsFor(cs.checklist.form)}</Text>
+              <Small>{t.checklistDocsText}</Small>
+            </View>
+            <Icon ios="chevron.right" md="chevron_right" size={14} color={c.accent} fallback="›" />
+          </Card>
+        )}
+
         <Card onPress={() => router.push(`/insights/${cs.id}`)} label={t.insightsCard} style={{ flexDirection: "row", alignItems: "center", gap: space(3) }}>
           <IconTile glyph={{ ios: "chart.bar.xaxis", md: "bar_chart", fallback: "▤" }} tint="blue" size={40} />
           <View style={{ flex: 1, gap: 2 }}>

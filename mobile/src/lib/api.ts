@@ -104,6 +104,8 @@ export type CaseSummary = {
   days?: CaseDays;
 };
 export type CaseDetail = Omit<CaseSummary, "recentApprovalAt"> & {
+  /** The document checklist for this case's form (older servers don't send it). */
+  checklist?: { key: string; form: string; title: Bilingual } | null;
   statusDescriptionEn: string | null;
   statusDescriptionEs: string | null;
   uscisSubmittedRaw: string | null;
@@ -191,3 +193,10 @@ export type Insights = {
   trend: { months: { month: string; approved: number; evidence: number; denied: number }[]; total: number } | null;
   processingTimesUrl: string;
 };
+
+export type ChecklistItem = { key: string; title: Bilingual; detail?: Bilingual; required: boolean };
+export type Checklist = { key: string; form: string; title: Bilingual; summary: Bilingual; groups: { key: string; title: Bilingual; items: ChecklistItem[] }[]; tips: Bilingual[]; links: { label: Bilingual; url: string }[] };
+/** GET /api/v1/checklists */
+export type ChecklistsResponse = { reviewed: string; tips: Bilingual[]; checklists: { key: string; form: string; title: Bilingual; summary: Bilingual; total: number; required: number; done: number; requiredDone: number }[] };
+/** GET /api/v1/checklists/:key */
+export type ChecklistResponse = { checklist: Checklist; done: string[]; tips: Bilingual[]; reviewed: string };
