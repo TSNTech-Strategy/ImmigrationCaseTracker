@@ -1,3 +1,4 @@
+import { DEADLINE_KINDS } from "./alerts";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { csvCell } from "@/lib/csv";
 import { ROLE_LABELS } from "./roles";
@@ -23,7 +24,7 @@ export const AUDIT_CATEGORIES = {
   clients: { label: "Clients", prefixes: ["client."] },
   cases: { label: "Cases and consent", prefixes: ["case.", "cases.", "consent."] },
   tags: { label: "Tags", prefixes: ["tag."] },
-  updates: { label: "Updates and client emails", prefixes: ["update.", "client_update.", "client.portal_", "firm.client_updates"] },
+  updates: { label: "Updates, deadlines and client emails", prefixes: ["update.", "client_update.", "client.portal_", "firm.client_updates", "deadline.", "firm.alerts"] },
   exports: { label: "Exports", prefixes: ["audit."] },
 } as const;
 export type AuditCategory = keyof typeof AUDIT_CATEGORIES;
@@ -36,6 +37,8 @@ const role = (v: unknown) => ROLE_LABELS[v as keyof typeof ROLE_LABELS] ?? str(v
 const plural = (n: unknown, word: string) => `${Number(n) || 0} ${word}${Number(n) === 1 ? "" : "s"}`;
 const names = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []).map((n) => `"${n}"`).join(", ");
 const COLOR_NAME: Record<string, string> = { blue: "blue", green: "green", amber: "amber", red: "red", purple: "purple", gray: "gray" };
+
+const deadlineLabel = (k: unknown) => (typeof k === "string" && k in DEADLINE_KINDS ? DEADLINE_KINDS[k as keyof typeof DEADLINE_KINDS].label : "Deadline");
 
 /** A plain-English sentence for one entry. `target` is the masked receipt, client name or member. */
 export function describeAudit(action: string, m: Meta, target: string): string {
@@ -115,6 +118,18 @@ export function describeAudit(action: string, m: Meta, target: string): string {
     case "firm.client_updates": {
       const label = (v: unknown) => (v === "AUTO" ? "Automatic" : v === "REVIEW" ? "Review first" : "Off");
       return `Changed client emails from ${label(m.from)} to ${label(m.to)}`;
+    }
+    case "deadline.added":
+      return `Added a deadline on case ${t}: ${deadlineLabel(m.kind)} ${str(m.dueOn)}`;
+    case "deadline.done":
+      return `Marked a deadline on case ${t} done: ${deadlineLabel(m.kind)} ${str(m.dueOn)}`;
+    case "deadline.reopened":
+      return `Reopened a deadline on case ${t}: ${deadlineLabel(m.kind)} ${str(m.dueOn)}`;
+    case "deadline.removed":
+      return `Removed a deadline on case ${t}: ${deadlineLabel(m.kind)} ${str(m.dueOn)}`;
+    case "firm.alerts": {
+      const to = (m.to ?? {}) as { stuckAfterDays?: number; deadlineLeadDays?: number };
+      return `Changed team alerts: stuck after ${to.stuckAfterDays ? `${to.stuckAfterDays} days` : "never"}, deadline reminders ${to.deadlineLeadDays ?? "?"} days before`;
     }
     case "audit.exported":
       return `Exported the activity log (${Number(m.rows) || 0} ${Number(m.rows) === 1 ? "entry" : "entries"})`;

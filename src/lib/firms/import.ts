@@ -54,14 +54,28 @@ type Resolved = ImportRow & {
   clientEmail?: string | null;
 };
 
+// Header names, after normHeader(). Besides our template, these cover common exports from case
+// management tools (Docketwise, Clio and others) and hand-made spreadsheets. When no header names
+// the receipt column, the column that holds receipt numbers is found by its contents.
 const COLUMNS = {
-  receipt: ["receipt", "receipt_number", "receipt_no", "receiptnumber", "receipt_num", "uscis_receipt"],
-  client: ["client", "client_name", "name", "applicant", "applicant_name", "beneficiary"],
-  clientRef: ["client_ref", "client_reference", "reference", "ref", "matter", "matter_number", "matter_no", "file_number"],
-  label: ["label", "nickname", "case_label", "case", "description"],
+  receipt: [
+    "receipt", "receipt_number", "receipt_no", "receiptnumber", "receipt_num", "uscis_receipt", "receipt_numbers", "receipt_number_s",
+    "uscis_receipt_number", "uscis_receipt_no", "uscis_receipt_numbers", "case_receipt_number", "case_receipt", "receipt_s",
+  ],
+  client: [
+    "client", "client_name", "name", "applicant", "applicant_name", "beneficiary", "beneficiary_name", "client_full_name", "full_name",
+    "contact", "contact_name", "primary_client", "primary_contact", "client_display_name", "applicant_full_name",
+  ],
+  clientRef: [
+    "client_ref", "client_reference", "reference", "ref", "matter", "matter_number", "matter_no", "file_number", "file_no",
+    "display_number", "matter_display_number", "matter_id", "matter_ref", "client_number", "client_id",
+  ],
+  label: ["label", "nickname", "case_label", "case", "description", "matter_title", "matter_name", "matter_description", "case_name", "case_type", "form", "form_type", "petition_type"],
   tags: ["tags", "tag", "case_tags", "firm_tags"],
   evidence: ["evidence", "evidence_ref", "consent_evidence", "g28", "g_28"],
-  email: ["email", "client_email"],
+  email: ["email", "client_email", "email_address", "client_email_address", "primary_email", "contact_email"],
+  firstName: ["first_name", "given_name", "client_first_name", "contact_first_name", "applicant_first_name", "beneficiary_first_name"],
+  lastName: ["last_name", "family_name", "surname", "client_last_name", "contact_last_name", "applicant_last_name", "beneficiary_last_name"],
 } as const;
 type Col = keyof typeof COLUMNS;
 
@@ -72,6 +86,21 @@ export const IMPORT_TEMPLATE =
   "client_name,client_ref,receipt_number,label,evidence,tags\n" +
   "Maria Lopez,M-1001,EAC9999103402,I-130 for spouse,G-28 signed 2026-10-01,Attorney: Rivera; Family\n" +
   "John Doe,M-1002,EAC9999103403,I-765,,EAD\n";
+
+/** Every receipt number in a piece of text ("EAC 99 991-03402, IOE0912345678" → two), normalized. */
+export function receiptsInText(text: string): string[] {
+  const found = text.toUpperCase().match(/\b[A-Z]{3}[\s-]*(?:\d[\s-]*){9}\d\b/g) ?? [];
+  return [...new Set(found.map(normalizeReceiptNumber))].filter(isValidReceiptNumber);
+}
+
+const csvCell = (v: string) => (/[",\n;]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+
+/** Pasted receipt numbers (any text: a list, an email, a spreadsheet column) for one client, as import CSV. */
+export function pastedReceiptsToCsv(text: string, clientName: string, clientRef: string): { csv: string; count: number } {
+  const receipts = receiptsInText(text);
+  const lines = receipts.map((r) => [clientName.trim(), clientRef.trim(), r].map(csvCell).join(","));
+  return { csv: ["client_name,client_ref,receipt_number", ...lines].join("\n") + "\n", count: receipts.length };
+}
 
 /** Tag names in a "tags" cell, separated by ";" or "|". */
 const splitTags = (cell: string) => cell.split(/[;|]/).map((t) => t.trim()).filter(Boolean);
@@ -88,19 +117,40 @@ export function createFirmImportService({ db, now = () => new Date() }: { db: Pr
     const idx = Object.fromEntries(
       (Object.keys(COLUMNS) as Col[]).map((c) => [c, header.findIndex((h) => (COLUMNS[c] as readonly string[]).includes(h))]),
     ) as Record<Col, number>;
-    if (idx.receipt < 0) return fail('Add a "receipt_number" column. Download the template to see the format.');
-    if (idx.client < 0 && idx.clientRef < 0) return fail('Add a "client_name" column (or "client_ref" for existing clients).');
-    const body = table.slice(1);
+    const rawBody = table.slice(1);
+    if (idx.receipt < 0) {
+      // No header names it: use the column holding the most receipt numbers.
+      let best = { col: -1, hits: 0 };
+      for (let col = 0; col < header.length; col++) {
+        const hits = rawBody.filter((r) => receiptsInText(r[col] ?? "").length > 0).length;
+        if (hits > best.hits) best = { col, hits };
+      }
+      idx.receipt = best.col;
+      for (const c of Object.keys(idx) as Col[]) if (c !== "receipt" && idx[c] === best.col) idx[c] = -1;
+    }
+    if (idx.receipt < 0) return fail('We couldn\'t find receipt numbers in this file. Add a "receipt_number" column, or download the template to see the format.');
+    if (idx.client < 0 && idx.clientRef < 0 && idx.firstName < 0 && idx.lastName < 0) {
+      return fail('Add a "client_name" column (or "client_ref" for existing clients).');
+    }
+    // One row per receipt: a cell may list several ("EAC…, IOE…"), each becomes a case for that client.
+    const body = rawBody.flatMap((r, i) => {
+      const raw = r[idx.receipt] ?? "";
+      const found = receiptsInText(raw);
+      return (found.length ? found : [normalizeReceiptNumber(raw)]).map((receipt) => ({ r, line: i + 2, receipt }));
+    });
     if (body.length > IMPORT_MAX_ROWS) return fail(`Import up to ${IMPORT_MAX_ROWS} cases at a time. This file has ${body.length}.`);
 
-    const cell = (r: string[], c: Col) => (idx[c] >= 0 ? (r[idx[c]] ?? "").trim() : "");
+    const cell = (r: string[], c: Col): string => {
+      if (c === "client" && idx.client < 0) return [cell(r, "firstName"), cell(r, "lastName")].filter(Boolean).join(" ");
+      return idx[c] >= 0 ? (r[idx[c]] ?? "").trim() : "";
+    };
     const clients = await db.client.findMany({
       where: { firmId: ctx.firm.id },
       select: { id: true, displayName: true, externalRef: true, archivedAt: true },
     });
     const firmTags = new Map((await db.firmTag.findMany({ where: { firmId: ctx.firm.id }, select: { nameKey: true, name: true } })).map((t) => [t.nameKey, t.name]));
     const newTagNames = new Map<string, string>();
-    const receipts = body.map((r) => normalizeReceiptNumber(cell(r, "receipt")));
+    const receipts = body.map((e) => e.receipt);
     const existing = new Set(
       (
         await db.trackedCase.findMany({
@@ -113,7 +163,7 @@ export function createFirmImportService({ db, now = () => new Date() }: { db: Pr
 
     const seen = new Set<string>();
     const newKeys = new Set<string>();
-    const rows: Resolved[] = body.map((r, i) => {
+    const rows: Resolved[] = body.map(({ r, line }, i) => {
       const receipt = receipts[i];
       const clientName = cell(r, "client").slice(0, 120);
       const clientRef = cell(r, "clientRef").slice(0, 60) || null;
@@ -121,7 +171,7 @@ export function createFirmImportService({ db, now = () => new Date() }: { db: Pr
       const evidenceRef = (cell(r, "evidence") || defaults.evidenceRef).trim().slice(0, 200);
       const valid = isValidReceiptNumber(receipt);
       const row: Resolved = {
-        line: i + 2,
+        line,
         clientName,
         clientRef,
         receiptMasked: valid ? maskReceiptNumber(receipt) : null,

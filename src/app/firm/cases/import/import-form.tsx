@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Field } from "@/components/form";
 import { FIRM_CONSENT_OPTIONS } from "@/lib/firms/consent";
@@ -28,10 +28,23 @@ function Buttons({ canImport, toAdd }: { canImport: boolean; toAdd: number }) {
   );
 }
 
-export function ImportForm({ maxRows }: { maxRows: number }) {
+export function ImportForm({ maxRows, clients }: { maxRows: number; clients: string[] }) {
   const [state, action] = useActionState<ImportState, FormData>(importAction, {});
+  const [mode, setMode] = useState<"file" | "paste">("file");
   const plan = state.plan;
   const err = state.fieldErrors ?? {};
+  const tab = (m: "file" | "paste", label: string) => (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={mode === m}
+      aria-controls={`import-${m}`}
+      onClick={() => setMode(m)}
+      className={`flex-1 rounded-md px-3 py-1.5 text-sm font-semibold ${mode === m ? "bg-[var(--surface)] shadow-[var(--shadow)]" : "text-[var(--muted)] hover:text-[var(--foreground)]"}`}
+    >
+      {label}
+    </button>
+  );
   return (
     <form action={action} className="flex flex-col gap-5" noValidate>
       {state.error && (
@@ -40,7 +53,13 @@ export function ImportForm({ maxRows }: { maxRows: number }) {
         </p>
       )}
 
-      <div className="flex flex-col gap-1.5">
+      <input type="hidden" name="mode" value={mode} />
+      <div role="tablist" aria-label="How to add cases" className="flex gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-1">
+        {tab("file", "Upload a file")}
+        {tab("paste", "Paste receipt numbers")}
+      </div>
+
+      <div id="import-file" role="tabpanel" hidden={mode !== "file"} className="flex flex-col gap-1.5">
         <label htmlFor="field-file" className="text-sm font-medium">
           CSV file
         </label>
@@ -48,20 +67,63 @@ export function ImportForm({ maxRows }: { maxRows: number }) {
           id="field-file"
           name="file"
           type="file"
-          accept=".csv,text/csv"
+          accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values"
           aria-describedby="field-file-hint"
           className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
         />
         <p id="field-file-hint" className="text-xs text-[var(--muted)]">
-          Up to {maxRows} cases. Columns: client_name, receipt_number, and optionally client_ref, label, evidence, tags (separate several with
+          Up to {maxRows} cases. Columns: client_name, receipt_number, and optionally client_ref, label, email, evidence, tags (separate several with
           a semicolon, e.g. &quot;Attorney: Rivera; H-1B&quot;; new tags are created).{" "}
           <a href="/firm/cases/import/template" download className="underline underline-offset-2">
             Download the template
           </a>
           .
         </p>
-        {state.csv && !err.file && <p className="text-xs text-[var(--muted)]">Using the file you previewed. Choose another file to replace it.</p>}
+        <details className="text-xs text-[var(--muted)]">
+          <summary className="cursor-pointer font-medium text-[var(--accent)]">Moving from Docketwise, Clio or a spreadsheet?</summary>
+          <div className="mt-2 flex flex-col gap-1.5 leading-relaxed">
+            <p>
+              Export your matters or contacts as a CSV file (comma, semicolon or tab separated) and upload it as it is. CasePingo reads common
+              column names such as Client, Contact, First Name / Last Name, Matter Number, Display Number, Matter Title and Email, and finds the
+              column with receipt numbers by its contents. A cell with several receipt numbers adds one case for each.
+            </p>
+            <p>Columns we don&apos;t use are ignored. You always see a preview first, so you can check every row before anything is saved.</p>
+          </div>
+        </details>
+        {state.csv && state.mode !== "paste" && !err.file && <p className="text-xs text-[var(--muted)]">Using the file you previewed. Choose another file to replace it.</p>}
         {err.file && <p className="text-sm text-[var(--danger)]">{err.file}</p>}
+      </div>
+
+      <div id="import-paste" role="tabpanel" hidden={mode !== "paste"} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="field-pasted" className="text-sm font-medium">
+            Receipt numbers
+          </label>
+          <textarea
+            id="field-pasted"
+            name="pasted"
+            rows={6}
+            defaultValue={state.pasted}
+            aria-describedby="field-pasted-hint"
+            aria-invalid={err.pasted ? true : undefined}
+            placeholder={"EAC2190012345\nIOE0912345678, WAC2312345678"}
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 font-mono text-sm aria-[invalid=true]:border-[var(--danger)]"
+          />
+          <p id="field-pasted-hint" className="text-xs text-[var(--muted)]">
+            Paste from anywhere: a list, an email or a spreadsheet column. We pick out every receipt number (3 letters and 10 digits) and add
+            each as a case for the client below.
+          </p>
+          {err.pasted && <p className="text-sm text-[var(--danger)]">{err.pasted}</p>}
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Client name" name="pasteClient" list="import-clients" autoComplete="off" defaultValue={state.pasteClient} error={err.pasteClient} hint="An existing client, or a new one." />
+          <Field label="Client reference (optional)" name="pasteClientRef" maxLength={60} autoComplete="off" defaultValue={state.pasteClientRef} placeholder="e.g. matter number" />
+        </div>
+        <datalist id="import-clients">
+          {clients.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
       </div>
       <input type="hidden" name="csv" value={state.csv ?? ""} />
 
@@ -88,7 +150,7 @@ export function ImportForm({ maxRows }: { maxRows: number }) {
         maxLength={200}
         autoComplete="off"
         placeholder="e.g. G-28 for each client in our case files"
-        hint='Used for rows with an empty "evidence" column.'
+        hint='Applies to every case you paste, and to file rows with an empty "evidence" column.'
         defaultValue={state.evidenceRef}
       />
       <div className="flex flex-col gap-1">

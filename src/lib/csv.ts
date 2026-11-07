@@ -6,7 +6,9 @@
 export function parseCsv(text: string): string[][] {
   const src = text.replace(/^﻿/, "");
   const firstLine = src.slice(0, src.search(/\r?\n|$/));
-  const sep = (firstLine.match(/;/g)?.length ?? 0) > (firstLine.match(/,/g)?.length ?? 0) ? ";" : ",";
+  // Commas, semicolons (European Excel) or tabs (copied from a spreadsheet, or a .tsv export): whichever the header uses most.
+  const count = (c: string) => firstLine.split(c).length - 1;
+  const sep = [",", ";", "\t"].reduce((best, c) => (count(c) > count(best) ? c : best), ",");
   const rows: string[][] = [];
   let row: string[] = [];
   let field = "";

@@ -4,9 +4,10 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
 import { firmService, firmUpdateService } from "@/lib/firms";
 import { CLIENT_UPDATE_MODES } from "@/lib/firms/updates";
-import { ClientUpdateSettingsForm } from "./settings-form";
+import { LEAD_DAY_CHOICES, STUCK_DAY_CHOICES } from "@/lib/firms/alerts";
+import { AlertSettingsForm, ClientUpdateSettingsForm } from "./settings-form";
 
-export const metadata: Metadata = { title: "Client updates · CasePingo" };
+export const metadata: Metadata = { title: "Updates settings · CasePingo" };
 
 export default async function ClientUpdateSettingsPage() {
   const user = await requireUser("/firm/updates/settings");
@@ -28,6 +29,14 @@ export default async function ClientUpdateSettingsPage() {
       </div>
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <ClientUpdateSettingsForm initial={{ mode: firm.clientUpdates, replyToEmail: firm.replyToEmail ?? "", contactLine: firm.clientContactLine ?? "" }} modes={CLIENT_UPDATE_MODES} />
+      </section>
+      <section aria-labelledby="alerts-h" className="flex flex-col gap-3">
+        <h2 id="alerts-h" className="text-lg font-semibold">
+          Alerts for your team
+        </h2>
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+          <AlertSettingsForm initial={{ stuckAfterDays: firm.stuckAfterDays, deadlineLeadDays: firm.deadlineLeadDays }} stuckChoices={STUCK_DAY_CHOICES} leadChoices={LEAD_DAY_CHOICES} />
+        </div>
       </section>
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">What your clients get</h2>

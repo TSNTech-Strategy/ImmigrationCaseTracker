@@ -1,5 +1,6 @@
 import { billingReconcile } from "./functions/billing-reconcile";
 import { checkCase } from "./functions/check-case";
+import { firmAlerts } from "./functions/firm-alerts";
 import { notifyStatusChangeFn } from "./functions/notify-status-change";
 import { scheduleChecks } from "./functions/schedule-checks";
 
@@ -8,7 +9,7 @@ import { scheduleChecks } from "./functions/schedule-checks";
 // or off Vercel (local dev / tests). A preview deployment shares the
 // production database and must never start its own polling.
 
-export const ALL_FUNCTIONS = [scheduleChecks, checkCase, notifyStatusChangeFn, billingReconcile];
+export const ALL_FUNCTIONS = [scheduleChecks, checkCase, notifyStatusChangeFn, billingReconcile, firmAlerts];
 
 type Fn = (typeof ALL_FUNCTIONS)[number];
 

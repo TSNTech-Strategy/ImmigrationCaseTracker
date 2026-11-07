@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { Field, FormMessage, SubmitButton, type FormState } from "@/components/form";
-import { saveClientUpdateSettingsAction } from "../actions";
+import { saveAlertSettingsAction, saveClientUpdateSettingsAction } from "../actions";
 
 type Mode = "OFF" | "REVIEW" | "AUTO";
 
@@ -51,6 +51,48 @@ export function ClientUpdateSettingsForm({ initial, modes }: { initial: { mode: 
       />
       <div>
         <SubmitButton pendingText="Saving…">Save settings</SubmitButton>
+      </div>
+    </form>
+  );
+}
+
+export function AlertSettingsForm({ initial, stuckChoices, leadChoices }: { initial: { stuckAfterDays: number; deadlineLeadDays: number }; stuckChoices: readonly number[]; leadChoices: readonly number[] }) {
+  const [state, action] = useActionState<FormState, FormData>(saveAlertSettingsAction, {});
+  const v = (k: keyof typeof initial) => state.values?.[k] ?? String(initial[k]);
+  const select = "w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-base sm:w-72";
+  return (
+    <form action={action} className="flex flex-col gap-4" noValidate>
+      <FormMessage state={state} />
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="field-stuck" className="text-sm font-medium">
+          Flag a case as stuck when USCIS hasn&apos;t changed it in
+        </label>
+        <select id="field-stuck" name="stuckAfterDays" defaultValue={v("stuckAfterDays")} className={select} aria-describedby="field-stuck-hint">
+          {stuckChoices.map((d) => (
+            <option key={d} value={d}>
+              {d === 0 ? "Never (off)" : `${d} days`}
+            </option>
+          ))}
+        </select>
+        <p id="field-stuck-hint" className="text-xs text-[var(--muted)]">
+          Counted from the last change USCIS shows. Finished cases (approved, denied, card delivered) are never flagged.
+        </p>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="field-lead" className="text-sm font-medium">
+          Remind us before a deadline
+        </label>
+        <select id="field-lead" name="deadlineLeadDays" defaultValue={v("deadlineLeadDays")} className={select}>
+          {leadChoices.map((d) => (
+            <option key={d} value={d}>
+              {d} days before
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-[var(--muted)]">Another reminder comes if a deadline passes without being marked done.</p>
+      </div>
+      <div>
+        <SubmitButton pendingText="Saving…">Save alerts</SubmitButton>
       </div>
     </form>
   );
