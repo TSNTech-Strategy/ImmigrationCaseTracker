@@ -37,7 +37,7 @@ A case status and client communication desk that sits beside whatever case manag
 |---|---|---|---|
 | Solo | One attorney and an assistant | $49 | 2 users, 150 active cases, every workspace feature |
 | Firm | Small firms | $129 | 10 users, 600 active cases, everything in Solo |
-| Firm Plus | Growing firms | $249 | Unlimited users, 2,000 active cases, priority support, data export on demand, SMS (when released) |
+| Firm Plus | Growing firms | $249 | Unlimited users, 2,000 active cases, priority support, help moving cases in |
 
 - 14-day free trial with no card; annual billing 2 months free.
 - Founding offer kept: 50% off for 12 months for the first 25 firms.
@@ -72,7 +72,7 @@ The order a firm meets the product: set up, bring in clients and cases, keep the
 | 6 | Tasks and calendar | My tasks and team tasks; list and calendar views; status, type, priority, assignee, due date; linked to a case, client or matter; comments and @mentions | Built (Phase 2B); matter link in Phase 2C |
 | 7 | Matters and groups | Group cases by family, employer, lawsuit or custom; filter every page by matter | Built (Phase 2C) |
 | 8 | Documents | Upload files to a case or client; kind, visibility (internal or shared with the client), size, uploaded by; search and filters | Built (Phase 3A) |
-| 9 | Document requests | Firm builds a request from the case-type checklist (or its own list), adds a due date and message; client gets a link (email now, SMS later) and uploads from a phone; firm accepts or asks again; reminders; progress on case and client pages | Built (Phase 3B); SMS later |
+| 9 | Document requests | Firm builds a request from the case-type checklist (or its own list), adds a due date and message; client gets a link by email (or the firm copies it into its own text or WhatsApp) and uploads from a phone; firm accepts or asks again; reminders; progress on case and client pages | Built (Phase 3B) |
 | 10 | Client portal | Client's status page plus open document requests, uploads, firm contact; English and Spanish; firm logo | Built (Phase 4) |
 | 11 | Dashboard | Case volume by form and category, status overview, cases by assignee, days waiting, stuck cases, upcoming deadlines, open document requests; filters by date, assignee, matter | Built (Phase 2A; matter filter Phase 2C; open requests and CSV reports Phase 5) |
 | 12 | Notifications | Per person: inbox start view, backup colleague while away, which task updates appear, which case updates email me (by type: approvals, requests, appointments, denials, other) and for which cases (mine, matters, groups, tags) | Built (Phase 6) |
@@ -128,11 +128,13 @@ Every phase: database migration with row-level security, server logic with datab
 - New plan tiers in Stripe, plan limits enforced, plan and billing page with usage.
 - Legal and data page: export everything (archive), delete everything (request flow), inactivity policy, analytics choice.
 
+### Messaging decision (Nov 7, 2026)
+- Email only, through Resend (SMTP, from alerts@casepingo.com; working as of Nov 7, 2026). It sends invitations, client status updates, document requests and reminders (with the firm's logo), staff case-change emails and billing notices.
+- SMS is dropped: no Twilio, no A2P 10DLC registration, no text-message consent to manage. A firm can still copy a request or status link into its own text or WhatsApp.
+
 ### Technical items to build later (noted, not started)
 | Item | What it needs | Notes |
 |---|---|---|
-| SMS to clients | Twilio account and phone number, A2P 10DLC registration | Request links and status updates by text; opt-in and STOP handling |
-| Email at scale | Transactional email provider (Postmark, Resend or Amazon SES) with the firm's domain verified (SPF, DKIM, DMARC) | Today email goes through SMTP |
 | Google Calendar | Google OAuth app and verification | Read-only view of meetings beside tasks |
 | Outlook calendar | Microsoft app registration | Same as Google |
 | File scanning | Malware scanning service for uploads | Before Phase 3 goes to all firms |
