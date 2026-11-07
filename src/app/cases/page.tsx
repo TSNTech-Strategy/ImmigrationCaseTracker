@@ -8,6 +8,8 @@ import { caseService } from "@/lib/cases";
 import { getUscisClient } from "@/lib/uscis";
 import { recentApprovals } from "@/lib/cases/approvals";
 import { ApprovalBanners } from "@/components/approval-celebration";
+import { TagChip } from "@/components/case-tags";
+import { flatTags, type TagColor } from "@/lib/cases";
 
 export const metadata: Metadata = { title: "My cases · CasePingo" };
 
@@ -18,9 +20,15 @@ const NOTICES: Record<string, string> = {
 
 export default async function CasesPage({ searchParams }: PageProps<"/cases">) {
   const user = await requireUser("/cases");
-  const { notice } = await searchParams;
+  const { notice, tag } = await searchParams;
   const message = typeof notice === "string" ? NOTICES[notice] : undefined;
-  const cases = await caseService().listCases(user.id);
+  const cases = (await caseService().listCases(user.id)).map((c) => ({ ...c, tags: flatTags(c.tags) }));
+  // Tags on any case, A to Z, with how many cases have each: the filter.
+  const inUse = new Map<string, { id: string; name: string; color: TagColor; count: number }>();
+  for (const c of cases) for (const tg of c.tags) inUse.set(tg.id, { ...tg, count: (inUse.get(tg.id)?.count ?? 0) + 1 });
+  const tagFilter = [...inUse.values()].sort((a, b) => a.name.localeCompare(b.name));
+  const activeTag = typeof tag === "string" && inUse.has(tag) ? tag : null;
+  const shown = activeTag ? cases.filter((c) => c.tags.some((tg) => tg.id === activeTag)) : cases;
   const mode = getUscisClient().mode;
   const preferEs = user.locale === "es";
   const account = await prisma.user.findUnique({ where: { id: user.id }, select: { plan: true, trialEndsAt: true } });
@@ -72,7 +80,34 @@ export default async function CasesPage({ searchParams }: PageProps<"/cases">) {
           </p>
         </div>
       ) : (
-        <CaseTable rows={cases} hrefBase="/cases" es={preferEs} />
+        <>
+          <nav aria-label="Filter by tag" className="flex flex-wrap items-center gap-2">
+            {tagFilter.length > 0 && (
+              <>
+                <span className="text-sm text-[var(--muted)]">Tags:</span>
+                <Link href="/cases" aria-current={activeTag ? undefined : "page"} className="rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">
+                  <span className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium ${activeTag ? "border-[var(--border)] bg-[var(--surface)]" : "border-[var(--foreground)] bg-[var(--foreground)] text-[var(--background)]"}`}>
+                    All {cases.length}
+                  </span>
+                </Link>
+                {tagFilter.map((tg) => (
+                  <Link
+                    key={tg.id}
+                    href={activeTag === tg.id ? "/cases" : `/cases?tag=${encodeURIComponent(tg.id)}`}
+                    aria-current={activeTag === tg.id ? "page" : undefined}
+                    className="rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                  >
+                    <TagChip tag={tg} count={tg.count} selected={activeTag === tg.id} />
+                  </Link>
+                ))}
+              </>
+            )}
+            <Link href="/cases/tags" className={`text-sm font-medium text-[var(--accent)] hover:underline ${tagFilter.length ? "ml-auto" : ""}`}>
+              {tagFilter.length ? "Manage tags" : "Group cases with tags"}
+            </Link>
+          </nav>
+          <CaseTable rows={shown} hrefBase="/cases" es={preferEs} />
+        </>
       )}
     </>
   );

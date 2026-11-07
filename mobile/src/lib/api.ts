@@ -1,5 +1,6 @@
 import { config } from "./config";
 import { supabase } from "./supabase";
+import type { Tag } from "./tags";
 
 /** Calls the CasePingo mobile API (docs/MOBILE-API.md) with the signed-in user's token. */
 
@@ -81,6 +82,8 @@ export type CaseSummary = {
   form: { code: string; name: Bilingual | null } | null;
   /** Set while CasePingo saw this case become approved in the last 30 days. */
   recentApprovalAt: string | null;
+  /** The person's own tags on this case, A to Z. */
+  tags: Tag[];
 };
 export type CaseDetail = Omit<CaseSummary, "recentApprovalAt"> & {
   statusDescriptionEn: string | null;

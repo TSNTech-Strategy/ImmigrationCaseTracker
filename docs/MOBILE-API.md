@@ -15,13 +15,18 @@ Used by the Expo app in `mobile/` (Step 9B). Personal cases only; law-firm featu
 | GET | `/api/v1/me` | Profile, plan, case counts, alert settings |
 | PATCH | `/api/v1/me` | `{name?, locale?: "en"\|"es", emailOnChange?, pushOnChange?}` |
 | DELETE | `/api/v1/me` | `{"confirm": "DELETE"}`: deletes the account (cancels billing first). 409 `firm_owner` if they own a firm |
-| GET | `/api/v1/cases` | The person's cases (masked receipts only), each with `category`, `stage`, `form` and `recentApprovalAt`; plus `stageCount` |
+| GET | `/api/v1/cases` | The person's cases (masked receipts only), each with `category`, `stage`, `form`, `recentApprovalAt` and `tags` (`[{id, name, color}]`, A to Z); plus `stageCount` |
 | POST | `/api/v1/cases` | `{receipt, nickname?, basis: "SELF"\|"AUTHORIZED_BY_APPLICANT", consent: true, statementVersion}` → 201 `{caseId, check}`. 400 `invalid_receipt`, 409 `duplicate` / `consent_outdated`, 403 `plan_limit` |
-| GET | `/api/v1/cases/:id` | Status, plain-language guide, form and office, our observed changes, USCIS history, consent, congratulations |
+| GET | `/api/v1/cases/:id` | Status, plain-language guide, form and office, our observed changes, USCIS history, consent, congratulations, `tags` |
 | PATCH | `/api/v1/cases/:id` | `{nickname: string \| null}` (up to 60 characters): rename the case or clear the nickname |
 | DELETE | `/api/v1/cases/:id` | Remove the case and stop checks |
 | POST | `/api/v1/cases/:id/refresh` | Refresh now → `{status: "updated", changed, message}`. 429 `cooldown` / `limit` / `budget`, 409 `paused` / `no_consent`, 502 `failed` |
 | POST | `/api/v1/cases/:id/check-instead` | Free plan: check this paused case instead |
+| PUT | `/api/v1/cases/:id/tags` | `{tagIds: string[]}`: exactly these tags on the case (up to 10) → `{tags}`. 404 for a case or tag that isn't the person's, 403 `limit` |
+| GET | `/api/v1/tags` | The person's tags, A to Z: `{tags: [{id, name, color, caseCount}], colors, limits: {perPerson, perCase, name}}` |
+| POST | `/api/v1/tags` | `{name, color?}` (1 to 24 characters; color one of `blue`, `green`, `amber`, `red`, `purple`, `gray`, picked when left out) → 201 `{tag}`. 400 `invalid`, 409 `duplicate` (same name, any capitals), 403 `limit` (20 tags) |
+| PATCH | `/api/v1/tags/:id` | `{name?, color?}`: rename or recolor → `{tag}` |
+| DELETE | `/api/v1/tags/:id` | Delete the tag; it comes off every case (the cases stay) |
 | POST | `/api/v1/devices` | `{token: "ExponentPushToken[…]", platform: "ios"\|"android", appVersion?}`: turns push alerts on |
 | DELETE | `/api/v1/devices` | `{token}`: stop pushes to this phone (sign-out) |
 

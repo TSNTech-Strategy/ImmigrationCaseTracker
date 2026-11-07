@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Banner, Body, Button, Card, Screen, Small } from "../../../components/ui";
 import { CaseCard, CaseCardSkeleton, FilterChips, IconButton, LargeHeader, SearchField, caseTitles } from "../../../components/cases";
 import { FlagStripe, StarBurst, StarsMark, dismissApproval, dismissedApprovals, takeUnplayed } from "../../../components/celebration";
@@ -15,6 +15,8 @@ import { hasNewChange, seenChanges } from "../../../lib/seen";
 import { radius, space, useTheme } from "../../../lib/theme";
 import { useRefreshOnForeground } from "../../../lib/use-refresh";
 import { canScanReceipts } from "../../../lib/scan";
+import { NewTagChip, TagChip } from "../../../components/tags";
+import { tagsInUse } from "../../../lib/tags";
 
 const FILTER_ORDER: StatusCategory[] = ["action", "progress", "done", "stop", "none"];
 
@@ -36,6 +38,7 @@ export default function Cases() {
   const [burst, setBurst] = useState(0);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<StatusCategory | "all">("all");
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [note, setNote] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   // First-case screen: a highlight walks down the three features.
@@ -103,12 +106,16 @@ export default function Cases() {
     for (const x of list) m.set(x.category, (m.get(x.category) ?? 0) + 1);
     return m;
   }, [list]);
+  const tagChips = useMemo(() => tagsInUse(list), [list]);
+  // A tag that was deleted or taken off every case stops filtering.
+  const activeTag = tagFilter && tagChips.some((x) => x.id === tagFilter) ? tagFilter : null;
   const q = query.trim().toLowerCase();
   const shown = list.filter((x) => {
     if (filter !== "all" && x.category !== filter) return false;
+    if (activeTag && !(x.tags ?? []).some((tg) => tg.id === activeTag)) return false;
     if (!q) return true;
     const { title, sub } = caseTitles(x, lang);
-    return [title, sub, x.statusTitleEn, x.statusTitleEs, x.formType].some((v) => v?.toLowerCase().includes(q));
+    return [title, sub, x.statusTitleEn, x.statusTitleEs, x.formType, ...(x.tags ?? []).map((tg) => tg.name)].some((v) => v?.toLowerCase().includes(q));
   });
   const approvals = dismissed ? list.filter((x) => x.recentApprovalAt && !dismissed.includes(x.id)) : [];
   const days = trialDaysLeft(me?.plan.trialEndsAt ?? null);
@@ -179,6 +186,15 @@ export default function Cases() {
               ...FILTER_ORDER.filter((k) => counts.get(k)).map((k) => ({ key: k, label: t.category[k], count: counts.get(k) ?? 0 })),
             ]}
           />
+        )}
+
+        {loaded && list.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={t.filterByTag} contentContainerStyle={{ gap: space(2), alignItems: "center" }}>
+            {tagChips.map((tg) => (
+              <TagChip key={tg.id} tag={tg} count={tg.count} selected={activeTag === tg.id} onPress={() => setTagFilter(activeTag === tg.id ? null : tg.id)} />
+            ))}
+            <NewTagChip label={tagChips.length ? t.manageTags : t.newTag} edit={tagChips.length > 0} onPress={() => router.push("/tags")} />
+          </ScrollView>
         )}
 
         {!loaded && (

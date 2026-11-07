@@ -8,6 +8,7 @@ import { font, radius, space, useTheme } from "../lib/theme";
 import { Icon } from "./icon";
 import { Pulse } from "./motion";
 import { StatusPill } from "./ui";
+import { CardTags } from "./tags";
 
 /** Big screen title with an optional line under it and round action buttons on the right. */
 export function LargeHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: ReactNode }) {
@@ -267,6 +268,7 @@ export function CaseCard({ cs, stageCount, isNew, lang, onPress }: { cs: CaseSum
           <StatusPill category={cs.category} label={t.category[cs.category]} />
         </View>
         <CaseSubline mono={names.mono} text={names.text} />
+        <CardTags tags={cs.tags ?? []} />
         <Text style={{ fontSize: 16, fontWeight: "600", color: c.text, marginTop: space(0.5) }}>{status}</Text>
         {cs.stage !== null && <Stepper stage={cs.stage} total={stageCount} category={cs.category} label={stepLabel} />}
         <View style={{ flexDirection: "row", alignItems: "center", gap: space(2), marginTop: space(0.5) }}>

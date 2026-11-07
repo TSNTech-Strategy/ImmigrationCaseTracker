@@ -15,6 +15,7 @@ import { FEATURES } from "../../../lib/features";
 import { formatDate } from "../../../lib/i18n";
 import { useRefreshOnForeground } from "../../../lib/use-refresh";
 import { space, useTheme } from "../../../lib/theme";
+import { CaseTags } from "../../../components/tags";
 
 function confirm(message: string, ok: string, cancel: string): Promise<boolean> {
   if (Platform.OS === "web") return Promise.resolve(globalThis.confirm?.(message) ?? true);
@@ -218,6 +219,8 @@ export default function CaseScreen() {
           {note && <Banner tone={note.tone}>{note.text}</Banner>}
           <Small>{free ? t.freePlan : t.premiumPlan} {t.uscisSource}</Small>
         </Card>
+
+        <CaseTags caseId={cs.id} value={cs.tags ?? []} onChange={(tags) => setCs((prev) => (prev ? { ...prev, tags } : prev))} />
 
         {FEATURES.assistant && (
           <Card onPress={() => router.push({ pathname: "/assistant", params: { case: cs.id } })} label={t.assistantAskButton} style={{ flexDirection: "row", alignItems: "center", gap: space(3) }}>
