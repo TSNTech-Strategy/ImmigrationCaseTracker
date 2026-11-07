@@ -74,7 +74,7 @@ The order a firm meets the product: set up, bring in clients and cases, keep the
 | 8 | Documents | Upload files to a case or client; kind, visibility (internal or shared with the client), size, uploaded by; search and filters | Phase 3 |
 | 9 | Document requests | Firm builds a request from the case-type checklist (or its own list), adds a due date and message; client gets a link (email now, SMS later) and uploads from a phone; firm accepts or asks again; reminders; progress on case and client pages | Phase 3 |
 | 10 | Client portal | Client's status page plus open document requests, uploads, firm contact; English and Spanish; firm logo | Status page built; Phase 4 adds requests and branding |
-| 11 | Dashboard | Case volume by form and category, status overview, cases by assignee, days waiting, stuck cases, upcoming deadlines, open document requests; filters by date, assignee, matter | Phase 5 |
+| 11 | Dashboard | Case volume by form and category, status overview, cases by assignee, days waiting, stuck cases, upcoming deadlines, open document requests; filters by date, assignee, matter | Built (Phase 2A); matter filter and document requests added with those phases |
 | 12 | Notifications | Per person: inbox start view, backup colleague while away, which task updates appear, which case updates email me (by type: approvals, requests, appointments, denials, other) and for which cases (mine, matters, groups, tags) | Phase 6 |
 | 13 | Team and roles | Members with role, active cases, last active; invitations; Owner, Admin, Staff, plus "Attorney" and "Paralegal" labels | Built (Phase 6 adds columns and labels) |
 | 14 | Activity log | Every change in plain language, filters, CSV export; never logs sensitive values (A-Numbers, dates of birth, notes) | Built |
@@ -92,7 +92,10 @@ Every phase: database migration with row-level security, server logic with datab
 - Clients: structured profile (first and last name, date of birth, country of birth, citizenship, phone, preferred language, A-Number encrypted, tags), client table with filters, client page with tabs (Overview, Cases, Activity).
 - Cases: assignee and category on every case, case table with filters (status, form, client, assignee, tags), side panel, new case dialog, export CSV.
 
-### Phase 2: Tasks, calendar, matters
+### Phase 2A: Dashboard ✅ built (moved up at the owner's request)
+- Dashboard tab with filters, stat tiles, bar charts, upcoming deadlines and recent changes (see BUILD_PLAN 7H). Report CSV exports stay in Phase 5.
+
+### Phase 2B–2C: Tasks, calendar, matters
 - Tasks with status, type, priority, assignee, due date, links to case, client or matter; comments with @mentions; list and calendar views; my tasks and team tasks; task reminders in the inbox.
 - Matters and groups: create, add cases, filter cases, tasks and documents by matter.
 - Deadlines appear on the calendar beside tasks.

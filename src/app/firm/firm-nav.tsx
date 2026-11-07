@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 type Item = { href: string; label: string; managersOnly?: boolean; badge?: "updates" | "deadlines" };
 
 const MAIN: Item[] = [
-  { href: "/firm", label: "Overview" },
+  { href: "/firm", label: "Dashboard" },
   { href: "/firm/updates", label: "Inbox", badge: "updates" },
   { href: "/firm/cases", label: "Cases" },
   { href: "/firm/clients", label: "Clients" },
