@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { DocumentKind, DocumentSource, DocumentVisibility, Prisma, PrismaClient } from "@prisma/client";
 import { decryptBytes, encryptBytes } from "@/lib/crypto";
 import type { FileStore } from "@/lib/storage/file-store";
+import { createUploadScanner, type Scanner } from "@/lib/storage/scan";
 import { findFirmContext } from "./service";
 
 /**
@@ -75,7 +76,15 @@ export type UploadInput = {
 };
 export type DocumentFilters = { scope?: "all" | "case" | "client" | "unlinked"; kind?: string; visibility?: string; source?: string; q?: string; caseId?: string; clientId?: string };
 
-export function createFirmDocumentService({ db, store }: { db: PrismaClient; store: FileStore | null }) {
+export function createFirmDocumentService({ db, store, scan = createUploadScanner(null) }: { db: PrismaClient; store: FileStore | null; scan?: Scanner }) {
+  /** Scan before storing; a refused file is logged (never stored). */
+  async function check(firmId: string, actorUserId: string | null, data: Buffer, name: string, contentType: string): Promise<{ ok: true; method: string } | Fail> {
+    const r = await scan(data, name, contentType);
+    if (r.ok) return r;
+    await db.auditLog.create({ data: { firmId, actorUserId, action: "document.blocked", targetType: "Firm", targetId: firmId, metadata: { name, why: r.detail } } });
+    return fail(r.reason, "file");
+  }
+
   async function audit(firmId: string, actorUserId: string, action: string, docId: string, metadata?: object) {
     await db.auditLog.create({ data: { firmId, actorUserId, action, targetType: "FirmDocument", targetId: docId, metadata: metadata ?? undefined } });
   }
@@ -102,8 +111,10 @@ export function createFirmDocumentService({ db, store }: { db: PrismaClient; sto
     }
     if (clientId && !(await db.client.findFirst({ where: { id: clientId, firmId: ctx.firm.id }, select: { id: true } }))) return fail("Choose one of your firm's clients.", "clientId");
     if (visibility === "CLIENT" && !clientId) return fail("Link the document to a client to share it with them.", "visibility");
+    const scanned = await check(ctx.firm.id, userId, input.data, name, contentType);
+    if (!scanned.ok) return scanned;
 
-    const r = await save(ctx.firm.id, { data: input.data, name, contentType, kind, visibility, caseId, clientId, source, uploadedById: userId });
+    const r = await save(ctx.firm.id, { data: input.data, name, contentType, kind, visibility, caseId, clientId, source, uploadedById: userId, scannedWith: scanned.method });
     await audit(ctx.firm.id, userId, "document.uploaded", r.id, { name, kind, visibility });
     return { ok: true, id: r.id };
   }
@@ -111,7 +122,7 @@ export function createFirmDocumentService({ db, store }: { db: PrismaClient; sto
   /** Encrypt, store and record one already-checked file. */
   async function save(
     firmId: string,
-    f: { data: Buffer; name: string; contentType: string; kind: DocumentKind; visibility: DocumentVisibility; caseId: string | null; clientId: string | null; source: DocumentSource; uploadedById: string | null; requestItemId?: string | null },
+    f: { data: Buffer; name: string; contentType: string; kind: DocumentKind; visibility: DocumentVisibility; caseId: string | null; clientId: string | null; source: DocumentSource; uploadedById: string | null; requestItemId?: string | null; scannedWith: string },
   ) {
     if (!store) throw new Error("No file store");
     const storageKey = `${firmId}/${randomUUID()}`;
@@ -132,6 +143,7 @@ export function createFirmDocumentService({ db, store }: { db: PrismaClient; sto
           storageKey,
           uploadedById: f.uploadedById,
           requestItemId: f.requestItemId ?? null,
+          scannedWith: f.scannedWith,
         },
         select: { id: true },
       });
@@ -149,7 +161,9 @@ export function createFirmDocumentService({ db, store }: { db: PrismaClient; sto
     const name = cleanFileName(input.name);
     const contentType = sniffType(input.data, name);
     if (!contentType) return fail("Upload a PDF, a photo (JPG, PNG, HEIC, WebP) or a Word document (.docx).", "file");
-    const r = await save(firmId, { data: input.data, name, contentType, kind: "OTHER", visibility: "CLIENT", caseId: input.caseId, clientId: input.clientId, source: "CLIENT", uploadedById: null, requestItemId: input.requestItemId });
+    const scanned = await check(firmId, null, input.data, name, contentType);
+    if (!scanned.ok) return scanned;
+    const r = await save(firmId, { data: input.data, name, contentType, kind: "OTHER", visibility: "CLIENT", caseId: input.caseId, clientId: input.clientId, source: "CLIENT", uploadedById: null, requestItemId: input.requestItemId, scannedWith: scanned.method });
     return { ok: true, id: r.id, name };
   }
 

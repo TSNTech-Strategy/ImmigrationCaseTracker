@@ -6,6 +6,7 @@ import { createDocumentRequestService } from "./requests";
 import { createFirmBrandingService } from "./branding";
 import { createFirmDocumentService } from "./documents";
 import { getFileStore } from "@/lib/storage/file-store";
+import { getUploadScanner } from "@/lib/storage/scan";
 import { createFirmMatterService } from "./matters";
 import { createFirmTaskService } from "./tasks";
 import { createFirmDashboardService } from "./dashboard";
@@ -74,7 +75,7 @@ export function firmMatterService() {
 
 /** Firm documents (encrypted file storage). */
 export function firmDocumentService() {
-  return createFirmDocumentService({ db: prisma, store: getFileStore() });
+  return createFirmDocumentService({ db: prisma, store: getFileStore(), scan: getUploadScanner() });
 }
 
 /** Document requests to clients (checklists, upload links, review, reminders). */

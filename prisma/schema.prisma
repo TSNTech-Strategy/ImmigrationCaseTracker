@@ -867,6 +867,8 @@ model FirmDocument {
   contentType   String
   size          Int
   sha256        String
+  /// How the file was checked before it was stored: "basic" (built-in checks) or "cloudmersive" (malware scan too). Null: uploaded before checks existed.
+  scannedWith   String?
   storageKey    String               @unique
   uploadedById  String?
   uploadedBy    User?                @relation("DocumentUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
