@@ -1,3 +1,4 @@
+import { createFirmDashboardService } from "./dashboard";
 import { createFirmAlertService } from "./alerts";
 import "server-only";
 import { prisma } from "@/lib/db";
@@ -44,4 +45,9 @@ export function firmUpdateService() {
 /** Stuck-case alerts and case deadlines. */
 export function firmAlertService() {
   return createFirmAlertService({ db: prisma });
+}
+
+/** The firm dashboard (numbers from the firm's own cases). */
+export function firmDashboardService() {
+  return createFirmDashboardService({ db: prisma });
 }
