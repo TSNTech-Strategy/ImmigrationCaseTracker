@@ -38,6 +38,7 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
         <ul className="list-disc space-y-1 pl-5 text-sm">
           <li>{TRIAL_DAYS}-day free trial, up to {TRIAL_CASE_LIMIT} cases. No card needed.</li>
           <li>Roles: Owner, Admin and Staff.</li>
+          <li>Shared tags to sort cases by attorney, visa type or deadline.</li>
           <li>Your personal cases stay private and separate from the firm.</li>
         </ul>
         <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">

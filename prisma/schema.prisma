@@ -117,6 +117,7 @@ model Firm {
   auditLogs        AuditLog[]
   deletionRequests DeletionRequest[]
   subscriptions    Subscription[]
+  tags             FirmTag[]
 }
 
 enum FirmPlan {
@@ -259,11 +260,14 @@ model TrackedCase {
   events    CaseStatusEvent[]
   checkRuns CaseCheckRun[]
   tags      TrackedCaseTag[]
+  firmTags  FirmCaseTag[]
 
   @@unique([ownerUserId, receiptDigest])
   @@unique([firmId, receiptDigest])
   /// Lets a tag link require the case's owner (see TrackedCaseTag).
   @@unique([id, ownerUserId])
+  /// Lets a firm tag link require the case's firm (see FirmCaseTag).
+  @@unique([id, firmId])
   @@index([trackingStatus, nextCheckAt])
   @@index([clientId])
 }
@@ -589,6 +593,40 @@ model TrackedCaseTag {
   case        TrackedCase @relation(fields: [caseId, ownerUserId], references: [id, ownerUserId], onDelete: Cascade)
   tag         CaseTag     @relation(fields: [tagId, ownerUserId], references: [id, ownerUserId], onDelete: Cascade)
   createdAt   DateTime    @default(now())
+
+  @@id([caseId, tagId])
+  @@index([tagId])
+}
+
+/// A label a firm's team shares on the firm's cases ("Attorney: Smith",
+/// "H-1B", "RFE due"). Any member can create and use them; Owners and Admins
+/// rename, recolor and delete them.
+model FirmTag {
+  id        String        @id @default(cuid())
+  firmId    String
+  firm      Firm          @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  /// As typed (trimmed, single spaces), up to 32 characters.
+  name      String
+  /// Lowercased name, so "H-1B" and "h-1b" are one tag.
+  nameKey   String
+  /// One of TAG_COLORS in src/lib/cases/tags.ts.
+  color     String        @default("blue")
+  createdAt DateTime      @default(now())
+  cases     FirmCaseTag[]
+
+  @@unique([firmId, nameKey])
+  @@unique([id, firmId])
+}
+
+/// A firm tag on one of the firm's cases. Both foreign keys include the firm,
+/// so the database itself only allows a firm's own tag on its own case.
+model FirmCaseTag {
+  caseId    String
+  tagId     String
+  firmId    String
+  case      TrackedCase @relation(fields: [caseId, firmId], references: [id, firmId], onDelete: Cascade)
+  tag       FirmTag     @relation(fields: [tagId, firmId], references: [id, firmId], onDelete: Cascade)
+  createdAt DateTime    @default(now())
 
   @@id([caseId, tagId])
   @@index([tagId])

@@ -7,6 +7,7 @@ import { createFirmAuditService } from "./audit";
 import { createFirmCaseService } from "./cases";
 import { createFirmImportService } from "./import";
 import { createFirmService } from "./service";
+import { createFirmTagService } from "./tags";
 
 export function firmService() {
   return createFirmService({ db: prisma, mailer: getEmailDriver(), siteUrl: getSiteUrl() });
@@ -26,4 +27,9 @@ export function firmImportService() {
 /** The firm activity log (Owners and Admins). */
 export function firmAuditService() {
   return createFirmAuditService({ db: prisma });
+}
+
+/** Tags the firm's team shares on its cases. */
+export function firmTagService() {
+  return createFirmTagService({ db: prisma });
 }

@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth/session";
 import { tagService } from "@/lib/cases";
 import { TAG_COLORS, TAG_LIMITS, type TagColor } from "@/lib/cases/tags";
-import { NewTagForm, TagRow } from "./tag-forms";
+import { NewTagForm, TagRow } from "@/components/tag-forms";
+import { createTagAction, deleteTagAction, updateTagAction } from "./actions";
 
 export const metadata: Metadata = { title: "Tags · CasePingo" };
 
@@ -22,13 +23,13 @@ export default async function TagsPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Tags</h1>
         <p className="text-sm text-[var(--muted)]">Tags group your cases, like Family or Work. Only you see them. Put them on a case from its page.</p>
       </div>
-      <NewTagForm full={tags.length >= TAG_LIMITS.perPerson} suggested={suggested} />
+      <NewTagForm action={createTagAction} full={tags.length >= TAG_LIMITS.perPerson} suggested={suggested} maxName={TAG_LIMITS.name} maxTags={TAG_LIMITS.perPerson} />
       {tags.length === 0 ? (
         <p className="text-center text-sm text-[var(--muted)]">No tags yet.</p>
       ) : (
         <ul className="flex flex-col divide-y divide-[var(--border)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
           {tags.map((tag) => (
-            <TagRow key={tag.id} tag={tag} />
+            <TagRow key={tag.id} tag={tag} saveAction={updateTagAction} deleteAction={deleteTagAction} maxName={TAG_LIMITS.name} />
           ))}
         </ul>
       )}

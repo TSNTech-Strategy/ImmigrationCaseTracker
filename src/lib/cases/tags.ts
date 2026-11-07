@@ -14,16 +14,16 @@ export const TAG_LIMITS = { perPerson: 20, perCase: 10, name: 24 } as const;
 
 export type TagView = { id: string; name: string; color: TagColor };
 export type TagWithCount = TagView & { caseCount: number };
-export type TagResult<T> = { ok: true; value: T } | { ok: false; error: "invalid" | "duplicate" | "limit" | "not_found"; message: string };
+export type TagResult<T> = { ok: true; value: T } | { ok: false; error: "invalid" | "duplicate" | "limit" | "not_found" | "forbidden"; message: string };
 
 export const isTagColor = (v: unknown): v is TagColor => typeof v === "string" && (TAG_COLORS as readonly string[]).includes(v);
 const asColor = (v: string): TagColor => (isTagColor(v) ? v : "blue");
 
-/** Trimmed, single spaces; null when empty, too long, or with control characters. */
-export function normalizeTagName(raw: unknown): string | null {
+/** Trimmed, single spaces; null when empty, longer than `max`, or with control characters. */
+export function normalizeTagName(raw: unknown, max: number = TAG_LIMITS.name): string | null {
   if (typeof raw !== "string") return null;
   const name = raw.normalize("NFC").replace(/\s+/g, " ").trim();
-  if (!name || name.length > TAG_LIMITS.name || /[\u0000-\u001f\u007f-\u009f]/.test(name)) return null;
+  if (!name || name.length > max || /[\u0000-\u001f\u007f-\u009f]/.test(name)) return null;
   return name;
 }
 /** One tag per name per person, whatever the capitals. */

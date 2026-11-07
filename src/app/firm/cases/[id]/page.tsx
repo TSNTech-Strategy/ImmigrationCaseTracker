@@ -5,7 +5,11 @@ import { CaseStatusPanel, ObservedChanges, UscisHistory, USCIS_SOURCE_NOTE } fro
 import { LocalTime } from "@/components/local-time";
 import { ModeBanner } from "@/components/mode-banner";
 import { requireUser } from "@/lib/auth/session";
-import { firmCaseService } from "@/lib/firms";
+import { firmCaseService, firmTagService } from "@/lib/firms";
+import { CaseTagsPanel } from "@/components/tag-forms";
+import { flatTags } from "@/lib/cases/tags";
+import { FIRM_TAG_LIMITS } from "@/lib/firms/tags";
+import { addFirmCaseTagAction, toggleFirmCaseTagAction } from "../../tags/actions";
 import { firmConsentLabel } from "@/lib/firms/consent";
 import { getUscisClient } from "@/lib/uscis";
 import { FirmRefreshButton, RecordConsentForm, RemoveFirmCaseForm, WithdrawConsentForm } from "../forms";
@@ -25,6 +29,7 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
   const data = await firmCaseService().getCase(user.id, id);
   if (!data) notFound(); // also for other firms' cases: no existence leak
   const { ctx, case: c } = data;
+  const allTags = (await firmTagService().list(user.id))?.tags ?? [];
   const { notice } = await searchParams;
   const message = typeof notice === "string" ? NOTICES[notice] : undefined;
   const es = user.locale === "es";
@@ -75,6 +80,17 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
             Firm cases are checked automatically about twice a day. {who(c.addedBy)} gets an email when the status changes. {USCIS_SOURCE_NOTE}
           </>
         }
+      />
+      <CaseTagsPanel
+        caseId={c.id}
+        tags={allTags}
+        onCase={flatTags(c.firmTags).map((tg) => tg.id)}
+        toggleAction={toggleFirmCaseTagAction}
+        addAction={addFirmCaseTagAction}
+        manageHref="/firm/tags"
+        maxName={FIRM_TAG_LIMITS.name}
+        intro="Tags your whole team shares, like the attorney, the visa type or a deadline. Add the first one here."
+        placeholder="e.g. Attorney: Rivera"
       />
       <ObservedChanges events={c.events} es={es} />
       <UscisHistory history={c.uscisHistory} es={es} />

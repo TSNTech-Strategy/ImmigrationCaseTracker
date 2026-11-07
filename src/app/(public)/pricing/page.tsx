@@ -55,7 +55,7 @@ const FIRMS: Card[] = [
     for: "Solo attorneys and accredited representatives",
     price: formatUsd(FIRM_PLANS.SOLO.price),
     period: "/month",
-    features: [`Up to ${FIRM_PLANS.SOLO.maxCases} client cases`, `${FIRM_PLANS.SOLO.maxUsers} team members`, "Clients, consent records (G-28)", "CSV import, activity log and export"],
+    features: [`Up to ${FIRM_PLANS.SOLO.maxCases} client cases`, `${FIRM_PLANS.SOLO.maxUsers} team members`, "Clients, consent records (G-28)", "Shared tags by attorney, visa type or deadline", "CSV import, activity log and export"],
     cta: { label: "Start your free trial", href: "/firm" },
   },
   {

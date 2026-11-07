@@ -22,6 +22,7 @@ export const AUDIT_CATEGORIES = {
   team: { label: "Team and invitations", prefixes: ["firm.", "invite.", "member."] },
   clients: { label: "Clients", prefixes: ["client."] },
   cases: { label: "Cases and consent", prefixes: ["case.", "cases.", "consent."] },
+  tags: { label: "Tags", prefixes: ["tag."] },
   exports: { label: "Exports", prefixes: ["audit."] },
 } as const;
 export type AuditCategory = keyof typeof AUDIT_CATEGORIES;
@@ -32,6 +33,8 @@ type Meta = Record<string, unknown>;
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const role = (v: unknown) => ROLE_LABELS[v as keyof typeof ROLE_LABELS] ?? str(v);
 const plural = (n: unknown, word: string) => `${Number(n) || 0} ${word}${Number(n) === 1 ? "" : "s"}`;
+const names = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []).map((n) => `"${n}"`).join(", ");
+const COLOR_NAME: Record<string, string> = { blue: "blue", green: "green", amber: "amber", red: "red", purple: "purple", gray: "gray" };
 
 /** A plain-English sentence for one entry. `target` is the masked receipt, client name or member. */
 export function describeAudit(action: string, m: Meta, target: string): string {
@@ -71,8 +74,23 @@ export function describeAudit(action: string, m: Meta, target: string): string {
       return `Withdrew consent for case ${t}, so checks stopped`;
     case "consent.recorded":
       return `Recorded consent for case ${t}: ${firmConsentLabel(m.basis as never)}`;
+    case "case.tags_changed": {
+      const parts = [names(m.added) && `added ${names(m.added)}`, names(m.removed) && `took off ${names(m.removed)}`].filter(Boolean);
+      return `Changed tags on case ${t}: ${parts.join("; ") || "no change"}`;
+    }
+    case "tag.created":
+      return `Created tag "${str(m.name)}"${m.source === "csv" ? " (CSV import)" : ""}`;
+    case "tag.updated": {
+      const renamed = str(m.from) !== str(m.to);
+      const recolored = str(m.fromColor) !== str(m.color);
+      if (renamed && recolored) return `Renamed tag "${str(m.from)}" to "${str(m.to)}" and made it ${COLOR_NAME[str(m.color)] ?? str(m.color)}`;
+      if (renamed) return `Renamed tag "${str(m.from)}" to "${str(m.to)}"`;
+      return `Made tag "${str(m.to)}" ${COLOR_NAME[str(m.color)] ?? str(m.color)}`;
+    }
+    case "tag.deleted":
+      return `Deleted tag "${str(m.name)}"${Number(m.cases) ? ` (it came off ${plural(m.cases, "case")})` : ""}`;
     case "cases.imported":
-      return `Imported ${plural(m.added, "case")} from CSV (${plural(m.newClients, "new client")}, ${plural(m.skipped, "row")} skipped)`;
+      return `Imported ${plural(m.added, "case")} from CSV (${plural(m.newClients, "new client")}${Number(m.newTags) ? `, ${plural(m.newTags, "new tag")}` : ""}, ${plural(m.skipped, "row")} skipped)`;
     case "audit.exported":
       return `Exported the activity log (${Number(m.rows) || 0} ${Number(m.rows) === 1 ? "entry" : "entries"})`;
     default:

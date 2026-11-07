@@ -11,7 +11,9 @@ import { describeCadence } from "@/lib/plans";
 import { prisma } from "@/lib/db";
 import { FEATURES } from "@/lib/features";
 import { flatTags, tagService } from "@/lib/cases";
-import { CaseTagsPanel } from "../tags/tag-forms";
+import { CaseTagsPanel } from "@/components/tag-forms";
+import { addCaseTagAction, toggleCaseTagAction } from "../tags/actions";
+import { TAG_LIMITS } from "@/lib/cases/tags";
 import { RefreshButton, RemoveCaseForm } from "./case-actions";
 import { CheckThisCaseButton } from "@/app/billing/buttons";
 import { CaseStatusPanel, ObservedChanges, UscisHistory, USCIS_SOURCE_NOTE } from "@/components/case-status";
@@ -118,7 +120,16 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
           </span>
         </Link>
       )}
-      <CaseTagsPanel caseId={c.id} tags={allTags} onCase={flatTags(c.tags).map((tg) => tg.id)} />
+      <CaseTagsPanel
+        caseId={c.id}
+        tags={allTags}
+        onCase={flatTags(c.tags).map((tg) => tg.id)}
+        toggleAction={toggleCaseTagAction}
+        addAction={addCaseTagAction}
+        manageHref="/cases/tags"
+        maxName={TAG_LIMITS.name}
+        intro="Tags group your cases, like Family or Work. Only you see them."
+      />
       <ObservedChanges events={c.events} es={es} />
       <UscisHistory history={c.uscisHistory} es={es} />
 
