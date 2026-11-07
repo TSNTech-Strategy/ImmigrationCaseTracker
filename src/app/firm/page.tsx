@@ -13,6 +13,20 @@ import { CreateFirmForm } from "./forms";
 
 export const metadata: Metadata = { title: "Dashboard · CasePingo" };
 
+const link = "text-xs font-medium text-[var(--accent)] hover:underline";
+
+function Csv({ href, title }: { href: string; title: string }) {
+  return (
+    <a href={href} className={link} aria-label={`Download ${title} as CSV`}>
+      CSV
+    </a>
+  );
+}
+
+function Actions({ children }: { children: React.ReactNode }) {
+  return <span className="flex shrink-0 items-baseline gap-3">{children}</span>;
+}
+
 const NOTICES: Record<string, string> = {
   created: "Your firm workspace is ready. Your free trial has started.",
   joined: "You've joined the firm.",
@@ -61,6 +75,8 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
   const trial = ctx.firm.plan ? null : trialText(ctx.firm.trialEndsAt, new Date());
   const k = d.kpis;
   const filtered = Boolean(d.filters.assignee || d.filters.from || d.filters.to || d.filters.matter);
+  const qs = new URLSearchParams(Object.entries(d.filters).filter(([, v]) => v)).toString();
+  const csv = (report: string) => `/firm/reports/export?report=${report}${qs ? `&${qs}` : ""}`;
   const caseLink = (extra: string) => `/firm/cases${d.filters.assignee ? `?assignee=${encodeURIComponent(d.filters.assignee)}${extra ? `&${extra}` : ""}` : extra ? `?${extra}` : ""}`;
   return (
     <>
@@ -133,14 +149,24 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
             Clear
           </Link>
         )}
+        <a href={csv("all")} className={`${btn} ml-auto`}>
+          Download all reports (CSV)
+        </a>
       </form>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatTile label="Cases" value={k.cases} note={filtered ? "Matching the filters" : "Tracked by your firm"} href={caseLink("")} />
         <StatTile label="Changed this week" value={k.changedWeek} note="New USCIS status in 7 days" href={caseLink("view=changed")} />
         <StatTile label="Open in Inbox" value={k.openItems} note="Waiting for someone" href="/firm/updates" tone="attention" />
         <StatTile label="Deadlines in 7 days" value={k.dueSoon} note="Including overdue" href="/firm/deadlines" tone="attention" />
         <StatTile label={`No change in ${k.stuckDays}+ days`} value={k.stuck} note="Unfinished cases" href="/firm/updates" tone="attention" />
+        <StatTile
+          label="Open document requests"
+          value={k.openRequests}
+          note={k.toReview > 0 ? `${k.toReview} upload${k.toReview === 1 ? "" : "s"} to review` : k.overdueRequests > 0 ? `${k.overdueRequests} past due` : "Waiting for clients"}
+          href="/firm/documents/requests"
+          tone="attention"
+        />
       </div>
       {k.noConsent > 0 && (
         <p role="alert" className="rounded-md border border-[var(--danger)] px-3 py-2 text-sm text-[var(--danger)]">
@@ -152,25 +178,25 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard title="Status overview" subtitle="Cases by the kind of status USCIS shows">
+        <ChartCard title="Status overview" subtitle="Cases by the kind of status USCIS shows" action={<Csv href={csv("status")} title="Status overview" />}>
           <BarList data={d.byStatus} status />
         </ChartCard>
-        <ChartCard title="Cases by assignee" subtitle="Who each case belongs to">
+        <ChartCard title="Cases by assignee" subtitle="Who each case belongs to" action={<Csv href={csv("assignee")} title="Cases by assignee" />}>
           <BarList data={d.byAssignee} />
         </ChartCard>
-        <ChartCard title="Case volume by form" subtitle="Most common forms">
+        <ChartCard title="Case volume by form" subtitle="Most common forms" action={<Csv href={csv("form")} title="Case volume by form" />}>
           <BarList data={d.byForm} />
         </ChartCard>
-        <ChartCard title="Case categories" subtitle="Grouped by form type">
+        <ChartCard title="Case categories" subtitle="Grouped by form type" action={<Csv href={csv("category")} title="Case categories" />}>
           <BarList data={d.byCategory} />
         </ChartCard>
-        <ChartCard title="Time since last USCIS change" subtitle="Unfinished cases, from USCIS's own dates">
+        <ChartCard title="Time since last USCIS change" subtitle="Unfinished cases, from USCIS's own dates" action={<Csv href={csv("waiting")} title="Time since last USCIS change" />}>
           <BarList data={d.waiting} empty="No unfinished cases with a status yet." />
         </ChartCard>
-        <ChartCard title="Clients by country of birth" subtitle="Clients with cases in this view" action={<Link href="/firm/clients" className="text-xs font-medium text-[var(--accent)] hover:underline">All clients</Link>}>
+        <ChartCard title="Clients by country of birth" subtitle="Clients with cases in this view" action={<Actions><Csv href={csv("country")} title="Clients by country of birth" /><Link href="/firm/clients" className={link}>All clients</Link></Actions>}>
           <BarList data={d.byCountry} unit="client" empty="No clients yet." />
         </ChartCard>
-        <ChartCard title="Upcoming deadlines" subtitle="Next 14 days, and overdue" action={<Link href="/firm/deadlines" className="text-xs font-medium text-[var(--accent)] hover:underline">All deadlines</Link>}>
+        <ChartCard title="Upcoming deadlines" subtitle="Next 14 days, and overdue" action={<Actions><Csv href={csv("deadlines")} title="Upcoming deadlines" /><Link href="/firm/deadlines" className={link}>All deadlines</Link></Actions>}>
           {d.deadlines.length === 0 ? (
             <p className="py-6 text-center text-sm text-[var(--muted)]">Nothing due in the next 14 days.</p>
           ) : (
@@ -188,6 +214,31 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
                   <span className={`shrink-0 text-right text-xs ${x.daysLeft < 0 ? "font-semibold text-[var(--danger)]" : x.daysLeft <= 3 ? "font-semibold text-[var(--st-action)]" : "text-[var(--muted)]"}`}>
                     {formatDue(x.dueOn)}
                     <span className="block">{x.daysLeft < 0 ? `${-x.daysLeft} days overdue` : x.daysLeft === 0 ? "Today" : `In ${x.daysLeft} days`}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </ChartCard>
+        <ChartCard title="Document requests" subtitle="Open requests, soonest due first" action={<Actions><Csv href={csv("requests")} title="Open document requests" /><Link href="/firm/documents/requests" className={link}>All requests</Link></Actions>}>
+          {d.requests.length === 0 ? (
+            <p className="py-6 text-center text-sm text-[var(--muted)]">No open requests. Ask a client for documents from their case or client page.</p>
+          ) : (
+            <ul className="flex flex-col divide-y divide-[var(--border)]">
+              {d.requests.map((r) => (
+                <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <span className="min-w-0">
+                    <Link href={`/firm/documents/requests/${r.id}`} className="block truncate font-medium hover:underline">
+                      {r.title}
+                    </Link>
+                    <span className="block truncate text-xs text-[var(--muted)]">
+                      {r.client.displayName} · {r.accepted} of {r.required} accepted
+                      {r.toReview > 0 && <span className="font-semibold text-[var(--st-action)]"> · {r.toReview} to review</span>}
+                    </span>
+                  </span>
+                  <span className={`shrink-0 text-right text-xs ${r.daysLeft !== null && r.daysLeft < 0 ? "font-semibold text-[var(--danger)]" : "text-[var(--muted)]"}`}>
+                    {r.dueOn ? formatDue(r.dueOn) : "No due date"}
+                    {r.daysLeft !== null && <span className="block">{r.daysLeft < 0 ? `${-r.daysLeft} days late` : r.daysLeft === 0 ? "Today" : `In ${r.daysLeft} days`}</span>}
                   </span>
                 </li>
               ))}
