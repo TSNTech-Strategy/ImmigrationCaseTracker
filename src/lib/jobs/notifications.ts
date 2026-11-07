@@ -3,6 +3,7 @@ import type { EmailDriver } from "@/lib/email";
 import type { PushDriver } from "@/lib/push";
 import { PLAN_LIMITS } from "@/lib/plans";
 import { statusChangeEmail } from "@/lib/email/templates";
+import { createFirmUpdateService } from "@/lib/firms/updates";
 
 export type NotifyResult = { sent: number; skipped: number; failed: number };
 
@@ -102,6 +103,14 @@ export async function notifyStatusChange(
   if (pusher && c.ownerUserId) {
     try {
       await pushToOwner(db, pusher, event, c, result);
+    } catch (err) {
+      firstError ??= err;
+    }
+  }
+  // Firm cases: the change goes to the firm's Updates inbox, and the client is emailed per the firm's setting.
+  if (c.firmId) {
+    try {
+      await createFirmUpdateService({ db, mailer, siteUrl }).recordStatusChange(event.id);
     } catch (err) {
       firstError ??= err;
     }

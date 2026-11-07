@@ -59,6 +59,9 @@ model User {
   ownedCases             TrackedCase[]           @relation("CaseOwner")
   addedCases             TrackedCase[]           @relation("CaseAddedBy")
   clientsCreated         Client[]                @relation("ClientCreatedBy")
+  firmUpdatesAssigned    FirmUpdate[]            @relation("FirmUpdateAssignee")
+  firmUpdatesResolved    FirmUpdate[]            @relation("FirmUpdateResolver")
+  firmUpdatesSent        FirmUpdate[]            @relation("FirmUpdateSender")
   consentsGranted        CaseConsent[]           @relation("ConsentGrantedBy")
   consentsWithdrawn      CaseConsent[]           @relation("ConsentWithdrawnBy")
   invitationsSent        FirmInvitation[]
@@ -97,19 +100,25 @@ enum FirmRole {
 }
 
 model Firm {
-  id               String     @id @default(cuid())
-  name             String
-  status           FirmStatus @default(ACTIVE)
+  id                String           @id @default(cuid())
+  name              String
+  status            FirmStatus       @default(ACTIVE)
   /// Case limit: the trial's 10, then the paid plan's (Firm Solo 50, Firm 300).
-  caseLimit        Int        @default(10)
+  caseLimit         Int              @default(10)
   /// End of the free trial (14 days, 10 cases).
-  trialEndsAt      DateTime?
+  trialEndsAt       DateTime?
   /// Paid plan, set from Stripe. Null = no active subscription (trial or lapsed).
-  plan             FirmPlan?
+  plan              FirmPlan?
   /// Stripe customer for the firm's billing (Step 8).
-  stripeCustomerId String?    @unique
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  stripeCustomerId  String?          @unique
+  /// What a client hears when their case changes: nothing, a message staff approve first, or an automatic message.
+  clientUpdates     ClientUpdateMode @default(OFF)
+  /// Where clients' replies to update emails go (Reply-To). Null: no reply address.
+  replyToEmail      String?
+  /// One line shown to clients on how to reach the firm (phone, hours).
+  clientContactLine String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   memberships      FirmMembership[]
   invitations      FirmInvitation[]
@@ -119,6 +128,7 @@ model Firm {
   deletionRequests DeletionRequest[]
   subscriptions    Subscription[]
   tags             FirmTag[]
+  updates          FirmUpdate[]
 }
 
 enum FirmPlan {
@@ -161,19 +171,26 @@ model FirmInvitation {
 
 /// A law firm's client. Deliberately minimal contact data (guide §19.2).
 model Client {
-  id          String    @id @default(cuid())
-  firmId      String
-  firm        Firm      @relation(fields: [firmId], references: [id], onDelete: Cascade)
-  displayName String
-  email       String?
-  phone       String?
+  id               String    @id @default(cuid())
+  firmId           String
+  firm             Firm      @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  displayName      String
+  email            String?
+  phone            String?
   /// The firm's own reference for this client (matter number etc.).
-  externalRef String?
-  createdById String?
-  createdBy   User?     @relation("ClientCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  archivedAt  DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  externalRef      String?
+  /// Language for update emails and the client's status page: "en" or "es".
+  locale           String    @default("en")
+  /// When the firm recorded that the client agreed to receive case updates by email. Null: no updates.
+  updatesConsentAt DateTime?
+  /// The client's status page link works only while enabled; a new version makes earlier links stop working.
+  portalEnabled    Boolean   @default(false)
+  portalVersion    Int       @default(1)
+  createdById      String?
+  createdBy        User?     @relation("ClientCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  archivedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   cases TrackedCase[]
 
@@ -260,11 +277,12 @@ model TrackedCase {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  consents  CaseConsent[]
-  events    CaseStatusEvent[]
-  checkRuns CaseCheckRun[]
-  tags      TrackedCaseTag[]
-  firmTags  FirmCaseTag[]
+  consents    CaseConsent[]
+  events      CaseStatusEvent[]
+  checkRuns   CaseCheckRun[]
+  tags        TrackedCaseTag[]
+  firmTags    FirmCaseTag[]
+  firmUpdates FirmUpdate[]
 
   @@unique([ownerUserId, receiptDigest])
   @@unique([firmId, receiptDigest])
@@ -331,6 +349,7 @@ model CaseStatusEvent {
   firstObservedAt     DateTime    @default(now())
 
   deliveries NotificationDelivery[]
+  firmUpdate FirmUpdate?
 
   @@unique([caseId, fingerprint])
   @@index([caseId, firstObservedAt])
@@ -651,4 +670,60 @@ model ChecklistCheck {
 
   @@unique([userId, checklist, item])
   @@index([userId, checklist])
+}
+
+/// A firm case's status change in the firm's Updates inbox: who handles it, and
+/// whether the client was told. One per status change (the case's first status isn't one).
+model FirmUpdate {
+  id                String            @id @default(cuid())
+  firmId            String
+  firm              Firm              @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  caseId            String
+  /// Composite key: the case always belongs to the same firm.
+  case              TrackedCase       @relation(fields: [caseId, firmId], references: [id, firmId], onDelete: Cascade)
+  eventId           String            @unique
+  event             CaseStatusEvent   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  state             FirmUpdateState   @default(OPEN)
+  assignedToId      String?
+  assignedTo        User?             @relation("FirmUpdateAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  /// Snoozed updates come back to Open at this time.
+  snoozedUntil      DateTime?
+  resolvedById      String?
+  resolvedBy        User?             @relation("FirmUpdateResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt        DateTime?
+  /// The message to the client about this change.
+  clientUpdate      ClientUpdateState @default(NONE)
+  clientUpdateAt    DateTime?
+  clientUpdateById  String?
+  clientUpdateBy    User?             @relation("FirmUpdateSender", fields: [clientUpdateById], references: [id], onDelete: SetNull)
+  clientUpdateError String?
+  createdAt         DateTime          @default(now())
+
+  @@index([firmId, state, createdAt])
+  @@index([caseId])
+}
+
+enum ClientUpdateMode {
+  OFF
+  REVIEW
+  AUTO
+}
+
+enum FirmUpdateState {
+  OPEN
+  SNOOZED
+  DONE
+}
+
+enum ClientUpdateState {
+  /// The firm doesn't send client updates.
+  NONE
+  /// No client email or no recorded agreement: the client isn't told.
+  NO_CLIENT
+  /// Waiting for staff to send or skip it (review mode).
+  PENDING
+  SENDING
+  SENT
+  SKIPPED
+  FAILED
 }

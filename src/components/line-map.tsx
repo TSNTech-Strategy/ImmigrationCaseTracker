@@ -17,7 +17,7 @@ const leftFor = (frac: number) => `calc(${frac} * (100% - 24px) + 12px)`;
  * The case's line map: the steps for this kind of case, a marker over the current step,
  * then every step with the date USCIS reported for it. Server-rendered, no script.
  */
-export function LineMapSection({ map, es }: { map: LineMap; es: boolean }) {
+export function LineMapSection({ map, es, idPrefix = "linemap" }: { map: LineMap; es: boolean; idPrefix?: string }) {
   if (map.current < 0) return null;
   const lang = es ? "es" : "en";
   const n = map.steps.length;
@@ -26,9 +26,9 @@ export function LineMapSection({ map, es }: { map: LineMap; es: boolean }) {
   const marker = map.marker?.[lang] ?? null;
   const summary = `${map.name[lang]}: ${es ? "paso" : "step"} ${map.current + 1} ${es ? "de" : "of"} ${n}${marker ? `, ${marker}` : ""}`;
   return (
-    <section aria-labelledby="linemap-h" className="flex flex-col gap-5 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6" style={{ "--tone": color } as CSSProperties}>
+    <section aria-labelledby={`${idPrefix}-h`} className="flex flex-col gap-5 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6" style={{ "--tone": color } as CSSProperties}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="linemap-h" className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">
+        <h2 id={`${idPrefix}-h`} className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">
           {es ? "Mapa del proceso" : "Line map"}
         </h2>
         <p className="text-sm font-semibold">{map.name[lang]}</p>

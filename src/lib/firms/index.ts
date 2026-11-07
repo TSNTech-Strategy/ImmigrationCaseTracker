@@ -8,6 +8,7 @@ import { createFirmCaseService } from "./cases";
 import { createFirmImportService } from "./import";
 import { createFirmService } from "./service";
 import { createFirmTagService } from "./tags";
+import { createFirmUpdateService } from "./updates";
 
 export function firmService() {
   return createFirmService({ db: prisma, mailer: getEmailDriver(), siteUrl: getSiteUrl() });
@@ -32,4 +33,9 @@ export function firmAuditService() {
 /** Tags the firm's team shares on its cases. */
 export function firmTagService() {
   return createFirmTagService({ db: prisma });
+}
+
+/** The status desk: Updates inbox, client updates and client status page links. */
+export function firmUpdateService() {
+  return createFirmUpdateService({ db: prisma, mailer: getEmailDriver(), siteUrl: getSiteUrl() });
 }

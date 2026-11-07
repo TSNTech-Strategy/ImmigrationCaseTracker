@@ -43,6 +43,12 @@ export default function Privacy() {
           cases.
         </li>
         <li>
+          <strong>Law firm clients:</strong> when a law firm uses CasePingo, it adds its clients&apos; names, contact details,
+          preferred language and whether the client agreed to get case updates. If the firm turns on client updates, we use that email
+          address only to send status updates on the firm&apos;s behalf, and the firm can give its client a private status page link,
+          which it can replace or turn off at any time. The firm decides what is added; clients can ask the firm, or us, to stop.
+        </li>
+        <li>
           <strong>Operational records:</strong> when each status check ran and whether it succeeded (no case content), security
           and audit logs of account actions, and basic technical data such as IP address needed to keep the service secure.
         </li>

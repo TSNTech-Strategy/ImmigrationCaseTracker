@@ -150,3 +150,72 @@ export function trialEndedEmail(p: { to: string; name: string | null; upgradeUrl
     ].join("\n"),
   };
 }
+
+/**
+ * A law firm's update to its client about a status change, in the client's
+ * language. Sent from CasePingo's address in the firm's name; replies go to
+ * the firm. Masked receipt only. General information, never legal advice.
+ */
+export function clientUpdateEmail(p: {
+  to: string;
+  locale: string;
+  firmName: string;
+  clientName: string;
+  formCode: string | null;
+  receiptMasked: string;
+  status: string;
+  meaning: string | null;
+  next: string | null;
+  nextStep: string;
+  portalUrl: string | null;
+  contactLine: string | null;
+  replyTo: string | null;
+}): EmailMessage {
+  const es = p.locale === "es";
+  const form = p.formCode ? `${es ? "Formulario" : "Form"} ${p.formCode}, ` : "";
+  const contact = p.contactLine ? `: ${p.contactLine}` : ".";
+  const lines = es
+    ? [
+        `Hola, ${p.clientName}:`,
+        "",
+        `${p.firmName} le informa que USCIS actualizó su caso (${form}recibo ${p.receiptMasked}).`,
+        "",
+        `Nuevo estado: ${p.status}`,
+        ...(p.meaning ? ["", `Qué significa: ${p.meaning}`] : []),
+        ...(p.next ? ["", `Qué suele pasar después: ${p.next}`] : []),
+        "",
+        `Próximo paso: ${p.nextStep}`,
+        ...(p.portalUrl ? ["", `Vea su caso: ${p.portalUrl}`] : []),
+        "",
+        p.replyTo ? `¿Preguntas? Responda a este correo o comuníquese con ${p.firmName}${contact}` : `¿Preguntas? Comuníquese con ${p.firmName}${contact}`,
+        "",
+        `— ${p.firmName}`,
+        "",
+        `Información general, no asesoría legal. El sitio de USCIS es la fuente oficial del estado de su caso. Enviado por CasePingo en nombre de ${p.firmName}.`,
+      ]
+    : [
+        `Hello ${p.clientName},`,
+        "",
+        `${p.firmName} is letting you know that USCIS updated your case (${form}receipt ${p.receiptMasked}).`,
+        "",
+        `New status: ${p.status}`,
+        ...(p.meaning ? ["", `What it means: ${p.meaning}`] : []),
+        ...(p.next ? ["", `What usually happens next: ${p.next}`] : []),
+        "",
+        `Next step: ${p.nextStep}`,
+        ...(p.portalUrl ? ["", `See your case: ${p.portalUrl}`] : []),
+        "",
+        p.replyTo ? `Questions? Reply to this email or contact ${p.firmName}${contact}` : `Questions? Contact ${p.firmName}${contact}`,
+        "",
+        `— ${p.firmName}`,
+        "",
+        `General information, not legal advice. USCIS's website is the official source for your case status. Sent by CasePingo on behalf of ${p.firmName}.`,
+      ];
+  return {
+    to: p.to,
+    subject: es ? `Actualización de su caso de ${p.firmName}: ${p.status}` : `Case update from ${p.firmName}: ${p.status}`,
+    body: lines.join("\n"),
+    fromName: `${p.firmName} via CasePingo`,
+    ...(p.replyTo ? { replyTo: p.replyTo } : {}),
+  };
+}

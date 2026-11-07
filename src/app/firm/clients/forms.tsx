@@ -4,10 +4,11 @@ import { useActionState } from "react";
 import { Field, FormMessage, SubmitButton, type FormState } from "@/components/form";
 import { createClientAction, setClientArchivedAction, updateClientAction } from "./actions";
 
-type ClientValues = { displayName: string; email: string | null; phone: string | null; externalRef: string | null };
+type ClientValues = { displayName: string; email: string | null; phone: string | null; externalRef: string | null; locale: string; updatesConsent: boolean };
 
 function ClientFields({ state, initial }: { state: FormState; initial?: ClientValues }) {
-  const v = (k: keyof ClientValues) => state.values?.[k] ?? initial?.[k] ?? "";
+  const v = (k: Exclude<keyof ClientValues, "updatesConsent">) => state.values?.[k] ?? initial?.[k] ?? "";
+  const consent = state.values ? state.values.updatesConsent === "1" : (initial?.updatesConsent ?? false);
   return (
     <>
       <Field label="Client name" name="displayName" required autoComplete="off" defaultValue={v("displayName")} error={state.fieldErrors?.displayName} />
@@ -24,6 +25,22 @@ function ClientFields({ state, initial }: { state: FormState; initial?: ClientVa
         defaultValue={v("externalRef")}
         error={state.fieldErrors?.externalRef}
       />
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="field-locale" className="text-sm font-medium">
+          Language for updates
+        </label>
+        <select id="field-locale" name="locale" defaultValue={v("locale") || "en"} className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-base sm:w-60">
+          <option value="en">English</option>
+          <option value="es">Español (Spanish)</option>
+        </select>
+      </div>
+      <label className="flex cursor-pointer gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3 text-sm">
+        <input type="checkbox" name="updatesConsent" value="1" defaultChecked={consent} className="mt-0.5 size-4 accent-[var(--accent)]" />
+        <span>
+          <span className="font-medium">The client agreed to get case updates by email</span>
+          <span className="block text-[var(--muted)]">Only check this once they&apos;ve said yes. CasePingo emails them only if your firm turns on client updates.</span>
+        </span>
+      </label>
     </>
   );
 }

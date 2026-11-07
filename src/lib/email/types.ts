@@ -3,6 +3,10 @@ export interface EmailMessage {
   subject: string;
   /** Plain text body. */
   body: string;
+  /** Shown as the sender's name (the address stays CasePingo's), e.g. "Lopez Law via CasePingo". */
+  fromName?: string;
+  /** Where replies go, e.g. the law firm's own address. */
+  replyTo?: string;
 }
 
 export interface EmailDriver {

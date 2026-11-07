@@ -40,3 +40,8 @@ export function decrypt(token: string): string {
 export function digest(value: string): string {
   return createHmac("sha256", subKey("ict/digest/v1")).update(value).digest("hex");
 }
+
+/** A keyed signature for links that must not be guessable or editable (base64url, 24 bytes). */
+export function sign(purpose: string, value: string): string {
+  return createHmac("sha256", subKey(purpose)).update(value).digest().subarray(0, 24).toString("base64url");
+}
