@@ -12,6 +12,7 @@ const PATHS: Record<string, string[]> = {
   chat_bubble: ["M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"],
   school: ["M22 10 12 5 2 10l10 5 10-5z", "M6 12v5c3 2 9 2 12 0v-5"],
   calendar_month: ["M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z", "M16 2v4", "M8 2v4", "M3 10h18"],
+  checklist: ["M9 6h11", "M9 12h11", "M9 18h11", "M3 6l1.5 1.5L7 5", "M3 12l1.5 1.5L7 11", "M3 18l1.5 1.5L7 17"],
 };
 
 const TINT: Record<ResourceIcon["tint"], { fg: string; bg: string }> = {

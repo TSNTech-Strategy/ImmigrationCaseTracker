@@ -34,6 +34,10 @@ export default function Privacy() {
           receipt numbers, and when we observed each change.
         </li>
         <li>
+          <strong>Document checklists:</strong> which checklist items you tick as gathered (just the item, such as &quot;birth
+          certificate&quot;). We never ask you to upload documents.
+        </li>
+        <li>
           <strong>Operational records:</strong> when each status check ran and whether it succeeded (no case content), security
           and audit logs of account actions, and basic technical data such as IP address needed to keep the service secure.
         </li>

@@ -196,6 +196,11 @@ export default function ResourcesTab() {
           )}
           {data && (
             <FadeInDown delay={stagger(1, 60)}>
+              <HubCard slug="checklists" title={t.checklistsTitle} summary={t.checklistsSub} onPress={() => router.push("/checklists")} />
+            </FadeInDown>
+          )}
+          {data && (
+            <FadeInDown delay={stagger(1, 60)}>
               <HubCard slug="civics" title={t.civicsTitle} summary={t.civicsSummary} onPress={() => router.push("/civics")} />
             </FadeInDown>
           )}

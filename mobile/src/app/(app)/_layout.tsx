@@ -33,6 +33,8 @@ export default function AppLayout() {
       <Stack.Screen name="tags" options={{ title: t.tags }} />
       <Stack.Screen name="journey" options={{ title: t.journeyTitle }} />
       <Stack.Screen name="insights/[id]" options={{ title: t.insightsTitle }} />
+      <Stack.Screen name="checklists/index" options={{ title: t.checklistsTitle }} />
+      <Stack.Screen name="checklists/[key]" options={{ title: "" }} />
     </Stack>
   );
 }

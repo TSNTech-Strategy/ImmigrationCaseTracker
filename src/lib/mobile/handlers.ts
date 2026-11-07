@@ -13,6 +13,8 @@ import { recentApprovals } from "@/lib/cases/approvals";
 import { caseTagsSelect, createTagService, flatTags, TAG_COLORS, TAG_LIMITS, type TagResult } from "@/lib/cases/tags";
 import { caseJourney, dayOf, daysBetween } from "@/lib/journeys";
 import { createInsightsService, type InsightsService } from "@/lib/insights";
+import { COMMON_TIPS, REVIEWED, checklistByKey, checklistForForm, checklistProgress, checklistSummaries } from "@/lib/checklists";
+import { createChecklistService } from "@/lib/checklists-service";
 
 /**
  * The mobile app's API (/api/v1/*), as plain functions so they can be tested
@@ -82,6 +84,7 @@ export function createMobileApi({
 }) {
   const ent = createEntitlements({ db, now });
   const insightsService = insightsSvc ?? createInsightsService({ db, mode: "mock", now });
+  const checklists = createChecklistService({ db });
 
   const tags = createTagService({ db });
 
@@ -190,6 +193,11 @@ export function createMobileApi({
         form: formInfo(c.formType),
         office: receivingOffice(c.receiptMasked),
         processingTimesUrl: PROCESSING_TIMES_URL,
+        // The document checklist for this case's form, if there is one.
+        checklist: (() => {
+          const cl = checklistForForm(c.formType);
+          return cl ? { key: cl.key, form: cl.form, title: cl.title } : null;
+        })(),
         // Set while CasePingo saw this case become approved recently: the app shows a congratulations card.
         celebration: approvedAt && { approvedAt, nextStep: approvalNextStep(c.formType, c.statusTitleEn) },
       },
@@ -405,6 +413,36 @@ export function createMobileApi({
     return ok({ insights: await insightsService.forCase(c, userId) });
   }
 
+  // ---- Document checklists ----
+
+  /** Every checklist with this person's progress. */
+  async function listChecklists(userId: string): Promise<ApiResult> {
+    const ticked = await checklists.all(userId);
+    return ok({
+      reviewed: REVIEWED,
+      tips: COMMON_TIPS,
+      checklists: checklistSummaries().map((s) => {
+        const p = checklistProgress(checklistByKey(s.key)!, ticked.get(s.key) ?? []);
+        return { ...s, done: p.done, requiredDone: p.requiredDone };
+      }),
+    });
+  }
+
+  async function getChecklist(userId: string, key: string): Promise<ApiResult> {
+    const c = checklistByKey(key);
+    if (!c) return err(404, "not_found", "Checklist not found.");
+    return ok({ checklist: c, done: await checklists.done(userId, key), tips: COMMON_TIPS, reviewed: REVIEWED });
+  }
+
+  /** {item, done}: tick or untick one item. */
+  async function setChecklistItem(userId: string, key: string, body: unknown): Promise<ApiResult> {
+    const b = (body ?? {}) as { item?: unknown; done?: unknown };
+    if (typeof b.item !== "string" || typeof b.done !== "boolean") return err(400, "invalid", "Send {item, done}.");
+    const r = await checklists.set(userId, key, b.item, b.done);
+    if (!r.ok) return err(404, "not_found", "Checklist item not found.");
+    return ok({ done: r.done });
+  }
+
   // ---- Tags (personal cases) ----
   const TAG_STATUS = { invalid: 400, duplicate: 409, limit: 403, not_found: 404, forbidden: 403 } as const;
   const tagResult = <T>(r: TagResult<T>, body: (v: T) => unknown, status = 200): ApiResult =>
@@ -434,7 +472,7 @@ export function createMobileApi({
     return tagResult(await tags.setCaseTags(userId, caseId, ids), (list) => ({ tags: list }));
   }
 
-  return { me, updateMe, config, guide, listCases, getCase, addCase, refreshCase, renameCase, removeCase, checkInstead, registerDevice, unregisterDevice, listTags, createTag, updateTag, deleteTag, setCaseTags, updates, journey, caseInsights };
+  return { me, updateMe, config, guide, listCases, getCase, addCase, refreshCase, renameCase, removeCase, checkInstead, registerDevice, unregisterDevice, listTags, createTag, updateTag, deleteTag, setCaseTags, updates, journey, caseInsights, listChecklists, getChecklist, setChecklistItem };
 }
 
 export type MobileApi = ReturnType<typeof createMobileApi>;

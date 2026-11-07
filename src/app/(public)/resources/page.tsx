@@ -26,6 +26,12 @@ export default function ResourcesPage() {
           <ResourceCard key={r.slug} href={resourcePath(r.slug)} icon={r.icon} title={r.title.en} summary={r.summary.en} />
         ))}
         <ResourceCard
+          href="/checklists"
+          icon={{ md: "checklist", tint: "green" }}
+          title="Document checklists"
+          summary="What to gather before you file, for each case type. Tick documents off as you go."
+        />
+        <ResourceCard
           href="/civics-test"
           icon={{ md: "school", tint: "purple" }}
           title="Civics test practice"

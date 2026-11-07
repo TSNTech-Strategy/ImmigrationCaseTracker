@@ -70,6 +70,7 @@ model User {
   visaBulletinWatch      VisaBulletinWatch?
   assistantUsage         AssistantUsage[]
   caseTags               CaseTag[]
+  checklistChecks        ChecklistCheck[]
 }
 
 model NotificationPreference {
@@ -634,4 +635,20 @@ model FirmCaseTag {
 
   @@id([caseId, tagId])
   @@index([tagId])
+}
+
+/// Document checklists (src/lib/checklists.ts): the items a person has ticked as gathered.
+/// Only the item keys are stored, never documents.
+model ChecklistCheck {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Checklist key, e.g. "i-485".
+  checklist String
+  /// Item key within the checklist, e.g. "i693".
+  item      String
+  checkedAt DateTime @default(now())
+
+  @@unique([userId, checklist, item])
+  @@index([userId, checklist])
 }
