@@ -125,6 +125,9 @@
   /* Tags use the status colors plus purple. */
   --tag-purple: #6b3fbf;
   --tag-purple-bg: #f1ebfc;
+  /* Charts: the highlighted bar and the rest (checked with the data-viz palette validator). */
+  --chart-accent: #1758a8;
+  --chart-muted: #c3ccda;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -140,6 +143,8 @@
     --st-none-bg: #16223a;
     --tag-purple: #c4a6ff;
     --tag-purple-bg: #271b45;
+    --chart-accent: #4a8fea;
+    --chart-muted: #3a4a66;
   }
 }
 :root[data-theme="dark"] {
@@ -155,6 +160,8 @@
   --st-none-bg: #16223a;
   --tag-purple: #c4a6ff;
   --tag-purple-bg: #271b45;
+  --chart-accent: #4a8fea;
+  --chart-muted: #3a4a66;
 }
 
 ::selection {

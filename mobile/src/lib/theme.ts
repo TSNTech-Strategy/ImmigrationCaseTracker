@@ -29,6 +29,8 @@ const light = {
   },
   /** Celebration stars: brand red and blue. */
   stars: ["#E43B53", "#1758A8", "#5B8FD9"],
+  /** Charts: the highlighted bar (your case) and the rest (checked with the data-viz palette validator). */
+  chart: { accent: "#1758A8", muted: "#C3CCDA" },
 };
 const dark: typeof light = {
   background: "#0A1220",
@@ -55,6 +57,7 @@ const dark: typeof light = {
     none: { fg: "#9AA9C1", bg: "#16223A" },
   },
   stars: ["#FF6B7D", "#6EA8FF", "#FFFFFF"],
+  chart: { accent: "#4A8FEA", muted: "#3A4A66" },
 };
 export type Colors = typeof light;
 

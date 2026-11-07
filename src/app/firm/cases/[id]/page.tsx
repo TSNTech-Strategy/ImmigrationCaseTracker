@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CaseStatusPanel, ObservedChanges, UscisHistory, USCIS_SOURCE_NOTE } from "@/components/case-status";
 import { LineMapSection } from "@/components/line-map";
+import { InsightsLink } from "@/components/case-insights";
 import { caseJourney } from "@/lib/journeys";
 import { LocalTime } from "@/components/local-time";
 import { ModeBanner } from "@/components/mode-banner";
@@ -86,6 +87,7 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
         }
       />
       <LineMapSection map={journey.lineMap} es={es} />
+      <InsightsLink href={`/firm/cases/${c.id}/insights`} es={es} />
       <CaseTagsPanel
         caseId={c.id}
         tags={allTags}

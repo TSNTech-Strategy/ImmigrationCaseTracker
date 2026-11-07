@@ -12,6 +12,7 @@ import { PROCESSING_TIMES_URL, STAGE_COUNT, approvalNextStep, caseStage, formInf
 import { recentApprovals } from "@/lib/cases/approvals";
 import { caseTagsSelect, createTagService, flatTags, TAG_COLORS, TAG_LIMITS, type TagResult } from "@/lib/cases/tags";
 import { caseJourney, dayOf, daysBetween } from "@/lib/journeys";
+import { createInsightsService, type InsightsService } from "@/lib/insights";
 
 /**
  * The mobile app's API (/api/v1/*), as plain functions so they can be tested
@@ -67,8 +68,20 @@ const deviceBody = z.object({
   appVersion: z.string().max(40).optional(),
 });
 
-export function createMobileApi({ db, cases, now = () => new Date() }: { db: PrismaClient; cases: CaseService; now?: () => Date }) {
+export function createMobileApi({
+  db,
+  cases,
+  now = () => new Date(),
+  insights: insightsSvc,
+}: {
+  db: PrismaClient;
+  cases: CaseService;
+  now?: () => Date;
+  /** Case insights; defaults to simulated-data insights (tests pass their own). */
+  insights?: InsightsService;
+}) {
   const ent = createEntitlements({ db, now });
+  const insightsService = insightsSvc ?? createInsightsService({ db, mode: "mock", now });
 
   const tags = createTagService({ db });
 
@@ -372,6 +385,26 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
     });
   }
 
+  /** How the case compares with others like it (anonymous totals; see src/lib/insights.ts). */
+  async function caseInsights(userId: string, caseId: string): Promise<ApiResult> {
+    const c = await db.trackedCase.findFirst({
+      where: { id: caseId, ownerUserId: userId },
+      select: {
+        receiptMasked: true,
+        formType: true,
+        statusTitleEn: true,
+        statusTitleEs: true,
+        uscisHistory: true,
+        uscisSubmittedRaw: true,
+        uscisModifiedRaw: true,
+        lastChangeObservedAt: true,
+        events: { select: { statusTitleEn: true, uscisReportedRaw: true, firstObservedAt: true }, orderBy: { firstObservedAt: "asc" } },
+      },
+    });
+    if (!c) return err(404, "not_found", "Case not found.");
+    return ok({ insights: await insightsService.forCase(c, userId) });
+  }
+
   // ---- Tags (personal cases) ----
   const TAG_STATUS = { invalid: 400, duplicate: 409, limit: 403, not_found: 404, forbidden: 403 } as const;
   const tagResult = <T>(r: TagResult<T>, body: (v: T) => unknown, status = 200): ApiResult =>
@@ -401,7 +434,7 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
     return tagResult(await tags.setCaseTags(userId, caseId, ids), (list) => ({ tags: list }));
   }
 
-  return { me, updateMe, config, guide, listCases, getCase, addCase, refreshCase, renameCase, removeCase, checkInstead, registerDevice, unregisterDevice, listTags, createTag, updateTag, deleteTag, setCaseTags, updates, journey };
+  return { me, updateMe, config, guide, listCases, getCase, addCase, refreshCase, renameCase, removeCase, checkInstead, registerDevice, unregisterDevice, listTags, createTag, updateTag, deleteTag, setCaseTags, updates, journey, caseInsights };
 }
 
 export type MobileApi = ReturnType<typeof createMobileApi>;

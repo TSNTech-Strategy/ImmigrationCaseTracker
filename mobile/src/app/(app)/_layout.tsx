@@ -32,6 +32,7 @@ export default function AppLayout() {
       <Stack.Screen name="civics/quiz" options={{ title: "" }} />
       <Stack.Screen name="tags" options={{ title: t.tags }} />
       <Stack.Screen name="journey" options={{ title: t.journeyTitle }} />
+      <Stack.Screen name="insights/[id]" options={{ title: t.insightsTitle }} />
     </Stack>
   );
 }

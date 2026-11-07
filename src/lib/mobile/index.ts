@@ -2,11 +2,12 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { caseService } from "@/lib/cases";
 import { prisma } from "@/lib/db";
+import { insightsService } from "@/lib/insights-service";
 import { bearerToken } from "@/lib/auth/paths";
 import { getApiUser, type AppUser } from "@/lib/auth/session";
 import { createMobileApi, type ApiResult } from "./handlers";
 
-export const mobileApi = () => createMobileApi({ db: prisma, cases: caseService() });
+export const mobileApi = () => createMobileApi({ db: prisma, cases: caseService(), insights: insightsService() });
 
 /**
  * The mobile app's user: a Supabase access token in "Authorization: Bearer".
