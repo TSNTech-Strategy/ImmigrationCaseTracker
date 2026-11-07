@@ -26,6 +26,7 @@ export const AUDIT_CATEGORIES = {
   tags: { label: "Tags", prefixes: ["tag."] },
   updates: { label: "Updates, deadlines and client emails", prefixes: ["update.", "client_update.", "client.portal_", "firm.client_updates", "deadline.", "firm.alerts"] },
   tasks: { label: "Tasks", prefixes: ["task."] },
+  matters: { label: "Matters", prefixes: ["matter."] },
   exports: { label: "Exports", prefixes: ["audit."] },
 } as const;
 export type AuditCategory = keyof typeof AUDIT_CATEGORIES;
@@ -126,6 +127,18 @@ export function describeAudit(action: string, m: Meta, target: string): string {
       return `Exported ${plural(m.rows, "case")} to CSV (with full receipt numbers)`;
     case "firm.settings":
       return `Changed firm settings (${(Array.isArray(m.fields) ? m.fields : []).join(", ") || "details"})`;
+    case "matter.created":
+      return `Created matter "${str(m.name)}"`;
+    case "matter.updated":
+      return `Changed matter "${str(m.name)}" (${(Array.isArray(m.fields) ? m.fields : []).join(", ") || "details"})`;
+    case "matter.archived":
+      return `Archived matter "${str(m.name)}"`;
+    case "matter.restored":
+      return `Restored matter "${str(m.name)}"`;
+    case "case.matter_set":
+      return `Moved ${plural(m.cases, "case")} into matter "${str(m.name)}"`;
+    case "case.matter_cleared":
+      return `Took ${plural(m.cases, "case")} out of their matter`;
     case "task.created":
       return `Created task "${str(m.title)}"`;
     case "task.updated":

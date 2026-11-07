@@ -93,7 +93,7 @@ export const CASE_SORTS = {
 } as const;
 export type CaseSort = keyof typeof CASE_SORTS;
 /** assignee: a member's id, "me" (the viewer) or "none" (unassigned). */
-export type CaseFilters = { clientId?: string; tagId?: string; q?: string; view?: CaseListView; sort?: CaseSort; assignee?: string; category?: CaseCategory };
+export type CaseFilters = { clientId?: string; tagId?: string; q?: string; view?: CaseListView; sort?: CaseSort; assignee?: string; category?: CaseCategory; matter?: string };
 export const LIST_LIMIT = 100;
 
 const SORTS: Record<CaseSort, Prisma.TrackedCaseOrderByWithRelationInput[]> = {
@@ -273,6 +273,8 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
     if (filters.clientId) and.push({ clientId: filters.clientId });
     if (filters.tagId) and.push({ firmTags: { some: { tagId: filters.tagId } } });
     if (filters.view) and.push(viewWhere(filters.view, t));
+    if (filters.matter === "none") and.push({ matterId: null });
+    else if (filters.matter) and.push({ matterId: filters.matter });
     if (filters.assignee === "none") and.push({ assigneeId: null });
     else if (filters.assignee) and.push({ assigneeId: filters.assignee === "me" ? userId : filters.assignee });
     if (filters.category === "other") {
@@ -305,6 +307,7 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
         ...firmCaseTagsSelect,
         client: { select: { id: true, displayName: true } },
         assignee: { select: { id: true, name: true, email: true } },
+        matter: { select: { id: true, name: true } },
         consents: { where: { withdrawnAt: null }, select: { id: true }, take: 1 },
       },
       orderBy: SORTS[filters.sort ?? "added"],
@@ -328,6 +331,7 @@ export function createFirmCaseService({ db, cases, now = () => new Date() }: Fir
         client: { select: { id: true, displayName: true, externalRef: true } },
         addedBy: { select: { name: true, email: true } },
         assignee: { select: { id: true, name: true, email: true } },
+        matter: { select: { id: true, name: true } },
         events: { orderBy: { firstObservedAt: "desc" }, take: 50 },
         consents: {
           orderBy: { capturedAt: "desc" },

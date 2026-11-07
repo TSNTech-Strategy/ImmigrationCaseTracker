@@ -43,6 +43,7 @@ export type TaskInput = {
   assigneeId?: string | null;
   caseId?: string | null;
   clientId?: string | null;
+  matterId?: string | null;
 };
 export type TaskFilters = {
   scope?: "mine" | "team";
@@ -53,6 +54,7 @@ export type TaskFilters = {
   q?: string;
   caseId?: string;
   clientId?: string;
+  matterId?: string;
 };
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -119,7 +121,9 @@ export function createFirmTaskService({ db, now = () => new Date() }: { db: Pris
       caseId = c.id;
     }
     if (clientId && !(await db.client.findFirst({ where: { id: clientId, firmId: ctx.firm.id }, select: { id: true } }))) return fail("Choose one of your firm's clients.", "clientId");
-    return { ok: true as const, data: { title, description, status, type, priority, dueOn, assigneeId, caseId, clientId } };
+    const matterId = input.matterId || null;
+    if (matterId && !(await db.firmMatter.findFirst({ where: { id: matterId, firmId: ctx.firm.id }, select: { id: true } }))) return fail("Choose one of your firm's matters.", "matterId");
+    return { ok: true as const, data: { title, description, status, type, priority, dueOn, assigneeId, caseId, clientId, matterId } };
   }
 
   /** Due-today/tomorrow and overdue items for one task (also run daily for every task). */
@@ -185,6 +189,7 @@ export function createFirmTaskService({ db, now = () => new Date() }: { db: Pris
         ["assignee", before.assigneeId !== d.assigneeId],
         ["case", before.caseId !== d.caseId],
         ["client", before.clientId !== d.clientId],
+        ["matter", before.matterId !== d.matterId],
       ] as const
     )
       .filter(([, c]) => c)
@@ -280,6 +285,7 @@ export function createFirmTaskService({ db, now = () => new Date() }: { db: Pris
     else if (filters.due === "none") and.push({ dueOn: null });
     if (filters.caseId) and.push({ caseId: filters.caseId });
     if (filters.clientId) and.push({ clientId: filters.clientId });
+    if (filters.matterId) and.push({ OR: [{ matterId: filters.matterId }, { case: { matterId: filters.matterId } }] });
     const q = filters.q?.trim().slice(0, 80);
     if (q) {
       const contains = { contains: q, mode: "insensitive" as const };

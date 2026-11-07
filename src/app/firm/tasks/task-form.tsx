@@ -15,6 +15,7 @@ export type TaskFormValues = {
   assigneeId: string;
   caseId: string;
   clientId: string;
+  matterId: string;
 };
 
 const select = "w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-base aria-[invalid=true]:border-[var(--danger)]";
@@ -48,6 +49,7 @@ export function TaskForm({
   members,
   cases,
   clients,
+  matters,
 }: {
   mode: "create" | "edit";
   taskId?: string;
@@ -58,6 +60,7 @@ export function TaskForm({
   members: Option[];
   cases: Option[];
   clients: Option[];
+  matters: Option[];
 }) {
   const [state, action] = useActionState<FormState, FormData>(mode === "create" ? createTaskAction : updateTaskAction, {});
   const v = (k: keyof TaskFormValues) => state.values?.[k] ?? initial[k];
@@ -87,6 +90,11 @@ export function TaskForm({
         <Select name="caseId" label="Case (optional)" value={v("caseId")} options={cases} error={err.caseId} blank="No case" />
         <Select name="clientId" label="Client (optional)" value={v("clientId")} options={clients} error={err.clientId} blank="Same as the case, or none" />
       </div>
+      {matters.length > 0 && (
+        <div className="sm:w-1/2 sm:pr-2">
+          <Select name="matterId" label="Matter (optional)" value={v("matterId")} options={matters} error={err.matterId} blank="No matter" />
+        </div>
+      )}
       <div>
         <SubmitButton pendingText="Saving…">{mode === "create" ? "Create task" : "Save changes"}</SubmitButton>
       </div>

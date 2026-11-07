@@ -20,6 +20,7 @@ function readTask(formData: FormData) {
     assigneeId: get("assigneeId"),
     caseId: get("caseId"),
     clientId: get("clientId"),
+    matterId: get("matterId"),
   };
 }
 

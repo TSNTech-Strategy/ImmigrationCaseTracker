@@ -1,3 +1,4 @@
+import { createFirmMatterService } from "./matters";
 import { createFirmTaskService } from "./tasks";
 import { createFirmDashboardService } from "./dashboard";
 import { createFirmAlertService } from "./alerts";
@@ -56,4 +57,9 @@ export function firmDashboardService() {
 /** Team tasks, comments and the task calendar. */
 export function firmTaskService() {
   return createFirmTaskService({ db: prisma });
+}
+
+/** Matters: groups of related cases. */
+export function firmMatterService() {
+  return createFirmMatterService({ db: prisma });
 }

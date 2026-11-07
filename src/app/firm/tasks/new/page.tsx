@@ -17,7 +17,8 @@ export default async function NewTaskPage({ searchParams }: PageProps<"/firm/tas
   const options = await taskFormOptions(ctx.firm.id);
   const caseId = options.cases.some((c) => c.value === one(sp.case)) ? one(sp.case) : "";
   const clientId = options.clients.some((c) => c.value === one(sp.client)) ? one(sp.client) : "";
-  const back = caseId ? `/firm/cases/${caseId}` : clientId ? `/firm/clients/${clientId}` : "/firm/tasks";
+  const matterId = options.matters.some((m) => m.value === one(sp.matter)) ? one(sp.matter) : "";
+  const back = matterId ? `/firm/matters/${matterId}` : caseId ? `/firm/cases/${caseId}` : clientId ? `/firm/clients/${clientId}` : "/firm/tasks";
   return (
     <div className="flex w-full max-w-3xl flex-col gap-6">
       <Link href={back} className="text-sm font-medium text-[var(--accent)] hover:underline">
@@ -27,7 +28,7 @@ export default async function NewTaskPage({ searchParams }: PageProps<"/firm/tas
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <TaskForm
           mode="create"
-          initial={{ title: "", description: "", status: "TODO", type: one(sp.type) || "GENERAL", priority: "NONE", dueOn: one(sp.due), assigneeId: user.id, caseId, clientId }}
+          initial={{ title: "", description: "", status: "TODO", type: one(sp.type) || "GENERAL", priority: "NONE", dueOn: one(sp.due), assigneeId: user.id, caseId, clientId, matterId }}
           {...options}
         />
       </section>

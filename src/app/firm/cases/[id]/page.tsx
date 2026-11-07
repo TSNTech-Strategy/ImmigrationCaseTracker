@@ -10,7 +10,8 @@ import { caseJourney } from "@/lib/journeys";
 import { LocalTime } from "@/components/local-time";
 import { ModeBanner } from "@/components/mode-banner";
 import { requireUser } from "@/lib/auth/session";
-import { firmAlertService, firmCaseService, firmService, firmTagService, firmTaskService } from "@/lib/firms";
+import { firmAlertService, firmCaseService, firmMatterService, firmService, firmTagService, firmTaskService } from "@/lib/firms";
+import { setCasesMatterAction } from "../../matters/actions";
 import { TaskTable } from "../../tasks/task-list";
 import { setCaseAssigneeAction } from "../actions";
 import { DEADLINE_KINDS, suggestedDeadline } from "@/lib/firms/alerts";
@@ -32,6 +33,8 @@ const NOTICES: Record<string, string> = {
   "consent-recorded": "Consent recorded. Automatic checks are back on.",
   ...DEADLINE_NOTICES,
   assigned: "Case reassigned. Its open inbox items moved with it.",
+  "matter-same": "No change: already in that matter.",
+  "matter-moved": "Matter updated.",
 };
 const who = (u: { name: string | null; email: string } | null) => (u ? (u.name ?? u.email) : "a former team member");
 
@@ -51,6 +54,7 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
   const team = await firmService().listTeam(user.id);
   const members = (team?.members ?? []).map((m) => ({ id: m.userId, name: m.user.name ?? m.user.email }));
   const caseTasks = await firmTaskService().list(user.id, { scope: "team", status: "all", caseId: c.id });
+  const matters = await firmMatterService().options(ctx.firm.id);
   const alerts = firmAlertService();
   const deadlines = await alerts.caseDeadlines(ctx.firm.id, c.id);
   const today = alerts.today(ctx.firm.timeZone);
@@ -97,6 +101,30 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
           Save
         </button>
         <span className="text-[var(--muted)]">Updates, alerts and reminders for this case go to this person.</span>
+      </form>
+      <form action={setCasesMatterAction} className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm">
+        <input type="hidden" name="caseIds" value={c.id} />
+        <input type="hidden" name="back" value={`/firm/cases/${c.id}`} />
+        <label htmlFor="case-matter" className="font-medium">
+          Matter
+        </label>
+        <select id="case-matter" name="matterId" defaultValue={c.matter?.id ?? ""} className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5">
+          <option value="">No matter</option>
+          {c.matter && !matters.some((m) => m.id === c.matter!.id) && <option value={c.matter.id}>{c.matter.name} (archived)</option>}
+          {matters.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </select>
+        <button type="submit" className="rounded-md border border-[var(--border)] px-3 py-1.5 font-medium hover:border-[var(--accent)]">
+          Save
+        </button>
+        {c.matter && (
+          <Link href={`/firm/matters/${c.matter.id}`} className="font-medium text-[var(--accent)] hover:underline">
+            Open matter
+          </Link>
+        )}
       </form>
       <ModeBanner mode={getUscisClient().mode} />
       {message && (

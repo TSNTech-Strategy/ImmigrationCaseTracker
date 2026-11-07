@@ -69,6 +69,7 @@ model User {
   tasksCreated           FirmTask[]              @relation("TaskCreatedBy")
   tasksCompleted         FirmTask[]              @relation("TaskCompletedBy")
   taskComments           FirmTaskComment[]       @relation("TaskCommentAuthor")
+  mattersCreated         FirmMatter[]            @relation("MatterCreatedBy")
   deadlinesDone          CaseDeadline[]          @relation("DeadlineDoneBy")
   consentsGranted        CaseConsent[]           @relation("ConsentGrantedBy")
   consentsWithdrawn      CaseConsent[]           @relation("ConsentWithdrawnBy")
@@ -149,6 +150,7 @@ model Firm {
   deadlines        CaseDeadline[]
   tasks            FirmTask[]
   taskComments     FirmTaskComment[]
+  matters          FirmMatter[]
 }
 
 enum FirmPlan {
@@ -262,6 +264,9 @@ model TrackedCase {
 
   addedById String?
   addedBy   User?   @relation("CaseAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+  /// The matter (family, employer, lawsuit...) the case belongs to, if any. Same firm, checked by the service.
+  matterId   String?
+  matter     FirmMatter? @relation(fields: [matterId], references: [id], onDelete: SetNull)
   /// The team member responsible for this case: its updates and alerts go to them.
   assigneeId String?
   assignee   User?   @relation("CaseAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
@@ -330,6 +335,7 @@ model TrackedCase {
   @@index([clientId])
   @@index([statusSource, formType])
   @@index([firmId, assigneeId])
+  @@index([matterId])
 }
 
 enum ConsentBasis {
@@ -771,6 +777,8 @@ model FirmTask {
   case          TrackedCase?     @relation(fields: [caseId], references: [id], onDelete: SetNull)
   clientId      String?
   client        Client?          @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  matterId      String?
+  matter        FirmMatter?      @relation(fields: [matterId], references: [id], onDelete: SetNull)
   createdById   String?
   createdBy     User?            @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   completedAt   DateTime?
@@ -785,6 +793,36 @@ model FirmTask {
   @@index([firmId, assigneeId, status])
   @@index([caseId])
   @@index([clientId])
+  @@index([matterId])
+}
+
+/// A group of related cases: a family, an employer's petitions, a lawsuit, or anything the firm names.
+model FirmMatter {
+  id          String     @id @default(cuid())
+  firmId      String
+  firm        Firm       @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  name        String
+  /// Lower-case name, unique within the firm.
+  nameKey     String
+  kind        MatterKind @default(CUSTOM)
+  description String?
+  archivedAt  DateTime?
+  createdById String?
+  createdBy   User?      @relation("MatterCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  cases       TrackedCase[]
+  tasks       FirmTask[]
+
+  @@unique([firmId, nameKey])
+  @@index([firmId, archivedAt])
+}
+
+enum MatterKind {
+  FAMILY
+  EMPLOYER
+  LAWSUIT
+  CUSTOM
 }
 
 model FirmTaskComment {

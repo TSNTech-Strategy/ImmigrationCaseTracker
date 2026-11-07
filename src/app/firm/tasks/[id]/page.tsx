@@ -79,6 +79,7 @@ export default async function TaskPage({ params, searchParams }: PageProps<"/fir
             assigneeId: task.assigneeId ?? "",
             caseId: task.caseId ?? "",
             clientId: task.clientId ?? "",
+            matterId: task.matterId ?? "",
           }}
           {...options}
         />

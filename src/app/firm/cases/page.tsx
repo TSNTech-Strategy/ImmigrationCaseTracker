@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { TagList } from "@/components/case-tags";
 import { EmptyState, Notice, PersonCell, btn, btnPrimary, control, td, th } from "@/components/workspace-ui";
 import { requireUser } from "@/lib/auth/session";
-import { firmCaseService, firmService, firmTagService } from "@/lib/firms";
+import { firmCaseService, firmMatterService, firmService, firmTagService } from "@/lib/firms";
 import { CASE_SORTS, CASE_VIEWS, LIST_LIMIT, type CaseListView, type CaseSort } from "@/lib/firms/cases";
 import { CASE_CATEGORIES, CATEGORY_LABEL, type CaseCategory } from "@/lib/firms/profile";
 import { formInfo } from "@/lib/case-insights";
@@ -32,15 +32,16 @@ export default async function FirmCasesPage({ searchParams }: PageProps<"/firm/c
     sort: pick<CaseSort>(one(sp.sort), CASE_SORTS),
     assignee: one(sp.assignee),
     category: pick<CaseCategory>(one(sp.category), CATEGORIES),
+    matter: one(sp.matter),
   };
   const svc = firmCaseService();
   const [data, clients, tagList, team] = await Promise.all([svc.listCases(user.id, filters), svc.listClients(user.id), firmTagService().list(user.id), firmService().listTeam(user.id)]);
   if (!data || !clients || !tagList || !team) redirect("/firm");
-  const n = await svc.counts(data.ctx);
+  const [n, matters] = await Promise.all([svc.counts(data.ctx), firmMatterService().options(data.ctx.firm.id)]);
   const tags = tagList.tags;
   const members = team.members.map((m) => ({ id: m.userId, name: m.user.name ?? m.user.email }));
   const isManager = data.ctx.membership.role !== "STAFF";
-  const filtered = Boolean(filters.clientId || filters.tagId || filters.q || filters.view || filters.assignee || filters.category);
+  const filtered = Boolean(filters.clientId || filters.tagId || filters.q || filters.view || filters.assignee || filters.category || filters.matter);
   const openId = one(sp.open);
   const open = openId ? data.cases.find((c) => c.id === openId) : undefined;
 
@@ -56,7 +57,7 @@ export default async function FirmCasesPage({ searchParams }: PageProps<"/firm/c
 
   const href = (change: Record<string, string | undefined>) => {
     const q = new URLSearchParams();
-    const merged = { client: filters.clientId, tag: filters.tagId, q: filters.q, sort: filters.sort, view: filters.view, assignee: filters.assignee, category: filters.category, ...change };
+    const merged = { client: filters.clientId, tag: filters.tagId, q: filters.q, sort: filters.sort, view: filters.view, assignee: filters.assignee, category: filters.category, matter: filters.matter, ...change };
     for (const [k, v] of Object.entries(merged)) if (v) q.set(k, v);
     const s = q.toString();
     return s ? `/firm/cases?${s}` : "/firm/cases";
@@ -107,7 +108,7 @@ export default async function FirmCasesPage({ searchParams }: PageProps<"/firm/c
         ))}
       </nav>
 
-      <form method="get" role="search" aria-label="Filter cases" className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(5,minmax(0,1fr))_auto]">
+      <form method="get" role="search" aria-label="Filter cases" className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(6,minmax(0,1fr))_auto]">
         {filters.view && <input type="hidden" name="view" value={filters.view} />}
         <label className="flex flex-col gap-1">
           <span className="sr-only">Search</span>
@@ -144,6 +145,18 @@ export default async function FirmCasesPage({ searchParams }: PageProps<"/firm/c
             {(Object.keys(CATEGORIES) as CaseCategory[]).map((k) => (
               <option key={k} value={k}>
                 {CATEGORY_LABEL(k)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="sr-only">Matter</span>
+          <select name="matter" defaultValue={filters.matter ?? ""} className={control}>
+            <option value="">All matters</option>
+            <option value="none">Not in a matter</option>
+            {matters.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
               </option>
             ))}
           </select>
@@ -235,6 +248,7 @@ export default async function FirmCasesPage({ searchParams }: PageProps<"/firm/c
                       ) : (
                         <span className="text-[var(--muted)]">None</span>
                       )}
+                      {c.matter && <div className="truncate text-xs text-[var(--muted)]">{c.matter.name}</div>}
                     </td>
                     <td className={`${td} whitespace-nowrap`}>{formInfo(c.formType)?.code ?? <span className="text-[var(--muted)]">—</span>}</td>
                     <td className={`${td} whitespace-nowrap`}>{CATEGORY_LABEL(c.category)}</td>
@@ -293,6 +307,8 @@ export default async function FirmCasesPage({ searchParams }: PageProps<"/firm/c
               <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-sm">
                 <dt className="text-[var(--muted)]">Client</dt>
                 <dd>{open.client?.displayName ?? "None"}</dd>
+                <dt className="text-[var(--muted)]">Matter</dt>
+                <dd>{open.matter ? <Link href={`/firm/matters/${open.matter.id}`} className="hover:underline">{open.matter.name}</Link> : "None"}</dd>
                 <dt className="text-[var(--muted)]">Last change</dt>
                 <dd>
                   <LocalTime iso={open.lastChangeObservedAt?.toISOString() ?? null} fallback="—" />
