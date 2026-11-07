@@ -8,13 +8,15 @@ import { isExpoPushToken } from "@/lib/push";
 import { PLAN_LIMITS, describeCadence } from "@/lib/plans";
 import { statusCategory } from "@/lib/status-category";
 import { STATUS_GUIDE, findStatusGuide, guideCategory, guideHeading, guidePath, guideText } from "@/lib/status-guide";
-import { PROCESSING_TIMES_URL, STAGE_COUNT, approvalNextStep, caseStage, formInfo, receivingOffice, recentApprovalAt } from "@/lib/case-insights";
+import { PROCESSING_TIMES_URL, STAGE_COUNT, approvalNextStep, caseStage, formInfo, observedApprovalAt, receivingOffice, recentApprovalAt } from "@/lib/case-insights";
 import { recentApprovals } from "@/lib/cases/approvals";
 import { caseTagsSelect, createTagService, flatTags, TAG_COLORS, TAG_LIMITS, type TagResult } from "@/lib/cases/tags";
 import { caseJourney, dayOf, daysBetween } from "@/lib/journeys";
 import { createInsightsService, type InsightsService } from "@/lib/insights";
 import { COMMON_TIPS, REVIEWED, checklistByKey, checklistForForm, checklistProgress, checklistSummaries } from "@/lib/checklists";
 import { createChecklistService } from "@/lib/checklists-service";
+import { caseGlance, journeyShare, nextStepFor } from "@/lib/my-cases";
+import { COURT_GUIDE, COURT_REVIEWED } from "@/lib/court";
 
 /**
  * The mobile app's API (/api/v1/*), as plain functions so they can be tested
@@ -152,15 +154,21 @@ export function createMobileApi({
       stageCount: STAGE_COUNT,
       // The list leaves out the long USCIS history and the changes we saw (the case screen has them); they're only used for the line map and days here,
       // with the same inputs as the journey, so My cases and My timeline count the same days.
-      cases: rows.map(({ uscisHistory, events, ...r }) => ({
-        ...r,
-        ...caseJourney({ ...r, uscisHistory, events }, now()),
-        tags: flatTags(r.tags),
-        category: statusCategory(r.statusTitleEn),
-        stage: caseStage(r.statusTitleEn),
-        form: formInfo(r.formType),
-        recentApprovalAt: approvals.get(r.id) ?? null,
-      })),
+      cases: rows.map(({ uscisHistory, events, ...r }) => {
+        const journey = caseJourney({ ...r, uscisHistory, events }, now());
+        const observed = approvals.get(r.id) ?? null;
+        return {
+          ...r,
+          ...journey,
+          // My cases at a glance: group (needs attention, in progress, completed), the tiles it counts for, and the next step.
+          ...caseGlance(r, journey, { now: now(), observedApprovalAt: observed }),
+          tags: flatTags(r.tags),
+          category: statusCategory(r.statusTitleEn),
+          stage: caseStage(r.statusTitleEn),
+          form: formInfo(r.formType),
+          recentApprovalAt: observed,
+        };
+      }),
     });
   }
 
@@ -171,10 +179,11 @@ export function createMobileApi({
     const guide = findStatusGuide(c.statusTitleEn);
     const approvedAt = recentApprovalAt(c.statusTitleEn, c.events, now());
     const history = Array.isArray(c.uscisHistory) ? (c.uscisHistory as { textEn?: string | null }[]) : null;
+    const journey = caseJourney(c, now());
     return ok({
       case: {
         ...Object.fromEntries(Object.entries(c).filter(([k]) => k !== "consents" && k !== "events" && k !== "uscisHistory" && k !== "tags")),
-        ...caseJourney(c, now()),
+        ...journey,
         tags: flatTags(c.tags),
         category: statusCategory(c.statusTitleEn),
         stage: caseStage(c.statusTitleEn),
@@ -200,6 +209,9 @@ export function createMobileApi({
         })(),
         // Set while CasePingo saw this case become approved recently: the app shows a congratulations card.
         celebration: approvedAt && { approvedAt, nextStep: approvalNextStep(c.formType, c.statusTitleEn) },
+        nextStep: nextStepFor(c.statusTitleEn, c.formType),
+        // Approved cases: the journey in numbers and a message to share (no receipt number, no nickname).
+        journeyShare: journeyShare(c, journey, observedApprovalAt(c.statusTitleEn, c.events)),
       },
     });
   }
@@ -416,6 +428,11 @@ export function createMobileApi({
   // ---- Document checklists ----
 
   /** Every checklist with this person's progress. */
+  /** Immigration court (EOIR): a guide and EOIR's official tools. CasePingo never checks court cases or keeps A-Numbers. */
+  function court(): ApiResult {
+    return ok({ reviewed: COURT_REVIEWED, guide: COURT_GUIDE });
+  }
+
   async function listChecklists(userId: string): Promise<ApiResult> {
     const ticked = await checklists.all(userId);
     return ok({
@@ -472,7 +489,7 @@ export function createMobileApi({
     return tagResult(await tags.setCaseTags(userId, caseId, ids), (list) => ({ tags: list }));
   }
 
-  return { me, updateMe, config, guide, listCases, getCase, addCase, refreshCase, renameCase, removeCase, checkInstead, registerDevice, unregisterDevice, listTags, createTag, updateTag, deleteTag, setCaseTags, updates, journey, caseInsights, listChecklists, getChecklist, setChecklistItem };
+  return { me, updateMe, config, guide, listCases, getCase, addCase, refreshCase, renameCase, removeCase, checkInstead, registerDevice, unregisterDevice, listTags, createTag, updateTag, deleteTag, setCaseTags, updates, journey, caseInsights, listChecklists, getChecklist, setChecklistItem, court };
 }
 
 export type MobileApi = ReturnType<typeof createMobileApi>;

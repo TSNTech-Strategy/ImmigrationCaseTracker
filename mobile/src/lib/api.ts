@@ -102,6 +102,35 @@ export type CaseSummary = {
   /** Missing from servers older than the line map. */
   lineMap?: LineMap;
   days?: CaseDays;
+  /** My cases at a glance (missing from older servers): the list section, the tiles it counts for, and a few words on what to do now. */
+  group?: CaseGroup;
+  interview?: boolean;
+  approvedRecently?: boolean;
+  nextStep?: Bilingual;
+};
+export type CaseGroup = "attention" | "progress" | "completed";
+export type CaseFilter = "attention" | "interview" | "approved" | "active" | "completed";
+/** An approved case's journey, and a message to share (no receipt number, no nickname). */
+export type JourneyShare = {
+  approvedOn: string | null;
+  filed: string | null;
+  days: number | null;
+  steps: { key: string; label: Bilingual; date: string | null }[];
+  text: Bilingual;
+};
+export type CourtLink = { url: string; label: Bilingual; text?: Bilingual };
+/** GET /api/v1/court: immigration court (EOIR) guide and official links. */
+export type CourtResponse = {
+  reviewed: string;
+  guide: {
+    title: Bilingual;
+    intro: Bilingual;
+    aNumber: { title: Bilingual; text: Bilingual };
+    ways: { key: string; title: Bilingual; text: Bilingual; link: CourtLink }[];
+    tips: Bilingual[];
+    links: CourtLink[];
+    note: Bilingual;
+  };
 };
 export type CaseDetail = Omit<CaseSummary, "recentApprovalAt"> & {
   /** The document checklist for this case's form (older servers don't send it). */
@@ -117,6 +146,9 @@ export type CaseDetail = Omit<CaseSummary, "recentApprovalAt"> & {
   office: { code: string; name: Bilingual | null } | null;
   processingTimesUrl: string;
   celebration: { approvedAt: string; nextStep: Bilingual | null } | null;
+  /** Older servers don't send these. */
+  nextStep?: Bilingual;
+  journeyShare?: JourneyShare | null;
 };
 export type AppConfig = {
   consent: { version: string; options: { basis: "SELF" | "AUTHORIZED_BY_APPLICANT"; label: string; statement: string }[]; footnote: string };

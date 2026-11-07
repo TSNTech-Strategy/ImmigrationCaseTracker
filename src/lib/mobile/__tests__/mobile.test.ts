@@ -89,7 +89,15 @@ describe.skipIf(!url)("mobile API", () => {
       events: [{ category: "progress" }],
     });
     expect(detail.guide.es.meaning).toContain("USCIS tiene su solicitud");
-    expect(body(await api.listCases(u)).cases[0]).toMatchObject({ category: "progress", recentApprovalAt: null });
+    expect(detail).toMatchObject({ nextStep: { en: "Watch your mail for the next notice" }, journeyShare: null });
+    expect(body(await api.listCases(u)).cases[0]).toMatchObject({
+      category: "progress",
+      recentApprovalAt: null,
+      group: "progress",
+      interview: false,
+      approvedRecently: false,
+      nextStep: { en: "Watch your mail for the next notice", es: "Esté atento al próximo aviso por correo" },
+    });
 
     title = "Case Was Approved";
     clock = new Date(clock.getTime() + 11 * 60_000);
@@ -97,13 +105,28 @@ describe.skipIf(!url)("mobile API", () => {
     detail = body(await api.getCase(u, caseId)).case;
     expect(detail).toMatchObject({ category: "done", guide: { slug: "case-was-approved" }, celebration: { approvedAt: clock } });
     expect(detail.celebration.nextStep.en).toBeTruthy();
-    expect(body(await api.listCases(u)).cases[0]).toMatchObject({ category: "done", recentApprovalAt: clock });
+    // Share my journey: the approval day and steps, never the receipt number.
+    expect(detail.journeyShare).toMatchObject({ approvedOn: "2027-08-01" });
+    expect(detail.journeyShare.text.en).toMatch(/^My case was approved on August 1, 2027\./);
+    expect(detail.journeyShare.text.es).toMatch(/^Mi caso fue aprobado el 1 de agosto de 2027\./);
+    expect(JSON.stringify(detail.journeyShare)).not.toMatch(/LIN|9999103411/);
+    expect(body(await api.listCases(u)).cases[0]).toMatchObject({ category: "done", recentApprovalAt: clock, group: "completed", approvedRecently: true });
 
     // The congratulations card goes away after 30 days.
     clock = new Date(clock.getTime() + 31 * 86_400_000);
     expect(body(await api.getCase(u, caseId)).case.celebration).toBeNull();
-    expect(body(await api.listCases(u)).cases[0].recentApprovalAt).toBeNull();
+    expect(body(await api.listCases(u)).cases[0]).toMatchObject({ recentApprovalAt: null, approvedRecently: false });
+    // Still shareable later.
+    expect(body(await api.getCase(u, caseId)).case.journeyShare).toMatchObject({ approvedOn: "2027-08-01" });
     title = "Case Was Received";
+  });
+
+  it("serves the immigration court guide with EOIR's official links (no A-Numbers asked or kept)", () => {
+    const r = body(api.court());
+    expect(r.guide.ways[0].link.url).toBe("https://acis.eoir.justice.gov/en/");
+    expect(r.guide.ways[1].link.url).toBe("tel:+18008987180");
+    for (const l of r.guide.links) expect(l.url).toMatch(/^https:\/\/(respondentaccess\.eoir|www)\.justice\.gov\//);
+    expect(r.guide.note.en).toContain("doesn't check immigration court cases");
   });
 
   it("adds form and progress step, renames cases, says whether a check changed anything, and serves the guide", async () => {

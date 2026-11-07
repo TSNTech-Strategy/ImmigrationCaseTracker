@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Platform, Pressable, Text, View } from "react-native";
 import { Banner, Body, Button, Card, Field, H1, H2, Loading, Row, Screen, Small } from "../../../components/ui";
 import { CongratsCard, StarBurst, takeUnplayed } from "../../../components/celebration";
+import { ShareJourneyCard } from "../../../components/my-cases";
 import { Stepper, caseTitles } from "../../../components/cases";
 import { LineMapView, StepChip } from "../../../components/line-map";
 import { Icon } from "../../../components/icon";
@@ -329,6 +330,8 @@ export default function CaseScreen() {
             <LineMapView map={map} lang={lang} />
           </Card>
         )}
+
+        {cs.journeyShare && <ShareJourneyCard share={cs.journeyShare} formCode={cs.form?.code ?? cs.formType} lang={lang} />}
 
         {cs.checklist && (
           <Card onPress={() => router.push(`/checklists/${cs.checklist!.key}`)} label={t.checklistDocsFor(cs.checklist.form)} style={{ flexDirection: "row", alignItems: "center", gap: space(3) }}>

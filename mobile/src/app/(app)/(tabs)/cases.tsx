@@ -2,12 +2,13 @@ import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Banner, Body, Button, Card, Screen, Small } from "../../../components/ui";
-import { CaseCard, CaseCardSkeleton, FilterChips, IconButton, LargeHeader, SearchField, caseTitles } from "../../../components/cases";
+import { CaseCard, CaseCardSkeleton, IconButton, LargeHeader, SearchField, caseTitles } from "../../../components/cases";
 import { FlagStripe, StarBurst, StarsMark, dismissApproval, dismissedApprovals, takeUnplayed } from "../../../components/celebration";
-import { FeatureRow, IconTile, TwoToneTitle, type Glyph, type Tint } from "../../../components/feature";
+import { FeatureRow, IconTile, Segmented, TwoToneTitle, type Glyph, type Tint } from "../../../components/feature";
+import { COMPLETED_PREVIEW, CourtGuideView, GROUP_ORDER, GroupHeader, SummaryTiles, glanceOf, matchesFilter } from "../../../components/my-cases";
 import { Icon } from "../../../components/icon";
 import { FadeInDown, stagger, useSpotlight } from "../../../components/motion";
-import { api, ApiError, type CaseSummary, type StatusCategory } from "../../../lib/api";
+import { api, ApiError, type CaseFilter, type CaseSummary, type CourtResponse } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { takePrefetchedCases, type CasesResponse } from "../../../lib/cases-prefetch";
 import { launchDone } from "../../../lib/launch";
@@ -20,8 +21,6 @@ import { canScanReceipts } from "../../../lib/scan";
 import { NewTagChip, TagChip } from "../../../components/tags";
 import { tagsInUse } from "../../../lib/tags";
 import { setUnreadUpdates } from "../../../lib/updates-badge";
-
-const FILTER_ORDER: StatusCategory[] = ["action", "progress", "done", "stop", "none"];
 
 const EMPTY_FEATURES: { key: "updates" | "clear" | "secure"; glyph: Glyph; tint: Tint }[] = [
   { key: "updates", glyph: { ios: "bell", md: "notifications", fallback: "!" }, tint: "green" },
@@ -40,7 +39,13 @@ export default function Cases() {
   const [seen, setSeen] = useState<Record<string, string> | null>(null);
   const [burst, setBurst] = useState(0);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<StatusCategory | "all">("all");
+  // USCIS cases, or the immigration court guide.
+  const [segment, setSegment] = useState<"uscis" | "court">("uscis");
+  const [court, setCourt] = useState<CourtResponse | null>(null);
+  const [courtError, setCourtError] = useState<string | null>(null);
+  // A summary tile picked (only those cases), and whether every completed case is shown.
+  const [tile, setTile] = useState<CaseFilter | null>(null);
+  const [allCompleted, setAllCompleted] = useState(false);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [note, setNote] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
@@ -70,6 +75,17 @@ export default function Cases() {
     }, [load]),
   );
   useRefreshOnForeground(load);
+
+  // The court guide comes from the server (wording can improve without an app release); loaded the first time it's opened.
+  useEffect(() => {
+    if (segment !== "court" || court) return;
+    api<CourtResponse>("/api/v1/court")
+      .then((r) => {
+        setCourt(r);
+        setCourtError(null);
+      })
+      .catch((e) => setCourtError(e instanceof ApiError ? e.message : String(e)));
+  }, [segment, court]);
 
   // The cases (or an error) are on screen: the launch screen can fade into them.
   const loaded = cases !== null || error !== null;
@@ -104,17 +120,21 @@ export default function Cases() {
 
   const list = useMemo(() => cases ?? [], [cases]);
   const lastChecked = list.reduce<string | null>((max, x) => (x.lastCheckedAt && (!max || x.lastCheckedAt > max) ? x.lastCheckedAt : max), null);
-  const counts = useMemo(() => {
-    const m = new Map<StatusCategory, number>();
-    for (const x of list) m.set(x.category, (m.get(x.category) ?? 0) + 1);
-    return m;
+  // Tile counts: every case, whatever the search or tag.
+  const tileCounts = useMemo(() => {
+    const out: Record<CaseFilter, number> = { attention: 0, interview: 0, approved: 0, active: 0, completed: 0 };
+    for (const x of list) {
+      const g = glanceOf(x);
+      for (const f of Object.keys(out) as CaseFilter[]) if (matchesFilter(g, f)) out[f]++;
+    }
+    return out;
   }, [list]);
   const tagChips = useMemo(() => tagsInUse(list), [list]);
   // A tag that was deleted or taken off every case stops filtering.
   const activeTag = tagFilter && tagChips.some((x) => x.id === tagFilter) ? tagFilter : null;
   const q = query.trim().toLowerCase();
   const shown = list.filter((x) => {
-    if (filter !== "all" && x.category !== filter) return false;
+    if (tile && !matchesFilter(glanceOf(x), tile)) return false;
     if (activeTag && !(x.tags ?? []).some((tg) => tg.id === activeTag)) return false;
     if (!q) return true;
     const { title, sub } = caseTitles(x, lang);
@@ -129,7 +149,14 @@ export default function Cases() {
   // My timeline: the same span the timeline screen shows.
   const span = journeySpan(list);
   const days = trialDaysLeft(me?.plan.trialEndsAt ?? null);
-  const showFilters = list.length >= 2 && counts.size > 1;
+  // Searching, a tag or a tile: every match shows. Otherwise the list is in sections and older completed cases fold away.
+  const narrowed = Boolean(q || activeTag || tile);
+  const sections = GROUP_ORDER.map((group) => ({ group, items: shown.filter((x) => glanceOf(x).group === group) })).filter((sec) => sec.items.length > 0);
+  const card = (cs: CaseSummary, i: number) => (
+    <FadeInDown key={cs.id} delay={stagger(i, 70)}>
+      <CaseCard cs={cs} stageCount={stageCount} isNew={hasNewChange(seen, cs)} lang={lang} onPress={() => router.push(`/cases/${cs.id}`)} />
+    </FadeInDown>
+  );
 
   return (
     <View style={{ flex: 1 }}>
@@ -145,14 +172,41 @@ export default function Cases() {
         <LargeHeader
           title={t.myCases}
           // While loading, keep the line (no "add a case" flash before the list arrives).
-          subtitle={!loaded ? "\u00a0" : lastChecked ? t.checkedAgo(timeAgo(lastChecked, lang)) : t.noChecksYet}
+          subtitle={segment === "court" ? t.courtSub : !loaded ? "\u00a0" : lastChecked ? t.checkedAgo(timeAgo(lastChecked, lang)) : t.noChecksYet}
           right={
-            <>
-              {(!loaded || list.length > 0) && <IconButton ios="arrow.clockwise" md="refresh" label={t.checkAll} onPress={checkAll} loading={checking} fallback="↻" />}
-              <IconButton ios="plus" md="add" label={t.addCase} onPress={() => router.push("/cases/new")} filled fallback="+" />
-            </>
+            segment === "uscis" ? (
+              <>
+                {(!loaded || list.length > 0) && <IconButton ios="arrow.clockwise" md="refresh" label={t.checkAll} onPress={checkAll} loading={checking} fallback="↻" />}
+                <IconButton ios="plus" md="add" label={t.addCase} onPress={() => router.push("/cases/new")} filled fallback="+" />
+              </>
+            ) : (
+              <View style={{ height: 44 }} />
+            )
           }
         />
+
+        <Segmented
+          label={t.segLabel}
+          value={segment}
+          onChange={setSegment}
+          options={[
+            { value: "uscis", label: t.segUscis, glyph: { ios: "doc.text", md: "description", fallback: "▤" } },
+            { value: "court", label: t.segCourt, glyph: { ios: "building.columns", md: "account_balance", fallback: "⚖" } },
+          ]}
+        />
+
+        {segment === "court" ? (
+          court ? (
+            <CourtGuideView data={court} lang={lang} />
+          ) : courtError ? (
+            <Banner tone="danger">{courtError}</Banner>
+          ) : (
+            <View style={{ gap: space(3) }}>
+              <CaseCardSkeleton />
+            </View>
+          )
+        ) : (
+          <>
 
         {approvals.map((x) => (
           <View key={x.id} accessibilityRole="summary" style={{ backgroundColor: c.surface, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: c.border, overflow: "hidden" }}>
@@ -186,6 +240,7 @@ export default function Cases() {
         {note && <Banner tone={note.tone}>{note.text}</Banner>}
         {error && <Banner tone="danger">{error}</Banner>}
 
+        {loaded && list.length > 0 && <SummaryTiles counts={tileCounts} value={tile} onChange={setTile} lang={lang} />}
         {loaded && span && (
           <Pressable
             accessibilityRole="button"
@@ -212,16 +267,6 @@ export default function Cases() {
         )}
 
         {list.length >= 3 && <SearchField value={query} onChangeText={setQuery} placeholder={t.searchCases} />}
-        {showFilters && (
-          <FilterChips
-            value={filter}
-            onChange={setFilter}
-            options={[
-              { key: "all" as const, label: t.all, count: list.length },
-              ...FILTER_ORDER.filter((k) => counts.get(k)).map((k) => ({ key: k, label: t.category[k], count: counts.get(k) ?? 0 })),
-            ]}
-          />
-        )}
 
         {loaded && list.length > 0 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={t.filterByTag} contentContainerStyle={{ gap: space(2), alignItems: "center" }}>
@@ -266,12 +311,35 @@ export default function Cases() {
             </Card>
           </FadeInDown>
         )}
-        {list.length > 0 && shown.length === 0 && <Small style={{ textAlign: "center" }}>{t.noMatches}</Small>}
-        {shown.map((cs, i) => (
-          <FadeInDown key={cs.id} delay={stagger(i, 70)}>
-            <CaseCard cs={cs} stageCount={stageCount} isNew={hasNewChange(seen, cs)} lang={lang} onPress={() => router.push(`/cases/${cs.id}`)} />
-          </FadeInDown>
-        ))}
+        {tile && list.length > 0 && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space(2), flexWrap: "wrap" }}>
+            <Text accessibilityRole="header" style={{ flex: 1, fontSize: 15, fontWeight: "700", color: c.heading }}>
+              {t.filterShowing(t.tile[tile], shown.length)}
+            </Text>
+            <Pressable accessibilityRole="button" onPress={() => setTile(null)} hitSlop={8}>
+              <Text style={{ color: c.accent, fontWeight: "600", fontSize: 14 }}>{t.showAllCases}</Text>
+            </Pressable>
+          </View>
+        )}
+        {list.length > 0 && shown.length === 0 && <Small style={{ textAlign: "center" }}>{tile && !q && !activeTag ? t.noneForFilter : t.noMatches}</Small>}
+        {tile
+          ? shown.map(card)
+          : sections.map((sec) => {
+              const fold = sec.group === "completed" && !narrowed && !allCompleted && sec.items.length > COMPLETED_PREVIEW;
+              const canFold = sec.group === "completed" && !narrowed && sec.items.length > COMPLETED_PREVIEW;
+              return (
+                <View key={sec.group} style={{ gap: space(3) }}>
+                  <GroupHeader
+                    title={t.group[sec.group]}
+                    count={sec.items.length}
+                    action={canFold ? { label: allCompleted ? t.showLess : t.viewAll(sec.items.length), onPress: () => setAllCompleted((v) => !v) } : undefined}
+                  />
+                  {(fold ? sec.items.slice(0, COMPLETED_PREVIEW) : sec.items).map(card)}
+                </View>
+              );
+            })}
+          </>
+        )}
         <Small style={{ textAlign: "center" }}>{t.disclaimer}</Small>
       </Screen>
       <StarBurst playKey={burst} />

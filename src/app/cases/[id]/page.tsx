@@ -23,7 +23,9 @@ import { ChecklistLink } from "@/components/checklist-link";
 import { checklistForForm } from "@/lib/checklists";
 import { caseJourney } from "@/lib/journeys";
 import { ApprovalCelebration } from "@/components/approval-celebration";
-import { approvalNextStep, recentApprovalAt } from "@/lib/case-insights";
+import { approvalNextStep, observedApprovalAt, recentApprovalAt } from "@/lib/case-insights";
+import { journeyShare } from "@/lib/my-cases";
+import { ShareJourneyCard } from "@/components/my-cases-ui";
 
 export const metadata: Metadata = { title: "Case · CasePingo" };
 
@@ -48,6 +50,7 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
   const approvedAt = recentApprovalAt(c.statusTitleEn, c.events);
   const nextStep = approvedAt ? approvalNextStep(c.formType, c.statusTitleEn) : null;
   const journey = caseJourney(c);
+  const share = journeyShare(c, journey, observedApprovalAt(c.statusTitleEn, c.events));
 
   return (
     <>
@@ -106,6 +109,7 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
         }
       />
       <LineMapSection map={journey.lineMap} es={es} />
+      {share && <ShareJourneyCard share={share} formCode={c.formType} es={es} />}
       <InsightsLink href={`/cases/${c.id}/insights`} es={es} />
       {checklistForForm(c.formType) && <ChecklistLink checklist={checklistForForm(c.formType)!} />}
       {FEATURES.assistant && (
