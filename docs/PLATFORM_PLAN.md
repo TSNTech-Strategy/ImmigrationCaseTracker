@@ -79,7 +79,7 @@ The order a firm meets the product: set up, bring in clients and cases, keep the
 | 13 | Team and roles | Members with role, active cases, last active; invitations; Owner, Admin, Staff, plus "Attorney" and "Paralegal" labels | Built (titles, cases, last active in Phase 6) |
 | 14 | Activity log | Every change in plain language, filters, CSV export; never logs sensitive values (A-Numbers, dates of birth, notes) | Built |
 | 15 | Plan and billing | Plan, seats or users, cases used, next charge, invoices, change plan | Built on Stripe (Phase 7 new tiers) |
-| 16 | Legal and data | Terms and privacy, export everything, delete everything, inactivity policy, analytics choice | Phase 7 |
+| 16 | Legal and data | Terms and privacy, export everything, delete everything, inactivity policy, analytics choice | Built (Phase 7A); no analytics or tracking to opt out of |
 
 ## 3. Build phases
 
@@ -124,7 +124,7 @@ Every phase: database migration with row-level security, server logic with datab
 - Sync page: schedule by plan, check now, recent runs and health.
 - Team page: role labels (Attorney, Paralegal), active cases, last active.
 
-### Phase 7: Plans, billing, legal and data
+### Phase 7: Plans, billing, legal and data (7A legal and data ✅ built; 7B plans waits for price confirmation)
 - New plan tiers in Stripe, plan limits enforced, plan and billing page with usage.
 - Legal and data page: export everything (archive), delete everything (request flow), inactivity policy, analytics choice.
 

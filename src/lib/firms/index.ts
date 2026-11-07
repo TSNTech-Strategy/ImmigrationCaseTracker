@@ -1,3 +1,4 @@
+import { createFirmDataService } from "./data";
 import { createFirmSyncService } from "./sync";
 import { createFirmTeamService } from "./team";
 import { createFirmReportService } from "./reports";
@@ -99,4 +100,9 @@ export function firmTeamService() {
 /** Sync: the firm's USCIS check schedule, recent checks and problems. */
 export function firmSyncService() {
   return createFirmSyncService({ db: prisma });
+}
+
+/** Legal and data: export everything, delete the workspace. */
+export function firmDataService() {
+  return createFirmDataService({ db: prisma, store: getFileStore() });
 }
