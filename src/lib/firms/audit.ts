@@ -50,7 +50,7 @@ export function describeAudit(action: string, m: Meta, target: string): string {
     case "firm.created":
       return "Created the firm workspace";
     case "firm.plan_changed": {
-      const label = (v: unknown) => (v === "SOLO" ? "Firm Solo" : v === "FIRM" ? "Firm" : "no paid plan");
+      const label = (v: unknown) => (v === "SOLO" ? "Solo" : v === "FIRM" ? "Firm" : v === "PLUS" ? "Firm Plus" : "no paid plan");
       return m.to ? `Plan changed to ${label(m.to)} (${plural(m.caseLimit, "case")})` : `Paid plan ended (was ${label(m.from)})`;
     }
     case "invite.sent":

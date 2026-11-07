@@ -119,7 +119,8 @@ export function createFirmService({ db, mailer, siteUrl, now = () => new Date() 
         db.firmInvitation.count({ where: { firmId: ctx.firm.id, acceptedAt: null, revokedAt: null, expiresAt: { gt: now() }, NOT: { email } } }),
       ]);
       if (members + pending >= maxUsers) {
-        return fail(`${FIRM_PLANS[ctx.firm.plan!].label} includes ${maxUsers} team members. Switch to Firm in Billing for unlimited members.`);
+        const next = ctx.firm.plan === "SOLO" ? `Firm (${FIRM_PLANS.FIRM.maxUsers} members)` : "Firm Plus (unlimited members)";
+        return fail(`${FIRM_PLANS[ctx.firm.plan!].label} includes ${maxUsers} team members. Switch to ${next} in Plan & billing to add more.`);
       }
     }
 

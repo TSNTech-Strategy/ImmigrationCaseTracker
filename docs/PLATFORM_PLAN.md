@@ -32,11 +32,11 @@ A case status and client communication desk that sits beside whatever case manag
 | Stuck-case and deadline alerts | Built in | Partly |
 | Setup | Paste receipts or upload an export; working in minutes | Onboarding calls |
 
-### Pricing (proposal, to confirm before Phase 7)
+### Pricing (confirmed Nov 7, 2026)
 | Plan | For | Price per month | Includes |
 |---|---|---|---|
-| Solo | One attorney and an assistant | $49 | 2 users, 150 active cases, client updates, deadlines, tasks |
-| Firm | Small firms | $129 | 10 users, 600 active cases, everything in Solo plus document requests, client portal, matters, dashboard |
+| Solo | One attorney and an assistant | $49 | 2 users, 150 active cases, every workspace feature |
+| Firm | Small firms | $129 | 10 users, 600 active cases, everything in Solo |
 | Firm Plus | Growing firms | $249 | Unlimited users, 2,000 active cases, priority support, data export on demand, SMS (when released) |
 
 - 14-day free trial with no card; annual billing 2 months free.
@@ -78,7 +78,7 @@ The order a firm meets the product: set up, bring in clients and cases, keep the
 | 12 | Notifications | Per person: inbox start view, backup colleague while away, which task updates appear, which case updates email me (by type: approvals, requests, appointments, denials, other) and for which cases (mine, matters, groups, tags) | Built (Phase 6) |
 | 13 | Team and roles | Members with role, active cases, last active; invitations; Owner, Admin, Staff, plus "Attorney" and "Paralegal" labels | Built (titles, cases, last active in Phase 6) |
 | 14 | Activity log | Every change in plain language, filters, CSV export; never logs sensitive values (A-Numbers, dates of birth, notes) | Built |
-| 15 | Plan and billing | Plan, seats or users, cases used, next charge, invoices, change plan | Built on Stripe (Phase 7 new tiers) |
+| 15 | Plan and billing | Plan, seats or users, cases used, next charge, invoices, change plan | Built (Phase 7B: Solo, Firm, Firm Plus; monthly or yearly) |
 | 16 | Legal and data | Terms and privacy, export everything, delete everything, inactivity policy, analytics choice | Built (Phase 7A); no analytics or tracking to opt out of |
 
 ## 3. Build phases
@@ -124,7 +124,7 @@ Every phase: database migration with row-level security, server logic with datab
 - Sync page: schedule by plan, check now, recent runs and health.
 - Team page: role labels (Attorney, Paralegal), active cases, last active.
 
-### Phase 7: Plans, billing, legal and data (7A legal and data ✅ built; 7B plans waits for price confirmation)
+### Phase 7: Plans, billing, legal and data ✅ built (Stripe in test mode until production)
 - New plan tiers in Stripe, plan limits enforced, plan and billing page with usage.
 - Legal and data page: export everything (archive), delete everything (request flow), inactivity policy, analytics choice.
 

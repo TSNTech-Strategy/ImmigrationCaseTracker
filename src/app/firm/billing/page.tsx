@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { CheckoutButton, PortalButton } from "@/app/billing/buttons";
@@ -6,7 +7,7 @@ import { billingEnabled, billingService, billingTestMode } from "@/lib/billing";
 import { prisma } from "@/lib/db";
 import { firmService } from "@/lib/firms";
 import { TRIAL_CASE_LIMIT } from "@/lib/firms/service";
-import { FIRM_PLANS, FOUNDING_FIRM_OFFER, formatUsd } from "@/lib/plans";
+import { FIRM_PLAN_ORDER, FIRM_PLANS, FOUNDING_FIRM_OFFER, formatUsd } from "@/lib/plans";
 
 export const metadata: Metadata = { title: "Firm billing · CasePingo" };
 
@@ -37,41 +38,62 @@ export default async function FirmBillingPage({ searchParams }: PageProps<"/firm
   ]);
   const trialDays = firm.trialEndsAt ? Math.ceil((firm.trialEndsAt.getTime() - now.getTime()) / 86_400_000) : 0;
 
-  const planCard = (key: "SOLO" | "FIRM") => {
+  const yearly = sp.interval === "year";
+  const order = FIRM_PLAN_ORDER;
+  const planCard = (key: (typeof FIRM_PLAN_ORDER)[number]) => {
     const p = FIRM_PLANS[key];
     const current = firm.plan === key;
-    const tooSmall = key === "SOLO" && (members > (p.maxUsers ?? Infinity) || cases > p.maxCases);
+    const tooSmall = members > (p.maxUsers ?? Infinity) || cases > p.maxCases;
     return (
-      <li key={key} className={`flex flex-col gap-3 rounded-lg border bg-[var(--surface)] p-5 ${current ? "border-2 border-[var(--accent)]" : "border-[var(--border)]"}`}>
+      <li key={key} className={`flex flex-col gap-3 rounded-lg border bg-[var(--surface)] p-5 ${current ? "border-2 border-[var(--accent)]" : key === "FIRM" ? "border-[var(--accent)]" : "border-[var(--border)]"}`}>
         <div className="flex items-baseline justify-between gap-2">
           <h3 className="text-lg font-semibold">{p.label}</h3>
-          {current && <span className="rounded-full bg-[var(--accent)] px-2.5 py-0.5 text-xs font-medium text-[var(--accent-fg)]">Current plan</span>}
-        </div>
-        <p>
-          <span className="text-2xl font-semibold">{formatUsd(p.price)}</span>
-          <span className="text-[var(--muted)]">/month</span>
-        </p>
-        <ul className="flex flex-col gap-1 text-sm">
-          <li>✓ Up to {p.maxCases} client cases</li>
-          <li>✓ {p.maxUsers ? `${p.maxUsers} team members` : "Unlimited team members"}</li>
-        </ul>
-        {enabled && isOwner && !firm.plan && (
-          tooSmall ? (
-            <p className="text-sm text-[var(--muted)]">Your firm has more people or cases than {p.label} includes.</p>
+          {current ? (
+            <span className="rounded-full bg-[var(--accent)] px-2.5 py-0.5 text-xs font-medium text-[var(--accent-fg)]">Current plan</span>
           ) : (
-            <CheckoutButton fields={{ kind: "firm", plan: key }} secondary={key === "SOLO"}>
-              Choose {p.label}
-            </CheckoutButton>
-          )
-        )}
+            key === "FIRM" && <span className="rounded-full border border-[var(--accent)] px-2.5 py-0.5 text-xs font-medium text-[var(--accent)]">Most firms</span>
+          )}
+        </div>
+        <p className="text-sm text-[var(--muted)]">{p.for}</p>
+        <p>
+          <span className="text-2xl font-semibold">{formatUsd(yearly ? p.yearly : p.price)}</span>
+          <span className="text-[var(--muted)]">{yearly ? "/year" : "/month"}</span>
+          {yearly && <span className="block text-xs text-[var(--muted)]">{formatUsd(Math.round((p.yearly / 12) * 100) / 100)} a month, 2 months free</span>}
+        </p>
+        <ul className="flex flex-col gap-1.5 text-sm">
+          {[`Up to ${p.maxCases.toLocaleString("en-US")} client cases`, p.maxUsers ? `${p.maxUsers} team members` : "Unlimited team members", "Every workspace feature"].map((f) => (
+            <li key={f} className="flex items-start gap-2">
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0">
+                <path d="m5 12 5 5 9-10" />
+              </svg>
+              {f}
+            </li>
+          ))}
+        </ul>
+        <div className="mt-auto">
+          {enabled && isOwner && !firm.plan && (
+            tooSmall ? (
+              <p className="text-sm text-[var(--muted)]">Your firm has more people or cases than {p.label} includes.</p>
+            ) : (
+              <CheckoutButton fields={{ kind: "firm", plan: key, interval: yearly ? "year" : "month" }} secondary={key !== "FIRM"}>
+                Choose {p.label}
+              </CheckoutButton>
+            )
+          )}
+        </div>
       </li>
     );
   };
+  const limit = firm.plan ? FIRM_PLANS[firm.plan] : null;
+  const usage = [
+    { label: "Cases", used: cases, max: firm.plan ? firm.caseLimit : TRIAL_CASE_LIMIT },
+    { label: "Team members", used: members, max: limit ? limit.maxUsers : null },
+  ];
 
   return (
-    <div className="flex w-full max-w-3xl flex-col gap-6">
+    <div className="flex w-full max-w-5xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Billing</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Plan &amp; billing</h1>
         <p className="text-sm text-[var(--muted)]">{firm.name}</p>
       </div>
       {enabled && billingTestMode() && (
@@ -92,7 +114,8 @@ export default async function FirmBillingPage({ searchParams }: PageProps<"/firm
         </h2>
         {firm.plan ? (
           <p>
-            <strong>{FIRM_PLANS[firm.plan].label}</strong>: {cases} of {firm.caseLimit} cases, {members} team member{members === 1 ? "" : "s"}.
+            <strong>{FIRM_PLANS[firm.plan].label}</strong>
+            {sub ? `, billed ${sub.interval === "year" ? "yearly" : "monthly"}` : ""}
           </p>
         ) : trialDays > 0 ? (
           <p>
@@ -104,6 +127,26 @@ export default async function FirmBillingPage({ searchParams }: PageProps<"/firm
             deleted.
           </p>
         )}
+        <dl className="grid gap-4 py-1 sm:grid-cols-2">
+          {usage.map((u) => {
+            const pct = u.max ? Math.min(100, Math.round((u.used / u.max) * 100)) : 0;
+            return (
+              <div key={u.label} className="flex flex-col gap-1.5">
+                <dt className="flex justify-between text-sm">
+                  <span className="text-[var(--muted)]">{u.label}</span>
+                  <span className="font-medium tabular-nums">
+                    {u.used.toLocaleString("en-US")} {u.max ? `of ${u.max.toLocaleString("en-US")}` : "(no limit)"}
+                  </span>
+                </dt>
+                <dd>
+                  <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-2)]" role="img" aria-label={`${u.label}: ${u.used} of ${u.max ?? "unlimited"}`}>
+                    <div className={`h-full rounded-full ${pct >= 90 ? "bg-[var(--danger)]" : pct >= 75 ? "bg-[var(--st-action)]" : "bg-[var(--accent)]"}`} style={{ width: `${u.max ? Math.max(pct, u.used ? 2 : 0) : 0}%` }} />
+                  </div>
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
         {sub && (
           <p className="text-sm">
             {sub.pastDue
@@ -127,7 +170,26 @@ export default async function FirmBillingPage({ searchParams }: PageProps<"/firm
           {FOUNDING_FIRM_OFFER.months} months. Applied automatically at checkout while places last.
         </p>
       )}
-      <ul className="grid gap-4 md:grid-cols-2">{(["SOLO", "FIRM"] as const).map(planCard)}</ul>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">{firm.plan ? "All plans" : "Choose a plan"}</h2>
+        <nav aria-label="Billing period" className="flex rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-1 text-sm">
+          {[
+            ["month", "Monthly"],
+            ["year", "Yearly (2 months free)"],
+          ].map(([v, l]) => (
+            <Link
+              key={v}
+              href={v === "year" ? "/firm/billing?interval=year" : "/firm/billing"}
+              aria-current={(v === "year") === yearly ? "page" : undefined}
+              className="rounded-md px-3 py-1.5 font-medium text-[var(--muted)] aria-[current=page]:bg-[var(--surface)] aria-[current=page]:text-[var(--foreground)] aria-[current=page]:shadow-[var(--shadow)]"
+            >
+              {l}
+            </Link>
+          ))}
+        </nav>
+      </div>
+      <ul className="grid gap-4 md:grid-cols-3">{order.map(planCard)}</ul>
+      <p className="text-sm text-[var(--muted)]">Price per firm, not per person: everyone on your team is included up to the plan&apos;s limit. Need more than {FIRM_PLANS.PLUS.maxCases.toLocaleString("en-US")} cases? Write to us.</p>
       {!enabled && <p className="text-sm text-[var(--muted)]">Paid plans are coming soon.</p>}
       <p className="text-xs text-[var(--muted)]">
         Secure payment by Stripe. Sales tax is added where it applies; you can add your firm&apos;s tax ID at checkout. Cancel any time: your plan

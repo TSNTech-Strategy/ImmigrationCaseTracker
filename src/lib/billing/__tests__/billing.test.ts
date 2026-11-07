@@ -212,17 +212,24 @@ describe.skipIf(!url)("billing", () => {
     coupon = { id: FOUNDING_COUPON_ID, valid: true, max_redemptions: 25, times_redeemed: 25 };
     await billing.startCheckout(owner, { kind: "firm", plan: "FIRM" });
     expect(calls.checkout[1].discounts).toBeUndefined();
+    // Yearly billing and the Firm Plus plan.
+    await billing.startCheckout(owner, { kind: "firm", plan: "PLUS", interval: "year" });
+    expect(calls.checkout[2].line_items).toEqual([{ price: "price_casepingo_firm_plus_year", quantity: 1 }]);
 
     const cus = (await db.firm.findUniqueOrThrow({ where: { id: f.firm.id } })).stripeCustomerId!;
     setSub("sub_f1", { key: "casepingo_firm_solo_month", status: "active", customer: cus, meta: { casepingoFirmId: f.firm.id } });
     await billing.handleEvent(subEvent("sub_f1", "customer.subscription.created"));
-    expect(await db.firm.findUniqueOrThrow({ where: { id: f.firm.id } })).toMatchObject({ plan: "SOLO", caseLimit: 50 });
+    expect(await db.firm.findUniqueOrThrow({ where: { id: f.firm.id } })).toMatchObject({ plan: "SOLO", caseLimit: 150 });
     expect(await firms.invite(owner, "third@test.dev", "STAFF")).toMatchObject({ ok: false, error: expect.stringMatching(/2 team members/) });
 
     setSub("sub_f1", { key: "casepingo_firm_month", status: "active", customer: cus, meta: { casepingoFirmId: f.firm.id } });
     await billing.handleEvent(subEvent("sub_f1"));
-    expect(await db.firm.findUniqueOrThrow({ where: { id: f.firm.id } })).toMatchObject({ plan: "FIRM", caseLimit: 300 });
+    expect(await db.firm.findUniqueOrThrow({ where: { id: f.firm.id } })).toMatchObject({ plan: "FIRM", caseLimit: 600 });
     expect(await firms.invite(owner, "third@test.dev", "STAFF")).toMatchObject({ ok: true });
+
+    setSub("sub_f1", { key: "casepingo_firm_plus_year", status: "active", customer: cus, meta: { casepingoFirmId: f.firm.id } });
+    await billing.handleEvent(subEvent("sub_f1"));
+    expect(await db.firm.findUniqueOrThrow({ where: { id: f.firm.id } })).toMatchObject({ plan: "PLUS", caseLimit: 2000 });
     coupon = { id: FOUNDING_COUPON_ID, valid: true, max_redemptions: 25, times_redeemed: 3 };
   });
 

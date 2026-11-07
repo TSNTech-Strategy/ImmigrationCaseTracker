@@ -16,7 +16,18 @@ describe("launch prices", () => {
   it("matches the plan limits", () => {
     expect(PLAN_LIMITS.PREMIUM.maxCases).toBe(10);
     expect(PLAN_LIMITS.FREE.assistantPerDay).toBeLessThan(PLAN_LIMITS.PREMIUM.assistantPerDay);
-    expect(FIRM_PLANS.SOLO).toMatchObject({ maxCases: 50, maxUsers: 2 });
-    expect(FIRM_PLANS.FIRM).toMatchObject({ maxCases: 300, maxUsers: null });
+    expect(FIRM_PLANS.SOLO).toMatchObject({ maxCases: 150, maxUsers: 2, price: 49 });
+    expect(FIRM_PLANS.FIRM).toMatchObject({ maxCases: 600, maxUsers: 10, price: 129 });
+    expect(FIRM_PLANS.PLUS).toMatchObject({ maxCases: 2000, maxUsers: null, price: 249 });
+  });
+  it("gives firms 2 months free when they pay yearly", () => {
+    for (const p of Object.values(FIRM_PLANS)) expect(p.yearly).toBe(p.price * 10);
+  });
+});
+
+describe("money formatting", () => {
+  it("groups thousands", () => {
+    expect(formatUsd(1290)).toBe("$1,290");
+    expect(formatUsd(107.5)).toBe("$107.50");
   });
 });
