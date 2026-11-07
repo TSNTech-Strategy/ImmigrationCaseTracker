@@ -7,6 +7,7 @@ import { CongratsCard, StarBurst, takeUnplayed } from "../../../components/celeb
 import { Stepper, caseTitles } from "../../../components/cases";
 import { LineMapView, StepChip } from "../../../components/line-map";
 import { Icon } from "../../../components/icon";
+import { IconTile } from "../../../components/feature";
 import { launchDone } from "../../../lib/launch";
 import { markSeen } from "../../../lib/seen";
 import { api, ApiError, type CaseDetail, type GuideEntry, type StatusCategory } from "../../../lib/api";
@@ -328,6 +329,15 @@ export default function CaseScreen() {
             <LineMapView map={map} lang={lang} />
           </Card>
         )}
+
+        <Card onPress={() => router.push(`/insights/${cs.id}`)} label={t.insightsCard} style={{ flexDirection: "row", alignItems: "center", gap: space(3) }}>
+          <IconTile glyph={{ ios: "chart.bar.xaxis", md: "bar_chart", fallback: "▤" }} tint="blue" size={40} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: c.heading }}>{t.insightsCard}</Text>
+            <Small>{t.insightsCardText}</Small>
+          </View>
+          <Icon ios="chevron.right" md="chevron_right" size={14} color={c.accent} fallback="›" />
+        </Card>
 
         <Card>
           <Label>{t.caseDetails}</Label>

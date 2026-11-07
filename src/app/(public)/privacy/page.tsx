@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DraftNotice, Prose } from "@/components/public-chrome";
 import { FEATURES } from "@/lib/features";
+import { MIN_GROUP } from "@/lib/insights";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Privacy Policy · CasePingo" };
@@ -55,6 +56,12 @@ export default function Privacy() {
       <ul>
         <li>To check the status of cases you&apos;re authorized to track, and show you the results.</li>
         <li>To notify you about status changes, if you turn alerts on.</li>
+        <li>
+          To show Case insights: anonymous totals combined from many personal cases, such as how long cases like yours took at an
+          office or which status usually comes next. Insights never show one person&apos;s case, a receipt number, a name or a
+          nickname. A number appears only when at least {MIN_GROUP} cases are behind it, each case counts once, and law-firm cases
+          are never included. Removing a case takes it out of the totals.
+        </li>
         {FEATURES.assistant && <li>To answer the questions you ask the assistant.</li>}
         <li>To secure accounts, prevent abuse, and meet legal obligations.</li>
       </ul>
@@ -100,6 +107,7 @@ export default function Privacy() {
       <h2>How long we keep it</h2>
       <ul>
         <li>Case information: until you remove the case or delete your account.</li>
+        <li>Case insights: not stored; they are calculated from the cases being tracked at that moment.</li>
         <li>Account information: until you delete your account.</li>
         {FEATURES.assistant && (
           <li>Assistant: conversations aren&apos;t stored by CasePingo; daily question counts (no content) are kept for 30 days.</li>

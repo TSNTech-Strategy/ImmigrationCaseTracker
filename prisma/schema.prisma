@@ -241,6 +241,9 @@ model TrackedCase {
   /// distinct from CaseStatusEvent, which records what WE observed and when.
   uscisHistory        Json?
   statusFingerprint   String?
+  /// USCIS connection the current status came from: "mock", "sandbox" or "production" (set on each successful check).
+  /// Case insights only use statuses from the connection the site runs on.
+  statusSource        String?
 
   /// Last time we asked USCIS (success or failure).
   lastCheckedAt        DateTime?
@@ -270,6 +273,7 @@ model TrackedCase {
   @@unique([id, firmId])
   @@index([trackingStatus, nextCheckAt])
   @@index([clientId])
+  @@index([statusSource, formType])
 }
 
 enum ConsentBasis {

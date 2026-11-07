@@ -18,6 +18,7 @@ import { RefreshButton, RemoveCaseForm } from "./case-actions";
 import { CheckThisCaseButton } from "@/app/billing/buttons";
 import { CaseStatusPanel, ObservedChanges, UscisHistory, USCIS_SOURCE_NOTE } from "@/components/case-status";
 import { LineMapSection } from "@/components/line-map";
+import { InsightsLink } from "@/components/case-insights";
 import { caseJourney } from "@/lib/journeys";
 import { ApprovalCelebration } from "@/components/approval-celebration";
 import { approvalNextStep, recentApprovalAt } from "@/lib/case-insights";
@@ -103,6 +104,7 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
         }
       />
       <LineMapSection map={journey.lineMap} es={es} />
+      <InsightsLink href={`/cases/${c.id}/insights`} es={es} />
       {FEATURES.assistant && (
         <Link
           href={`/assistant?case=${c.id}`}

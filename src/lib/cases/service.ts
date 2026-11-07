@@ -349,6 +349,7 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
           uscisModifiedRaw: s.modifiedDate?.raw ?? null,
           uscisHistory: s.history as unknown as Prisma.InputJsonValue,
           statusFingerprint: s.fingerprint,
+          statusSource: uscis.mode,
           lastCheckedAt: t,
           lastCheckOutcome: "ok",
           consecutiveFailures: 0,

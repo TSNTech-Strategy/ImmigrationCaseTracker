@@ -14,7 +14,7 @@ import { findStatusGuide } from "./status-guide";
 type Bilingual = { en: string; es: string };
 
 /** What a USCIS status means for the case's progress. */
-type Phase = "received" | "biometrics" | "review" | "interview" | "decision" | "produce" | "mailed" | "delivered" | "state" | "oath";
+export type Phase = "received" | "biometrics" | "review" | "interview" | "decision" | "produce" | "mailed" | "delivered" | "state" | "oath";
 const PHASE_ORDER: Phase[] = ["received", "biometrics", "review", "interview", "decision", "produce", "mailed", "delivered", "state", "oath"];
 
 const PHASE_BY_SLUG: Record<string, Phase> = {
@@ -165,6 +165,12 @@ const OUTCOMES: Record<string, Outcome> = {
 
 const slugOf = (titleEn: string | null | undefined) => findStatusGuide(titleEn)?.slug ?? null;
 const OPTIONAL_STEPS = new Set(["state", "after"]);
+
+/** Where a USCIS status sits in a case's journey (received, biometrics, review…), or null for side statuses and unknown wording. */
+export function phaseOf(titleEn: string | null | undefined): Phase | null {
+  const slug = slugOf(titleEn);
+  return slug && slug in PHASE_BY_SLUG ? PHASE_BY_SLUG[slug] : null;
+}
 
 /** The step a phase belongs to in this scenario; a phase the scenario doesn't have counts as the nearest earlier one. */
 function stepForPhase(steps: StepDef[], phase: Phase): number {
