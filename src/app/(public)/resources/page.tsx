@@ -32,6 +32,12 @@ export default function ResourcesPage() {
           summary="What to gather before you file, for each case type. Tick documents off as you go."
         />
         <ResourceCard
+          href="/immigration-court"
+          icon={{ md: "account_balance", tint: "teal" }}
+          title="Immigration court"
+          summary="How to check a court case with your A-Number on EOIR's official site or phone line."
+        />
+        <ResourceCard
           href="/civics-test"
           icon={{ md: "school", tint: "purple" }}
           title="Civics test practice"

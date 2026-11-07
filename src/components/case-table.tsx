@@ -18,13 +18,29 @@ export type CaseRow = {
   hasConsent?: boolean;
   /** Personal cases: the person's tags on it. */
   tags?: TagView[];
+  /** A few words on what to do now ("Prepare for your interview"). */
+  nextStep?: { en: string; es: string } | null;
 };
+
+function NextStep({ step, es }: { step: { en: string; es: string }; es: boolean }) {
+  return (
+    <span className="inline-flex items-start gap-1.5 rounded-md bg-[var(--surface-2)] px-2 py-1 text-xs leading-snug">
+      <span aria-hidden="true" className="text-[var(--accent)]">
+        →
+      </span>
+      <span>
+        <strong className="font-semibold">{es ? "Próximo paso" : "Next step"}:</strong> {es ? step.es : step.en}
+      </span>
+    </span>
+  );
+}
 
 /**
  * Case list: a table on wider screens, a compact list on phones. The USCIS
  * wording is always shown; the coloured label only groups it.
  */
-export function CaseTable({ rows, hrefBase, es = false, showClient = false }: { rows: CaseRow[]; hrefBase: string; es?: boolean; showClient?: boolean }) {
+export function CaseTable({ rows, hrefBase, es = false, showClient = false, fixed = false }: { rows: CaseRow[]; hrefBase: string; es?: boolean; showClient?: boolean; /** Same column widths in every table (several tables one under another). */ fixed?: boolean }) {
+  const dateCell = `${fixed ? "" : "whitespace-nowrap "}px-4 py-3 align-top text-[var(--muted)]`;
   const title = (c: CaseRow) => (es ? c.statusTitleEs : c.statusTitleEn) ?? c.statusTitleEn ?? (es ? "Sin consultar" : "Not checked yet");
   const note = (c: CaseRow) =>
     c.pausedReason === "plan_limit" ? "Paused: Free plan checks 1 case" : c.hasConsent === false ? "Consent withdrawn: not checked" : null;
@@ -32,7 +48,15 @@ export function CaseTable({ rows, hrefBase, es = false, showClient = false }: { 
     <>
       {/* Wide screens */}
       <div className="hidden overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] md:block">
-        <table className="w-full border-collapse text-left text-sm">
+        <table className={`w-full border-collapse text-left text-sm ${fixed ? "table-fixed" : ""}`}>
+          {fixed && (
+            <colgroup>
+              <col className="w-[27%]" />
+              <col className="w-[37%]" />
+              <col className="w-[18%]" />
+              <col className="w-[18%]" />
+            </colgroup>
+          )}
           <thead className="border-b border-[var(--border)] bg-[var(--surface-2)] text-[var(--muted)]">
             <tr>
               <th scope="col" className="px-4 py-2.5 font-medium">Case</th>
@@ -62,13 +86,14 @@ export function CaseTable({ rows, hrefBase, es = false, showClient = false }: { 
                   <div className="flex flex-col items-start gap-1">
                     <StatusBadge titleEn={c.statusTitleEn} es={es} />
                     <span>{title(c)}</span>
+                    {c.nextStep && <NextStep step={c.nextStep} es={es} />}
                     {note(c) && <span className="text-xs font-medium text-[var(--danger)]">{note(c)}</span>}
                   </div>
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 align-top text-[var(--muted)]">
+                <td className={dateCell}>
                   <LocalTime iso={c.lastChangeObservedAt?.toISOString() ?? null} fallback="—" />
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 align-top text-[var(--muted)]">
+                <td className={dateCell}>
                   <LocalTime iso={c.lastCheckedAt?.toISOString() ?? null} />
                 </td>
               </tr>
@@ -93,6 +118,7 @@ export function CaseTable({ rows, hrefBase, es = false, showClient = false }: { 
               </span>
               <TagList tags={c.tags} />
               <span className="text-sm">{title(c)}</span>
+              {c.nextStep && <NextStep step={c.nextStep} es={es} />}
               <span className="text-xs text-[var(--muted)]">
                 Last checked <LocalTime iso={c.lastCheckedAt?.toISOString() ?? null} />
               </span>

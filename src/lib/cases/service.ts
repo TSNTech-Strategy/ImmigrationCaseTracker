@@ -83,7 +83,8 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
   async function listCases(userId: string) {
     return db.trackedCase.findMany({
       where: { ownerUserId: userId },
-      select: { ...caseViewSelect, ...caseTagsSelect },
+      // The changes CasePingo saw count for the line map too, so the list agrees with the case page and the app.
+      select: { ...caseViewSelect, ...caseTagsSelect, events: { select: { statusTitleEn: true, uscisReportedRaw: true, firstObservedAt: true }, orderBy: { firstObservedAt: "asc" } } },
       orderBy: { createdAt: "desc" },
     });
   }

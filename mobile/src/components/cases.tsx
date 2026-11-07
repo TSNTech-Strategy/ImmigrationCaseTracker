@@ -249,7 +249,7 @@ export function CaseCard({ cs, stageCount, isNew, lang, onPress }: { cs: CaseSum
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${names.title}. ${status}.${map?.marker ? ` ${map.marker[lang]}.` : ""}${isNew ? ` ${t.newBadge}.` : ""}`}
+      accessibilityLabel={`${names.title}. ${status}.${map?.marker ? ` ${map.marker[lang]}.` : ""}${cs.nextStep ? ` ${t.nextStep}: ${cs.nextStep[lang]}.` : ""}${isNew ? ` ${t.newBadge}.` : ""}`}
       onPress={onPress}
       style={({ pressed }) => ({
         flexDirection: "row",
@@ -290,6 +290,15 @@ export function CaseCard({ cs, stageCount, isNew, lang, onPress }: { cs: CaseSum
             {updated ?? (cs.lastCheckedAt ? t.checkedShort(timeAgo(cs.lastCheckedAt, lang)) : "")}
           </Text>
         </View>
+        {cs.nextStep ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space(2), paddingHorizontal: space(2.5), paddingVertical: space(2), borderRadius: 10, backgroundColor: c.surface2 }}>
+            <Icon ios="arrow.turn.down.right" md="subdirectory_arrow_right" size={14} color={c.accent} fallback="→" />
+            <Text style={{ flex: 1, fontSize: 14, color: c.text, lineHeight: 19 }} numberOfLines={2}>
+              <Text style={{ fontWeight: "700", color: c.heading }}>{t.nextStep}: </Text>
+              {cs.nextStep[lang]}
+            </Text>
+          </View>
+        ) : null}
         {(cs.tags?.length || isNew) && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: space(2) }}>
             <View style={{ flex: 1 }}>
