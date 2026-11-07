@@ -110,6 +110,8 @@ function UpdateCard({ u, tab, members }: { u: Item; tab: string; members: { id: 
   const badge =
     u.kind === "STUCK"
       ? "Stuck case"
+      : u.kind === "DOCUMENT"
+        ? "Client uploaded a document"
       : u.kind === "TASK"
         ? taskReason === "mention"
           ? "Mentioned in a task"
@@ -164,11 +166,18 @@ function UpdateCard({ u, tab, members }: { u: Item; tab: string; members: { id: 
           <span aria-hidden="true" className="text-[var(--accent)]">
             →{" "}
           </span>
-          <strong className="font-semibold">{u.kind === "DEADLINE" ? "When:" : u.kind === "TASK" ? "Task:" : "Next step:"}</strong> {u.nextStep}
+          <strong className="font-semibold">{u.kind === "DEADLINE" ? "When:" : u.kind === "TASK" ? "Task:" : u.kind === "DOCUMENT" ? "To do:" : "Next step:"}</strong> {u.nextStep}
         </p>
       </div>
       {u.kind === "STATUS_CHANGE" ? (
         <ClientEmail u={u} tab={tab} />
+      ) : u.kind === "DOCUMENT" && u.request ? (
+        <p className="text-sm">
+          <Link href={`/firm/documents/requests/${u.request.id}`} className="font-medium text-[var(--accent)] hover:underline">
+            Review the request
+          </Link>
+          <span className="text-[var(--muted)]"> · completing the request also closes this.</span>
+        </p>
       ) : u.kind === "TASK" && u.task ? (
         <p className="text-sm">
           <Link href={`/firm/tasks/${u.task.id}`} className="font-medium text-[var(--accent)] hover:underline">

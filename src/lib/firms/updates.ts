@@ -188,6 +188,7 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
           deadline: { select: { id: true, kind: true, dueOn: true, note: true, doneAt: true } },
           alertKey: true,
           task: { select: { id: true, title: true, status: true, dueOn: true } },
+          request: { select: { id: true, title: true, status: true, client: { select: { id: true, displayName: true } } } },
           event: { select: { statusTitleEn: true, statusTitleEs: true, formType: true, firstObservedAt: true } },
           case: { select: { id: true, receiptMasked: true, nickname: true, formType: true, statusTitleEn: true, client: true } },
         },
@@ -210,8 +211,11 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
         const tk = u.task;
         const taskReason = u.kind === "TASK" ? (u.alertKey?.split(":")[2] ?? "assigned") : null;
         const overdue = Boolean((d && !d.doneAt && daysUntil(d.dueOn, today) < 0) || (taskReason === "overdue" && tk && tk.status !== "DONE"));
+        const rq = u.request;
         const title = u.event
           ? (u.event.statusTitleEn ?? "Status updated")
+          : rq
+            ? `New upload: ${rq.title}`
           : u.kind === "STUCK"
             ? `No change from USCIS in ${u.stuckDays?.toLocaleString("en-US") ?? "many"} days`
             : tk
@@ -227,6 +231,10 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
         };
         const nextStep = u.event
           ? nextStepFor(u.event.statusTitleEn, u.event.formType ?? u.case?.formType).en
+          : rq
+            ? rq.status === "COMPLETED"
+              ? "Every required document is accepted."
+              : "Review the upload: accept it, or ask the client again."
           : u.kind === "STUCK"
             ? "Review the case. If it's outside normal processing time, consider an inquiry with USCIS."
             : tk
@@ -243,7 +251,7 @@ export function createFirmUpdateService({ db, mailer, siteUrl, now = () => new D
           overdue,
           at: u.event?.firstObservedAt ?? u.createdAt,
           snoozedActive: u.state === "SNOOZED" && Boolean(u.snoozedUntil && u.snoozedUntil > t),
-          client: client ? { id: client.id, displayName: client.displayName } : null,
+          client: client ? { id: client.id, displayName: client.displayName } : rq ? rq.client : null,
           nextStep,
           preview: preview && { to: preview.to, subject: preview.subject, body: preview.body },
         };

@@ -27,7 +27,7 @@ export const AUDIT_CATEGORIES = {
   updates: { label: "Updates, deadlines and client emails", prefixes: ["update.", "client_update.", "client.portal_", "firm.client_updates", "deadline.", "firm.alerts"] },
   tasks: { label: "Tasks", prefixes: ["task."] },
   matters: { label: "Matters", prefixes: ["matter."] },
-  documents: { label: "Documents", prefixes: ["document."] },
+  documents: { label: "Documents and requests", prefixes: ["document.", "request."] },
   exports: { label: "Exports", prefixes: ["audit."] },
 } as const;
 export type AuditCategory = keyof typeof AUDIT_CATEGORIES;
@@ -128,6 +128,22 @@ export function describeAudit(action: string, m: Meta, target: string): string {
       return `Exported ${plural(m.rows, "case")} to CSV (with full receipt numbers)`;
     case "firm.settings":
       return `Changed firm settings (${(Array.isArray(m.fields) ? m.fields : []).join(", ") || "details"})`;
+    case "request.created":
+      return `Created document request "${str(m.title)}" (${plural(m.items, "document")})`;
+    case "request.sent":
+      return `Emailed document request "${str(m.title)}" to the client`;
+    case "request.new_link":
+      return `Made a new link for document request "${str(m.title)}" (the old one stopped working)`;
+    case "request.canceled":
+      return `Canceled document request "${str(m.title)}"`;
+    case "request.reopened":
+      return `Reopened document request "${str(m.title)}"`;
+    case "request.item_accepted":
+      return `Accepted "${str(m.item)}" in request "${str(m.title)}"`;
+    case "request.item_rejected":
+      return `Asked the client to upload "${str(m.item)}" again (request "${str(m.title)}")`;
+    case "request.client_uploaded":
+      return `The client uploaded "${str(m.file)}" for "${str(m.item)}" (request "${str(m.title)}")`;
     case "document.uploaded":
       return `Uploaded "${str(m.name)}"`;
     case "document.downloaded":
@@ -220,7 +236,7 @@ export function createFirmAuditService({ db, now = () => new Date() }: { db: Pri
         id: r.id,
         createdAt: r.createdAt,
         action: r.action,
-        actor: r.actor ? (r.actor.name ?? r.actor.email) : r.actorUserId ? "Former user" : r.action.startsWith("client_update.") ? "CasePingo (automatic)" : "CasePingo billing",
+        actor: r.actor ? (r.actor.name ?? r.actor.email) : r.actorUserId ? "Former user" : r.action.startsWith("client_update.") ? "CasePingo (automatic)" : r.action === "request.client_uploaded" ? "Client (upload link)" : "CasePingo billing",
         actorEmail: r.actor?.email ?? null,
         description: describeAudit(r.action, (r.metadata ?? {}) as Meta, target?.label ?? ""),
         href: target?.href ?? null,

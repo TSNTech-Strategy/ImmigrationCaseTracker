@@ -8,6 +8,7 @@ import { EmptyState, Notice, btn, control } from "@/components/workspace-ui";
 import { taskFormOptions } from "../tasks/options";
 import { DOC_NOTICES, DocumentTable } from "./document-table";
 import { DocumentUploadForm } from "./upload-form";
+import { DocumentsSubNav } from "./sub-nav";
 
 export const metadata: Metadata = { title: "Documents · CasePingo" };
 
@@ -32,7 +33,11 @@ export default async function DocumentsPage({ searchParams }: PageProps<"/firm/d
           <h1 className="text-2xl font-semibold tracking-tight">Documents</h1>
           <span className="text-sm tabular-nums text-[var(--muted)]">{data.documents.length}</span>
         </div>
+        <Link href="/firm/documents/requests/new" className={btn}>
+          Request documents from a client
+        </Link>
       </div>
+      <DocumentsSubNav current="files" />
       {notice && DOC_NOTICES[notice] && <Notice kind={DOC_NOTICES[notice].error ? "error" : "success"}>{DOC_NOTICES[notice].text}</Notice>}
       {!data.storageReady && <Notice kind="error">File storage isn&apos;t set up on this site, so uploads are off here.</Notice>}
 

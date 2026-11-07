@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { createFirmAlertService } from "@/lib/firms/alerts";
 import { createFirmTaskService } from "@/lib/firms/tasks";
+import { documentRequestService } from "@/lib/firms";
 import { firmChecksAllowedWhere } from "@/lib/billing/entitlements";
 import { inngest } from "@/lib/inngest/client";
 
@@ -17,6 +18,7 @@ export const firmAlerts = inngest.createFunction(
       for (const f of firms) n += await svc.raiseDue(f);
       return { firms: firms.length, reminders: n };
     });
-    return { alerts, tasks };
+    const requests = await step.run("document-request-reminders", () => documentRequestService().runReminders());
+    return { alerts, tasks, requests };
   },
 );
