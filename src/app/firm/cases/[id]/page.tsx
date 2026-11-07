@@ -10,7 +10,7 @@ import { caseJourney } from "@/lib/journeys";
 import { LocalTime } from "@/components/local-time";
 import { ModeBanner } from "@/components/mode-banner";
 import { requireUser } from "@/lib/auth/session";
-import { firmAlertService, firmCaseService, firmDocumentService, firmMatterService, firmService, firmTagService, firmTaskService } from "@/lib/firms";
+import { firmAlertService, firmCaseService, documentRequestService, firmDocumentService, firmMatterService, firmService, firmTagService, firmTaskService } from "@/lib/firms";
 import { setCasesMatterAction } from "../../matters/actions";
 import { DOC_NOTICES, DocumentTable } from "../../documents/document-table";
 import { DocumentUploadForm } from "../../documents/upload-form";
@@ -60,6 +60,7 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
   const caseTasks = await firmTaskService().list(user.id, { scope: "team", status: "all", caseId: c.id });
   const matters = await firmMatterService().options(ctx.firm.id);
   const docs = await firmDocumentService().list(user.id, { caseId: c.id });
+  const requests = await documentRequestService().list(user.id, { status: "OPEN", caseId: c.id });
   const docNotice = typeof notice === "string" ? DOC_NOTICES[notice] : undefined;
   const alerts = firmAlertService();
   const deadlines = await alerts.caseDeadlines(ctx.firm.id, c.id);
@@ -190,9 +191,29 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
         )}
       </section>
       <section aria-labelledby="docs-h" className="flex scroll-mt-24 flex-col gap-3">
-        <h2 id="docs-h" className="text-lg font-semibold">
-          Documents <span className="text-base font-normal tabular-nums text-[var(--muted)]">{docs?.documents.length ?? 0}</span>
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="docs-h" className="text-lg font-semibold">
+            Documents <span className="text-base font-normal tabular-nums text-[var(--muted)]">{docs?.documents.length ?? 0}</span>
+          </h2>
+          <Link href={`/firm/documents/requests/new?case=${c.id}`} className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm font-medium hover:border-[var(--accent)]">
+            Request documents from the client
+          </Link>
+        </div>
+        {requests && requests.requests.length > 0 && (
+          <ul className="flex flex-col gap-2">
+            {requests.requests.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm">
+                <Link href={`/firm/documents/requests/${r.id}`} className="font-medium hover:underline">
+                  Request: {r.title}
+                </Link>
+                <span className="text-xs text-[var(--muted)]">
+                  {r.progress.requiredAccepted} of {r.progress.required} accepted
+                  {r.progress.uploaded > 0 && <strong className="ml-2 font-semibold text-[var(--st-action)]">{r.progress.uploaded} to review</strong>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
         {docNotice && <p role={docNotice.error ? "alert" : "status"} className={`rounded-md border px-3 py-2 text-sm ${docNotice.error ? "border-[var(--danger)] text-[var(--danger)]" : "border-[var(--success)] text-[var(--success)]"}`}>{docNotice.text}</p>}
         {docs && docs.documents.length > 0 && <DocumentTable documents={docs.documents} back={`/firm/cases/${c.id}#docs-h`} userId={user.id} isManager={ctx.membership.role !== "STAFF"} showLink={false} />}
         {docs?.storageReady ? (

@@ -219,3 +219,86 @@ export function clientUpdateEmail(p: {
     ...(p.replyTo ? { replyTo: p.replyTo } : {}),
   };
 }
+
+/** A firm asks its client to upload documents (first request, reminder, or "please upload again"). */
+export function documentRequestEmail(p: {
+  to: string;
+  locale: string;
+  firmName: string;
+  clientName: string;
+  kind: "request" | "reminder" | "reupload";
+  title: string;
+  message: string | null;
+  items: string[];
+  dueText: string | null;
+  link: string;
+  reason?: string | null;
+  contactLine: string | null;
+  replyTo: string | null;
+}): EmailMessage {
+  const es = p.locale === "es";
+  const list = p.items.map((i) => `  • ${i}`);
+  const contact = p.contactLine ? `: ${p.contactLine}` : ".";
+  const subject = es
+    ? p.kind === "reminder"
+      ? `Recordatorio de ${p.firmName}: documentos pendientes`
+      : p.kind === "reupload"
+        ? `${p.firmName} necesita que vuelva a subir un documento`
+        : `${p.firmName} le pide documentos: ${p.title}`
+    : p.kind === "reminder"
+      ? `Reminder from ${p.firmName}: documents still needed`
+      : p.kind === "reupload"
+        ? `${p.firmName} needs you to upload a document again`
+        : `${p.firmName} is requesting documents: ${p.title}`;
+  const intro = es
+    ? p.kind === "reminder"
+      ? `${p.firmName} todavía necesita estos documentos:`
+      : p.kind === "reupload"
+        ? `${p.firmName} revisó lo que subió y necesita que suba de nuevo:`
+        : `${p.firmName} necesita estos documentos para su caso:`
+    : p.kind === "reminder"
+      ? `${p.firmName} still needs these documents:`
+      : p.kind === "reupload"
+        ? `${p.firmName} reviewed your upload and needs you to upload this again:`
+        : `${p.firmName} needs these documents for your case:`;
+  const lines = es
+    ? [
+        `Hola, ${p.clientName}:`,
+        "",
+        intro,
+        ...list,
+        ...(p.reason ? ["", `Motivo: ${p.reason}`] : []),
+        ...(p.message && p.kind === "request" ? ["", p.message] : []),
+        ...(p.dueText ? ["", `Fecha límite: ${p.dueText}`] : []),
+        "",
+        `Súbalos desde su teléfono o computadora (no necesita cuenta): ${p.link}`,
+        "",
+        `Puede tomar una foto clara de cada documento o subir un PDF. Este enlace es privado: no lo comparta.`,
+        "",
+        `¿Preguntas? Responda a este correo o comuníquese con ${p.firmName}${contact}`,
+        "",
+        `— ${p.firmName}`,
+        "",
+        `Enviado por CasePingo en nombre de ${p.firmName}.`,
+      ]
+    : [
+        `Hello ${p.clientName},`,
+        "",
+        intro,
+        ...list,
+        ...(p.reason ? ["", `Reason: ${p.reason}`] : []),
+        ...(p.message && p.kind === "request" ? ["", p.message] : []),
+        ...(p.dueText ? ["", `Please upload by: ${p.dueText}`] : []),
+        "",
+        `Upload them from your phone or computer (no account needed): ${p.link}`,
+        "",
+        `A clear photo of each document or a PDF works. This link is private: please don't share it.`,
+        "",
+        `Questions? Reply to this email or contact ${p.firmName}${contact}`,
+        "",
+        `— ${p.firmName}`,
+        "",
+        `Sent by CasePingo on behalf of ${p.firmName}.`,
+      ];
+  return { to: p.to, subject, body: lines.join("\n"), fromName: `${p.firmName} via CasePingo`, replyTo: p.replyTo ?? undefined };
+}

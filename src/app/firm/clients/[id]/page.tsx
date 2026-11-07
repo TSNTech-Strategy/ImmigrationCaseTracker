@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
-import { firmCaseService, firmDocumentService, firmTaskService, firmUpdateService } from "@/lib/firms";
+import { firmCaseService, documentRequestService, firmDocumentService, firmTaskService, firmUpdateService } from "@/lib/firms";
 import { TaskTable } from "../../tasks/task-list";
 import { DOC_NOTICES, DocumentTable } from "../../documents/document-table";
 import { DocumentUploadForm } from "../../documents/upload-form";
@@ -87,6 +87,7 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
   const portalUrl = firmUpdateService().portalUrl(client);
   const clientTasks = await firmTaskService().list(user.id, { scope: "team", status: "active", clientId: client.id });
   const docs = await firmDocumentService().list(user.id, { clientId: client.id });
+  const requests = await documentRequestService().list(user.id, { status: "OPEN", clientId: client.id });
   const docNotice = typeof notice === "string" ? DOC_NOTICES[notice] : undefined;
   const canArchive = ctx.membership.role !== "STAFF";
 
@@ -159,9 +160,29 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
       </section>
 
       <section aria-labelledby="docs-h" className="flex scroll-mt-24 flex-col gap-3">
-        <h2 id="docs-h" className="text-lg font-semibold">
-          Documents <span className="text-base font-normal tabular-nums text-[var(--muted)]">{docs?.documents.length ?? 0}</span>
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="docs-h" className="text-lg font-semibold">
+            Documents <span className="text-base font-normal tabular-nums text-[var(--muted)]">{docs?.documents.length ?? 0}</span>
+          </h2>
+          <Link href={`/firm/documents/requests/new?client=${client.id}`} className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm font-medium hover:border-[var(--accent)]">
+            Request documents from the client
+          </Link>
+        </div>
+        {requests && requests.requests.length > 0 && (
+          <ul className="flex flex-col gap-2">
+            {requests.requests.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm">
+                <Link href={`/firm/documents/requests/${r.id}`} className="font-medium hover:underline">
+                  Request: {r.title}
+                </Link>
+                <span className="text-xs text-[var(--muted)]">
+                  {r.progress.requiredAccepted} of {r.progress.required} accepted
+                  {r.progress.uploaded > 0 && <strong className="ml-2 font-semibold text-[var(--st-action)]">{r.progress.uploaded} to review</strong>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
         {docNotice && <p role={docNotice.error ? "alert" : "status"} className={`rounded-md border px-3 py-2 text-sm ${docNotice.error ? "border-[var(--danger)] text-[var(--danger)]" : "border-[var(--success)] text-[var(--success)]"}`}>{docNotice.text}</p>}
         {docs && docs.documents.length > 0 && <DocumentTable documents={docs.documents} back={`/firm/clients/${client.id}`} userId={user.id} isManager={ctx.membership.role !== "STAFF"} showLink={false} />}
         {docs?.storageReady ? (

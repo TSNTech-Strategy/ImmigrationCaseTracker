@@ -71,6 +71,8 @@ model User {
   taskComments           FirmTaskComment[]       @relation("TaskCommentAuthor")
   mattersCreated         FirmMatter[]            @relation("MatterCreatedBy")
   documentsUploaded      FirmDocument[]          @relation("DocumentUploadedBy")
+  docRequestsCreated     DocumentRequest[]       @relation("DocRequestCreatedBy")
+  docItemsReviewed       DocumentRequestItem[]   @relation("DocItemReviewedBy")
   deadlinesDone          CaseDeadline[]          @relation("DeadlineDoneBy")
   consentsGranted        CaseConsent[]           @relation("ConsentGrantedBy")
   consentsWithdrawn      CaseConsent[]           @relation("ConsentWithdrawnBy")
@@ -153,6 +155,7 @@ model Firm {
   taskComments     FirmTaskComment[]
   matters          FirmMatter[]
   documents        FirmDocument[]
+  docRequests      DocumentRequest[]
 }
 
 enum FirmPlan {
@@ -226,9 +229,10 @@ model Client {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  cases     TrackedCase[]
-  tasks     FirmTask[]
-  documents FirmDocument[]
+  cases       TrackedCase[]
+  tasks       FirmTask[]
+  documents   FirmDocument[]
+  docRequests DocumentRequest[]
 
   /// Lets TrackedCase reference (clientId, firmId) so a case can never point
   /// at another firm's client.
@@ -328,6 +332,7 @@ model TrackedCase {
   deadlines   CaseDeadline[]
   tasks       FirmTask[]
   documents   FirmDocument[]
+  docRequests DocumentRequest[]
 
   @@unique([ownerUserId, receiptDigest])
   @@unique([firmId, receiptDigest])
@@ -737,6 +742,8 @@ model FirmUpdate {
   deadline          CaseDeadline?     @relation(fields: [deadlineId], references: [id], onDelete: Cascade)
   taskId            String?
   task              FirmTask?         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  requestId         String?
+  request           DocumentRequest?  @relation(fields: [requestId], references: [id], onDelete: Cascade)
   /// One alert per situation: "stuck:<case>:<status fingerprint>" or "deadline:<id>:soon|overdue".
   alertKey          String?           @unique
   /// Days without a USCIS change when a stuck alert was raised.
@@ -761,6 +768,7 @@ model FirmUpdate {
   @@index([caseId])
   @@index([deadlineId])
   @@index([taskId])
+  @@index([requestId])
 }
 
 /// A to-do for the firm's team, optionally about a case or a client.
@@ -842,12 +850,80 @@ model FirmDocument {
   storageKey   String             @unique
   uploadedById String?
   uploadedBy   User?              @relation("DocumentUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  /// The request item a client uploaded this for, if any.
+  requestItemId String?
+  requestItem   DocumentRequestItem? @relation(fields: [requestItemId], references: [id], onDelete: SetNull)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
   @@index([firmId, createdAt])
   @@index([caseId])
   @@index([clientId])
+}
+
+/// A list of documents the firm asks a client to upload, by a private link (no account needed).
+model DocumentRequest {
+  id             String                @id @default(cuid())
+  firmId         String
+  firm           Firm                  @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client                @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  /// Same firm, checked by the service.
+  caseId         String?
+  case           TrackedCase?          @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  title          String
+  message        String?
+  dueOn          DateTime?             @db.Date
+  status         DocumentRequestStatus @default(OPEN)
+  /// A new version makes earlier links stop working.
+  linkVersion    Int                   @default(1)
+  createdById    String?
+  createdBy      User?                 @relation("DocRequestCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  sentAt         DateTime?
+  remindersSent  Int                   @default(0)
+  lastReminderAt DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  items          DocumentRequestItem[]
+  updates        FirmUpdate[]
+
+  @@index([firmId, status, createdAt])
+  @@index([clientId])
+  @@index([caseId])
+}
+
+model DocumentRequestItem {
+  id           String            @id @default(cuid())
+  requestId    String
+  request      DocumentRequest   @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  label        String
+  /// Spanish label, when it came from a bilingual checklist.
+  labelEs      String?
+  note         String?
+  required     Boolean           @default(true)
+  position     Int
+  status       RequestItemStatus @default(PENDING)
+  rejectReason String?
+  reviewedById String?
+  reviewedBy   User?             @relation("DocItemReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  documents    FirmDocument[]
+
+  @@index([requestId, position])
+}
+
+enum DocumentRequestStatus {
+  OPEN
+  COMPLETED
+  CANCELED
+}
+
+enum RequestItemStatus {
+  PENDING
+  UPLOADED
+  ACCEPTED
+  REJECTED
 }
 
 enum DocumentKind {
@@ -946,6 +1022,7 @@ enum FirmUpdateKind {
   STUCK
   DEADLINE
   TASK
+  DOCUMENT
 }
 
 enum DeadlineKind {

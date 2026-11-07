@@ -1,3 +1,4 @@
+import { createDocumentRequestService } from "./requests";
 import { createFirmDocumentService } from "./documents";
 import { getFileStore } from "@/lib/storage/file-store";
 import { createFirmMatterService } from "./matters";
@@ -69,4 +70,9 @@ export function firmMatterService() {
 /** Firm documents (encrypted file storage). */
 export function firmDocumentService() {
   return createFirmDocumentService({ db: prisma, store: getFileStore() });
+}
+
+/** Document requests to clients (checklists, upload links, review, reminders). */
+export function documentRequestService() {
+  return createDocumentRequestService({ db: prisma, mailer: getEmailDriver(), siteUrl: getSiteUrl(), docs: firmDocumentService() });
 }

@@ -103,19 +103,54 @@ export function createFirmDocumentService({ db, store }: { db: PrismaClient; sto
     if (clientId && !(await db.client.findFirst({ where: { id: clientId, firmId: ctx.firm.id }, select: { id: true } }))) return fail("Choose one of your firm's clients.", "clientId");
     if (visibility === "CLIENT" && !clientId) return fail("Link the document to a client to share it with them.", "visibility");
 
-    const storageKey = `${ctx.firm.id}/${randomUUID()}`;
-    await store.put(storageKey, encryptBytes(input.data));
+    const r = await save(ctx.firm.id, { data: input.data, name, contentType, kind, visibility, caseId, clientId, source, uploadedById: userId });
+    await audit(ctx.firm.id, userId, "document.uploaded", r.id, { name, kind, visibility });
+    return { ok: true, id: r.id };
+  }
+
+  /** Encrypt, store and record one already-checked file. */
+  async function save(
+    firmId: string,
+    f: { data: Buffer; name: string; contentType: string; kind: DocumentKind; visibility: DocumentVisibility; caseId: string | null; clientId: string | null; source: DocumentSource; uploadedById: string | null; requestItemId?: string | null },
+  ) {
+    if (!store) throw new Error("No file store");
+    const storageKey = `${firmId}/${randomUUID()}`;
+    await store.put(storageKey, encryptBytes(f.data));
     try {
-      const doc = await db.firmDocument.create({
-        data: { firmId: ctx.firm.id, caseId, clientId, name, kind, visibility, source, contentType, size: input.data.length, sha256: createHash("sha256").update(input.data).digest("hex"), storageKey, uploadedById: userId },
+      return await db.firmDocument.create({
+        data: {
+          firmId,
+          caseId: f.caseId,
+          clientId: f.clientId,
+          name: f.name,
+          kind: f.kind,
+          visibility: f.visibility,
+          source: f.source,
+          contentType: f.contentType,
+          size: f.data.length,
+          sha256: createHash("sha256").update(f.data).digest("hex"),
+          storageKey,
+          uploadedById: f.uploadedById,
+          requestItemId: f.requestItemId ?? null,
+        },
         select: { id: true },
       });
-      await audit(ctx.firm.id, userId, "document.uploaded", doc.id, { name, kind, visibility });
-      return { ok: true, id: doc.id };
     } catch (err) {
       await store.remove(storageKey).catch(() => {});
       throw err;
     }
+  }
+
+  /** A client's upload for a document request: checked like any upload, shared with the client, no signed-in user. */
+  async function saveFromClient(firmId: string, input: { data: Buffer; name: string; caseId: string | null; clientId: string; requestItemId: string }): Promise<{ ok: true; id: string; name: string } | Fail> {
+    if (!store) return fail("File storage isn't set up on this site.");
+    if (!input.data.length) return fail("Choose a file.", "file");
+    if (input.data.length > MAX_FILE_BYTES) return fail("Files can be up to 4 MB.", "file");
+    const name = cleanFileName(input.name);
+    const contentType = sniffType(input.data, name);
+    if (!contentType) return fail("Upload a PDF, a photo (JPG, PNG, HEIC, WebP) or a Word document (.docx).", "file");
+    const r = await save(firmId, { data: input.data, name, contentType, kind: "OTHER", visibility: "CLIENT", caseId: input.caseId, clientId: input.clientId, source: "CLIENT", uploadedById: null, requestItemId: input.requestItemId });
+    return { ok: true, id: r.id, name };
   }
 
   async function list(userId: string, filters: DocumentFilters = {}) {
@@ -204,7 +239,7 @@ export function createFirmDocumentService({ db, store }: { db: PrismaClient; sto
     return { ok: true };
   }
 
-  return { upload, list, download, update, remove };
+  return { upload, saveFromClient, list, download, update, remove };
 }
 
 export type FirmDocumentService = ReturnType<typeof createFirmDocumentService>;
