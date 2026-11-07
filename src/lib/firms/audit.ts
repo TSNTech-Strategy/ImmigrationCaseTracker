@@ -148,6 +148,12 @@ export function describeAudit(action: string, m: Meta, target: string): string {
       return `Uploaded "${str(m.name)}"`;
     case "document.downloaded":
       return `Downloaded "${str(m.name)}"`;
+    case "document.client_downloaded":
+      return `The client opened "${str(m.name)}" from their status page`;
+    case "firm.logo_updated":
+      return "Uploaded a new firm logo";
+    case "firm.logo_removed":
+      return "Removed the firm logo";
     case "document.updated":
       return `Changed document "${str(m.name)}" (${(Array.isArray(m.fields) ? m.fields : []).join(", ") || "details"})`;
     case "document.deleted":
@@ -236,7 +242,7 @@ export function createFirmAuditService({ db, now = () => new Date() }: { db: Pri
         id: r.id,
         createdAt: r.createdAt,
         action: r.action,
-        actor: r.actor ? (r.actor.name ?? r.actor.email) : r.actorUserId ? "Former user" : r.action.startsWith("client_update.") ? "CasePingo (automatic)" : r.action === "request.client_uploaded" ? "Client (upload link)" : "CasePingo billing",
+        actor: r.actor ? (r.actor.name ?? r.actor.email) : r.actorUserId ? "Former user" : r.action.startsWith("client_update.") ? "CasePingo (automatic)" : r.action === "request.client_uploaded" ? "Client (upload link)" : r.action === "document.client_downloaded" ? "Client (status page)" : "CasePingo billing",
         actorEmail: r.actor?.email ?? null,
         description: describeAudit(r.action, (r.metadata ?? {}) as Meta, target?.label ?? ""),
         href: target?.href ?? null,

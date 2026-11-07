@@ -213,7 +213,7 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
           Client status page
         </h2>
         <p className="text-sm text-[var(--muted)]">
-          A private page your client can open any time to see where each of their cases stands and what comes next, in English or Spanish. No sign-in: anyone with the link can see it, so send it only to your client. It never shows full receipt numbers.
+          A private page your client can open any time, in English or Spanish: where each case stands and what comes next, the documents you&apos;ve asked for (with upload buttons), and the files you&apos;ve shared with them. It shows your firm&apos;s logo. No sign-in: anyone with the link can see it, so send it only to your client. It never shows full receipt numbers.
         </p>
         {portalUrl ? (
           <>

@@ -5,7 +5,7 @@ import type { EmailDriver } from "./types";
 // Selected whenever SMTP_HOST is set.
 export const smtpDriver: EmailDriver = {
   name: "smtp",
-  async send({ to, subject, body, fromName, replyTo }) {
+  async send({ to, subject, body, html, fromName, replyTo }) {
     // `||` so empty template values fall back to defaults.
     const port = Number(process.env.SMTP_PORT || 587);
     const transport = nodemailer.createTransport({
@@ -22,6 +22,7 @@ export const smtpDriver: EmailDriver = {
       to,
       subject,
       text: body,
+      ...(html ? { html } : {}),
       ...(replyTo ? { replyTo } : {}),
     });
   },

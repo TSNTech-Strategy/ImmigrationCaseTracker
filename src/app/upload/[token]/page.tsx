@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { FirmBrand } from "@/components/firm-brand";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { documentRequestService } from "@/lib/firms";
@@ -80,7 +81,7 @@ async function UploadView({ params, searchParams }: PageProps<"/upload/[token]">
     <div lang={lang} className="flex flex-1 flex-col bg-[var(--background)]">
       <header className="border-b border-[var(--border)] bg-[var(--surface)]">
         <div className="mx-auto flex w-full max-w-2xl flex-wrap items-center justify-between gap-2 px-4 py-4">
-          <p className="text-lg font-semibold">{firm}</p>
+          <FirmBrand name={firm} logo={v.firm.logo} />
           <Link href={`/upload/${token}?lang=${es ? "en" : "es"}`} hrefLang={es ? "en" : "es"} className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm font-medium hover:border-[var(--accent)]">
             {t.switchTo}
           </Link>

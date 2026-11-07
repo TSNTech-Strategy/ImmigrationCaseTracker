@@ -4,6 +4,8 @@ import { requireUser } from "@/lib/auth/session";
 import { firmService } from "@/lib/firms";
 import { TIME_ZONES } from "@/lib/firms/profile";
 import { GeneralSettingsForm } from "./general-form";
+import { LogoForm } from "./logo-form";
+import { LOGO_ACCEPT, logoPath } from "@/lib/firms/branding";
 
 export const metadata: Metadata = { title: "Firm settings · CasePingo" };
 
@@ -21,7 +23,7 @@ export default async function FirmSettingsPage() {
     <div className="flex max-w-3xl flex-col gap-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">General</h1>
-        <p className="text-sm text-[var(--muted)]">Your firm&apos;s name, time zone, and who new cases go to.</p>
+        <p className="text-sm text-[var(--muted)]">Your firm&apos;s name, logo, time zone, and who new cases go to.</p>
       </div>
       <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         {isManager ? (
@@ -42,6 +44,22 @@ export default async function FirmSettingsPage() {
             </div>
             <p className="text-[var(--muted)] sm:col-span-3">Only an Owner or Admin can change these.</p>
           </dl>
+        )}
+      </section>
+      <section aria-labelledby="logo-h" className="flex flex-col gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+        <div className="flex flex-col gap-1">
+          <h2 id="logo-h" className="text-base font-semibold">
+            Logo
+          </h2>
+          <p className="text-sm text-[var(--muted)]">Clients see it at the top of their status page, the document upload page and the emails you send them.</p>
+        </div>
+        {isManager ? (
+          <LogoForm logo={logoPath(firm)} firmName={firm.name} accept={LOGO_ACCEPT} />
+        ) : logoPath(firm) ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoPath(firm)!} alt={`${firm.name} logo`} className="h-14 w-auto max-w-[220px] object-contain object-left" />
+        ) : (
+          <p className="text-sm text-[var(--muted)]">No logo yet. Only an Owner or Admin can add one.</p>
         )}
       </section>
     </div>
