@@ -24,8 +24,9 @@ export default function Privacy() {
           sign-in provider and we never see it.
         </li>
         <li>
-          <strong>Case information you add:</strong> USCIS receipt numbers, optional nicknames, and your confirmation that you are
-          authorized to track each case (with its date and wording).
+          <strong>Case information you add:</strong> USCIS receipt numbers, optional nicknames and tags (labels such as
+          &quot;Family&quot; that only you see), and your confirmation that you are authorized to track each case (with its date
+          and wording).
         </li>
         <li>
           <strong>Status information from USCIS:</strong> form type, status text, dates and history USCIS returns for those

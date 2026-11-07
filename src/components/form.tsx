@@ -20,9 +20,11 @@ export function Field({
   hint,
   error: serverError,
   onChange,
+  id: idProp,
   ...input
 }: { label: string; name: string; hint?: string; error?: string } & InputHTMLAttributes<HTMLInputElement>) {
-  const id = `field-${name}`;
+  // Pass an id when a page has several fields with the same name (e.g. one form per row).
+  const id = idProp ?? `field-${name}`;
   const isPassword = input.type === "password";
   const [reveal, setReveal] = useState(false);
   // Hide a field's error once the user starts fixing it.

@@ -10,6 +10,8 @@ import { getUscisClient } from "@/lib/uscis";
 import { describeCadence } from "@/lib/plans";
 import { prisma } from "@/lib/db";
 import { FEATURES } from "@/lib/features";
+import { flatTags, tagService } from "@/lib/cases";
+import { CaseTagsPanel } from "../tags/tag-forms";
 import { RefreshButton, RemoveCaseForm } from "./case-actions";
 import { CheckThisCaseButton } from "@/app/billing/buttons";
 import { CaseStatusPanel, ObservedChanges, UscisHistory, USCIS_SOURCE_NOTE } from "@/components/case-status";
@@ -28,6 +30,7 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
   const user = await requireUser(`/cases/${id}`);
   const c = await caseService().getCase(user.id, id);
   if (!c) notFound(); // also for other people's cases — no existence leak
+  const allTags = await tagService().list(user.id);
 
   const { notice } = await searchParams;
   const message = typeof notice === "string" ? NOTICES[notice] : undefined;
@@ -115,6 +118,7 @@ export default async function CasePage({ params, searchParams }: PageProps<"/cas
           </span>
         </Link>
       )}
+      <CaseTagsPanel caseId={c.id} tags={allTags} onCase={flatTags(c.tags).map((tg) => tg.id)} />
       <ObservedChanges events={c.events} es={es} />
       <UscisHistory history={c.uscisHistory} es={es} />
 

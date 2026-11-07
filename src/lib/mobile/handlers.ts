@@ -10,6 +10,7 @@ import { statusCategory } from "@/lib/status-category";
 import { STATUS_GUIDE, findStatusGuide, guideCategory, guideHeading, guidePath, guideText } from "@/lib/status-guide";
 import { PROCESSING_TIMES_URL, STAGE_COUNT, approvalNextStep, caseStage, formInfo, receivingOffice, recentApprovalAt } from "@/lib/case-insights";
 import { recentApprovals } from "@/lib/cases/approvals";
+import { caseTagsSelect, createTagService, flatTags, TAG_COLORS, TAG_LIMITS, type TagResult } from "@/lib/cases/tags";
 
 /**
  * The mobile app's API (/api/v1/*), as plain functions so they can be tested
@@ -68,6 +69,8 @@ const deviceBody = z.object({
 export function createMobileApi({ db, cases, now = () => new Date() }: { db: PrismaClient; cases: CaseService; now?: () => Date }) {
   const ent = createEntitlements({ db, now });
 
+  const tags = createTagService({ db });
+
   async function me(userId: string): Promise<ApiResult> {
     const u = await db.user.findUnique({
       where: { id: userId },
@@ -125,12 +128,13 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
     // The list leaves out the long USCIS history; the case screen has it.
     const { uscisHistory: _omit, ...listSelect } = caseViewSelect;
     void _omit;
-    const rows = await db.trackedCase.findMany({ where: { ownerUserId: userId }, select: listSelect, orderBy: { createdAt: "desc" } });
+    const rows = await db.trackedCase.findMany({ where: { ownerUserId: userId }, select: { ...listSelect, ...caseTagsSelect }, orderBy: { createdAt: "desc" } });
     const approvals = await recentApprovals(db, rows, now());
     return ok({
       stageCount: STAGE_COUNT,
       cases: rows.map((r) => ({
         ...r,
+        tags: flatTags(r.tags),
         category: statusCategory(r.statusTitleEn),
         stage: caseStage(r.statusTitleEn),
         form: formInfo(r.formType),
@@ -148,7 +152,8 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
     const history = Array.isArray(c.uscisHistory) ? (c.uscisHistory as { textEn?: string | null }[]) : null;
     return ok({
       case: {
-        ...Object.fromEntries(Object.entries(c).filter(([k]) => k !== "consents" && k !== "events" && k !== "uscisHistory")),
+        ...Object.fromEntries(Object.entries(c).filter(([k]) => k !== "consents" && k !== "events" && k !== "uscisHistory" && k !== "tags")),
+        tags: flatTags(c.tags),
         category: statusCategory(c.statusTitleEn),
         stage: caseStage(c.statusTitleEn),
         uscisHistory: history && history.map((h) => ({ ...h, category: statusCategory(h?.textEn) })),
@@ -253,7 +258,36 @@ export function createMobileApi({ db, cases, now = () => new Date() }: { db: Pri
     return ok({ unregistered: true });
   }
 
-  return { me, updateMe, config, guide, listCases, getCase, addCase, refreshCase, renameCase, removeCase, checkInstead, registerDevice, unregisterDevice };
+  // ---- Tags (personal cases) ----
+  const TAG_STATUS = { invalid: 400, duplicate: 409, limit: 403, not_found: 404 } as const;
+  const tagResult = <T>(r: TagResult<T>, body: (v: T) => unknown, status = 200): ApiResult =>
+    r.ok ? ok(body(r.value), status) : err(TAG_STATUS[r.error], r.error, r.message, r.error === "invalid" || r.error === "duplicate" ? "name" : undefined);
+
+  /** The person's tags (A to Z) with how many cases each is on, the colors and the limits. */
+  async function listTags(userId: string): Promise<ApiResult> {
+    return ok({ tags: await tags.list(userId), colors: TAG_COLORS, limits: TAG_LIMITS });
+  }
+  /** {name, color?}: a new tag (a color is picked when none is sent). */
+  async function createTag(userId: string, input: unknown): Promise<ApiResult> {
+    const i = (input ?? {}) as { name?: unknown; color?: unknown };
+    return tagResult(await tags.create(userId, { name: i.name, color: i.color }), (tag) => ({ tag }), 201);
+  }
+  /** {name?, color?}: rename or recolor. */
+  async function updateTag(userId: string, tagId: string, input: unknown): Promise<ApiResult> {
+    const i = (input ?? {}) as { name?: unknown; color?: unknown };
+    return tagResult(await tags.update(userId, tagId, { name: i.name, color: i.color }), (tag) => ({ tag }));
+  }
+  /** Delete a tag: it comes off every case; the cases stay. */
+  async function deleteTag(userId: string, tagId: string): Promise<ApiResult> {
+    return tagResult(await tags.remove(userId, tagId), () => ({ deleted: true }));
+  }
+  /** {tagIds: string[]}: exactly these tags on the case. */
+  async function setCaseTags(userId: string, caseId: string, input: unknown): Promise<ApiResult> {
+    const ids = (input as { tagIds?: unknown } | null)?.tagIds;
+    return tagResult(await tags.setCaseTags(userId, caseId, ids), (list) => ({ tags: list }));
+  }
+
+  return { me, updateMe, config, guide, listCases, getCase, addCase, refreshCase, renameCase, removeCase, checkInstead, registerDevice, unregisterDevice, listTags, createTag, updateTag, deleteTag, setCaseTags };
 }
 
 export type MobileApi = ReturnType<typeof createMobileApi>;

@@ -20,6 +20,7 @@ import { redactSnapshot } from "@/lib/uscis/text";
 import { checkIntervalMs, formatUsd, PLAN_LIMITS, PRICES } from "@/lib/plans";
 import { firmChecksAllowed } from "@/lib/billing/entitlements";
 import { createTrialService } from "@/lib/billing/trial";
+import { caseTagsSelect } from "./tags";
 
 /**
  * Everything a signed-in individual can do with their own cases.
@@ -79,10 +80,10 @@ export type CaseView = Prisma.TrackedCaseGetPayload<{ select: typeof caseViewSel
 export function createCaseService({ db, uscis, now = () => new Date(), env = process.env }: CaseServiceDeps) {
   const own = (userId: string, caseId: string) => ({ id: caseId, ownerUserId: userId });
 
-  async function listCases(userId: string): Promise<CaseView[]> {
+  async function listCases(userId: string) {
     return db.trackedCase.findMany({
       where: { ownerUserId: userId },
-      select: caseViewSelect,
+      select: { ...caseViewSelect, ...caseTagsSelect },
       orderBy: { createdAt: "desc" },
     });
   }
@@ -92,6 +93,7 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
       where: own(userId, caseId),
       select: {
         ...caseViewSelect,
+        ...caseTagsSelect,
         events: { orderBy: { firstObservedAt: "desc" }, take: 50 },
         consents: { orderBy: { capturedAt: "desc" }, take: 5 },
       },

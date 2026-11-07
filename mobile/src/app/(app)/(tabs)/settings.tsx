@@ -254,6 +254,7 @@ export default function Settings() {
             text={t.appearanceNote}
             wide={<AppearancePicker />}
           />
+          <Row glyph={{ ios: "tag", md: "sell", fallback: "#" }} tint="blue" title={t.tags} text={t.manageTags} onPress={() => router.push("/tags")} />
           <Row
             glyph={{ ios: "envelope", md: "mail", fallback: "@" }}
             tint="green"

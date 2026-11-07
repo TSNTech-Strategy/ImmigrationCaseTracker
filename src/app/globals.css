@@ -122,6 +122,9 @@
   --st-stop-bg: #fdecea;
   --st-none: #56637a;
   --st-none-bg: #eef2f8;
+  /* Tags use the status colors plus purple. */
+  --tag-purple: #6b3fbf;
+  --tag-purple-bg: #f1ebfc;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -135,6 +138,8 @@
     --st-stop-bg: #3a1714;
     --st-none: #9aa9c1;
     --st-none-bg: #16223a;
+    --tag-purple: #c4a6ff;
+    --tag-purple-bg: #271b45;
   }
 }
 :root[data-theme="dark"] {
@@ -148,6 +153,8 @@
   --st-stop-bg: #3a1714;
   --st-none: #9aa9c1;
   --st-none-bg: #16223a;
+  --tag-purple: #c4a6ff;
+  --tag-purple-bg: #271b45;
 }
 
 ::selection {

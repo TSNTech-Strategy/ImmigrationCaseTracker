@@ -61,14 +61,14 @@ Caption ideas: "Know what your status means", "Celebrate the approval", "Your wh
 - **Tracking:** No. CasePingo doesn't track people across other companies' apps or websites, and has no ad SDKs.
 - **Data linked to the user, used only for App Functionality:**
   - Contact Info: email address (account), name (optional)
-  - User Content: other user content (receipt numbers and nicknames, encrypted at rest)
+  - User Content: other user content (receipt numbers, encrypted at rest; nicknames and tags the person adds)
   - Identifiers: user ID; device ID (the push-notification token, only when alerts are on)
 - **Not collected:** location, contacts, browsing or search history, health, financial info (no purchases in the app), diagnostics or analytics SDKs, photos, audio.
 - **Camera and photos:** the receipt scanner (the app's own camera screen, or a photo the person chooses) reads the USCIS notice on the device (Apple Vision) to find the receipt number. The photo is never uploaded, so "Photos or Videos" stays Not collected; only the receipt number the person confirms is sent, as when typed.
 
 ## Google Play Data safety (draft answers)
 
-- Collected: personal info (email, name), other user-generated content (receipt numbers, nicknames), device or other IDs (push token).
+- Collected: personal info (email, name), other user-generated content (receipt numbers, nicknames, tags), device or other IDs (push token).
 - Purpose: app functionality and account management only. Not used for advertising.
 - Shared: receipt numbers go to USCIS only to look up the status the user asked for. This is a user-initiated action, so per Google's definitions it's not "sharing"; confirm at 9C.
 - Camera / photos: used on the device only to read the receipt number from a notice (Google ML Kit, on-device); photos are not collected or shared.

@@ -69,6 +69,7 @@ model User {
   pushDevices            PushDevice[]
   visaBulletinWatch      VisaBulletinWatch?
   assistantUsage         AssistantUsage[]
+  caseTags               CaseTag[]
 }
 
 model NotificationPreference {
@@ -257,9 +258,12 @@ model TrackedCase {
   consents  CaseConsent[]
   events    CaseStatusEvent[]
   checkRuns CaseCheckRun[]
+  tags      TrackedCaseTag[]
 
   @@unique([ownerUserId, receiptDigest])
   @@unique([firmId, receiptDigest])
+  /// Lets a tag link require the case's owner (see TrackedCaseTag).
+  @@unique([id, ownerUserId])
   @@index([trackingStatus, nextCheckAt])
   @@index([clientId])
 }
@@ -555,4 +559,37 @@ model AssistantUsage {
 
   @@id([userId, day])
   @@index([day])
+}
+
+/// A label someone puts on their own cases ("Family", "Work") to group and
+/// filter them. Personal cases only for now (firm cases have no owner).
+model CaseTag {
+  id          String           @id @default(cuid())
+  ownerUserId String
+  owner       User             @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  /// As typed (trimmed, single spaces), up to 24 characters.
+  name        String
+  /// Lowercased name, so "Family" and "family" are one tag.
+  nameKey     String
+  /// One of TAG_COLORS in src/lib/cases/tags.ts.
+  color       String           @default("blue")
+  createdAt   DateTime         @default(now())
+  cases       TrackedCaseTag[]
+
+  @@unique([ownerUserId, nameKey])
+  @@unique([id, ownerUserId])
+}
+
+/// A tag on a case. Both foreign keys include the owner, so the database
+/// itself only allows a person's own tag on their own case.
+model TrackedCaseTag {
+  caseId      String
+  tagId       String
+  ownerUserId String
+  case        TrackedCase @relation(fields: [caseId, ownerUserId], references: [id, ownerUserId], onDelete: Cascade)
+  tag         CaseTag     @relation(fields: [tagId, ownerUserId], references: [id, ownerUserId], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+
+  @@id([caseId, tagId])
+  @@index([tagId])
 }

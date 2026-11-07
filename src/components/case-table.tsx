@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { LocalTime } from "@/components/local-time";
 import { StatusBadge } from "@/components/status-badge";
+import { TagList } from "@/components/case-tags";
+import type { TagView } from "@/lib/cases/tags";
 
 export type CaseRow = {
   id: string;
@@ -14,6 +16,8 @@ export type CaseRow = {
   pausedReason?: string | null;
   client?: { id: string; displayName: string } | null;
   hasConsent?: boolean;
+  /** Personal cases: the person's tags on it. */
+  tags?: TagView[];
 };
 
 /**
@@ -48,6 +52,11 @@ export function CaseTable({ rows, hrefBase, es = false, showClient = false }: { 
                   <div className="font-mono text-xs text-[var(--muted)]">
                     {c.nickname ? `${c.formType ? `${c.formType} · ` : ""}${c.receiptMasked}` : (c.formType ?? "")}
                   </div>
+                  {c.tags?.length ? (
+                    <div className="mt-1.5">
+                      <TagList tags={c.tags} />
+                    </div>
+                  ) : null}
                 </td>
                 <td className="px-4 py-3 align-top">
                   <div className="flex flex-col items-start gap-1">
@@ -82,6 +91,7 @@ export function CaseTable({ rows, hrefBase, es = false, showClient = false }: { 
               <span className="font-mono text-xs text-[var(--muted)]">
                 {c.nickname ? `${c.formType ? `${c.formType} · ` : ""}${c.receiptMasked}` : (c.formType ?? "")}
               </span>
+              <TagList tags={c.tags} />
               <span className="text-sm">{title(c)}</span>
               <span className="text-xs text-[var(--muted)]">
                 Last checked <LocalTime iso={c.lastCheckedAt?.toISOString() ?? null} />
