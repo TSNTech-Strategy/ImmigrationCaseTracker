@@ -71,7 +71,7 @@ The order a firm meets the product: set up, bring in clients and cases, keep the
 | 5 | Inbox | Status changes, stuck cases, deadline and task reminders, document uploads; assign, snooze, done; "assigned to me" or "whole firm" | Built (later phases add task and document items) |
 | 6 | Tasks and calendar | My tasks and team tasks; list and calendar views; status, type, priority, assignee, due date; linked to a case, client or matter; comments and @mentions | Built (Phase 2B); matter link in Phase 2C |
 | 7 | Matters and groups | Group cases by family, employer, lawsuit or custom; filter every page by matter | Built (Phase 2C) |
-| 8 | Documents | Upload files to a case or client; kind, visibility (internal or shared with the client), size, uploaded by; search and filters | Phase 3 |
+| 8 | Documents | Upload files to a case or client; kind, visibility (internal or shared with the client), size, uploaded by; search and filters | Built (Phase 3A) |
 | 9 | Document requests | Firm builds a request from the case-type checklist (or its own list), adds a due date and message; client gets a link (email now, SMS later) and uploads from a phone; firm accepts or asks again; reminders; progress on case and client pages | Phase 3 |
 | 10 | Client portal | Client's status page plus open document requests, uploads, firm contact; English and Spanish; firm logo | Status page built; Phase 4 adds requests and branding |
 | 11 | Dashboard | Case volume by form and category, status overview, cases by assignee, days waiting, stuck cases, upcoming deadlines, open document requests; filters by date, assignee, matter | Built (Phase 2A); matter filter and document requests added with those phases |
@@ -104,7 +104,7 @@ Every phase: database migration with row-level security, server logic with datab
 - Matters and groups: create, add cases, filter cases, tasks and documents by matter.
 - Deadlines appear on the calendar beside tasks.
 
-### Phase 3: Documents and client document requests
+### Phase 3: Documents and client document requests (3A documents library ✅ built; 3B requests next)
 - Private file storage (Supabase Storage, encrypted, signed short-lived links, virus-type and size checks, 25 MB limit).
 - Documents page and per-case/per-client document lists.
 - Document requests built from the case-type checklists already in CasePingo, editable per request; due date; message to the client in English or Spanish.

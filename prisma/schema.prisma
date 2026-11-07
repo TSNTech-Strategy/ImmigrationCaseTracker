@@ -70,6 +70,7 @@ model User {
   tasksCompleted         FirmTask[]              @relation("TaskCompletedBy")
   taskComments           FirmTaskComment[]       @relation("TaskCommentAuthor")
   mattersCreated         FirmMatter[]            @relation("MatterCreatedBy")
+  documentsUploaded      FirmDocument[]          @relation("DocumentUploadedBy")
   deadlinesDone          CaseDeadline[]          @relation("DeadlineDoneBy")
   consentsGranted        CaseConsent[]           @relation("ConsentGrantedBy")
   consentsWithdrawn      CaseConsent[]           @relation("ConsentWithdrawnBy")
@@ -151,6 +152,7 @@ model Firm {
   tasks            FirmTask[]
   taskComments     FirmTaskComment[]
   matters          FirmMatter[]
+  documents        FirmDocument[]
 }
 
 enum FirmPlan {
@@ -224,8 +226,9 @@ model Client {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  cases TrackedCase[]
-  tasks FirmTask[]
+  cases     TrackedCase[]
+  tasks     FirmTask[]
+  documents FirmDocument[]
 
   /// Lets TrackedCase reference (clientId, firmId) so a case can never point
   /// at another firm's client.
@@ -324,6 +327,7 @@ model TrackedCase {
   firmUpdates FirmUpdate[]
   deadlines   CaseDeadline[]
   tasks       FirmTask[]
+  documents   FirmDocument[]
 
   @@unique([ownerUserId, receiptDigest])
   @@unique([firmId, receiptDigest])
@@ -816,6 +820,55 @@ model FirmMatter {
 
   @@unique([firmId, nameKey])
   @@index([firmId, archivedAt])
+}
+
+/// A file a firm keeps for a case or client. Stored encrypted (AES-256-GCM) in private storage; only its metadata is here.
+model FirmDocument {
+  id           String             @id @default(cuid())
+  firmId       String
+  firm         Firm               @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  /// Same firm, checked by the service.
+  caseId       String?
+  case         TrackedCase?       @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  clientId     String?
+  client       Client?            @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  name         String
+  kind         DocumentKind       @default(OTHER)
+  visibility   DocumentVisibility @default(INTERNAL)
+  source       DocumentSource     @default(FIRM)
+  contentType  String
+  size         Int
+  sha256       String
+  storageKey   String             @unique
+  uploadedById String?
+  uploadedBy   User?              @relation("DocumentUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([firmId, createdAt])
+  @@index([caseId])
+  @@index([clientId])
+}
+
+enum DocumentKind {
+  USCIS_NOTICE
+  IDENTITY
+  CIVIL
+  FINANCIAL
+  EVIDENCE
+  FORM
+  CORRESPONDENCE
+  OTHER
+}
+
+enum DocumentVisibility {
+  INTERNAL
+  CLIENT
+}
+
+enum DocumentSource {
+  FIRM
+  CLIENT
 }
 
 enum MatterKind {

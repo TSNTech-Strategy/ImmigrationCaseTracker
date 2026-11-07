@@ -45,3 +45,17 @@ export function digest(value: string): string {
 export function sign(purpose: string, value: string): string {
   return createHmac("sha256", subKey(purpose)).update(value).digest().subarray(0, 24).toString("base64url");
 }
+
+/** Files at rest: [12-byte IV][16-byte tag][ciphertext], AES-256-GCM with its own sub-key. */
+export function encryptBytes(data: Buffer): Buffer {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", subKey("ict/files/v1"), iv);
+  const ciphertext = Buffer.concat([cipher.update(data), cipher.final()]);
+  return Buffer.concat([iv, cipher.getAuthTag(), ciphertext]);
+}
+
+export function decryptBytes(blob: Buffer): Buffer {
+  const decipher = createDecipheriv("aes-256-gcm", subKey("ict/files/v1"), blob.subarray(0, 12));
+  decipher.setAuthTag(blob.subarray(12, 28));
+  return Buffer.concat([decipher.update(blob.subarray(28)), decipher.final()]);
+}

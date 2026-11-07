@@ -27,6 +27,7 @@ export const AUDIT_CATEGORIES = {
   updates: { label: "Updates, deadlines and client emails", prefixes: ["update.", "client_update.", "client.portal_", "firm.client_updates", "deadline.", "firm.alerts"] },
   tasks: { label: "Tasks", prefixes: ["task."] },
   matters: { label: "Matters", prefixes: ["matter."] },
+  documents: { label: "Documents", prefixes: ["document."] },
   exports: { label: "Exports", prefixes: ["audit."] },
 } as const;
 export type AuditCategory = keyof typeof AUDIT_CATEGORIES;
@@ -127,6 +128,14 @@ export function describeAudit(action: string, m: Meta, target: string): string {
       return `Exported ${plural(m.rows, "case")} to CSV (with full receipt numbers)`;
     case "firm.settings":
       return `Changed firm settings (${(Array.isArray(m.fields) ? m.fields : []).join(", ") || "details"})`;
+    case "document.uploaded":
+      return `Uploaded "${str(m.name)}"`;
+    case "document.downloaded":
+      return `Downloaded "${str(m.name)}"`;
+    case "document.updated":
+      return `Changed document "${str(m.name)}" (${(Array.isArray(m.fields) ? m.fields : []).join(", ") || "details"})`;
+    case "document.deleted":
+      return `Deleted document "${str(m.name)}"`;
     case "matter.created":
       return `Created matter "${str(m.name)}"`;
     case "matter.updated":

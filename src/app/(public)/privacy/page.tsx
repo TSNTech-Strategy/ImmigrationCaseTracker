@@ -45,7 +45,8 @@ export default function Privacy() {
         <li>
           <strong>Law firm clients:</strong> when a law firm uses CasePingo, it adds its clients&apos; names, contact details, and
           optionally date of birth, country of birth, citizenship and A-Number (date of birth and A-Number are stored encrypted, and lists
-          show only the last four A-Number digits),
+          show only the last four A-Number digits), and documents it uploads for its cases and clients (each file is encrypted before it is
+          stored in private storage and is opened only by members of that firm),
           preferred language and whether the client agreed to get case updates. If the firm turns on client updates, we use that email
           address only to send status updates on the firm&apos;s behalf, and the firm can give its client a private status page link,
           which it can replace or turn off at any time. The firm decides what is added; clients can ask the firm, or us, to stop.

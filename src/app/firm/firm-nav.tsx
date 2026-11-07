@@ -13,6 +13,7 @@ const MAIN: Item[] = [
   { href: "/firm/clients", label: "Clients" },
   { href: "/firm/matters", label: "Matters" },
   { href: "/firm/deadlines", label: "Deadlines", badge: "deadlines" },
+  { href: "/firm/documents", label: "Documents" },
 ];
 const SETTINGS: Item[] = [
   { href: "/firm/settings", label: "General" },
