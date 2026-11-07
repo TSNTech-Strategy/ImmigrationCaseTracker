@@ -170,8 +170,8 @@ export type JourneyResponse = {
   milestones: { date: string; day: number; caseId: string; form: string | null; titleEn: string | null; titleEs: string | null; category: StatusCategory }[];
 };
 
-export type InsightsKind = "received" | "biometrics" | "evidence" | "review" | "interview" | "approved" | "card" | "denied" | "other";
-export type InsightsWindow = "7d" | "30d" | "12m";
+export type InsightsKind = "card" | "approved" | "processing" | "interview" | "evidence" | "denied" | "other";
+export type InsightsWindow = "day" | "month" | "year";
 /** GET /api/v1/cases/:id/insights: anonymous totals from CasePingo cases like this one (null sections: not enough cases yet). */
 export type Insights = {
   form: { code: string; name: Bilingual | null } | null;
@@ -179,13 +179,15 @@ export type Insights = {
   minGroup: number;
   similarWindowDays: number;
   poolSize: number | null;
+  dataAsOf?: string | null;
+  monthly?: { month: string; lastMonth: string; today: number; daysInMonth: number; thisMonth: number[]; last: number[]; thisTotal: number; lastTotal: number } | null;
   yourCase: { filed: string | null; days: number | null; finished: boolean; daysAtStatus: number | null; lastUpdate?: string | null; office: { code: string; name: Bilingual | null } | null; status: Bilingual | null };
   guideNext: Bilingual | null;
-  next: { cases: number; options: { title: Bilingual; share: number; cases: number; medianDays: number | null }[] } | null;
-  similar: { cases: number; steps: { key: string; label: Bilingual; cases: number; you: boolean }[]; aheadOf: number; approvedShare: number } | null;
+  next: { cases: number; options: { title: Bilingual; share: number; cases: number; medianDays: number | null; avgDays?: number | null }[] } | null;
+  similar: { cases: number; steps: { key: string; label: Bilingual; cases: number; you: boolean }[]; aheadOf: number; approvedShare: number; rank?: number; of?: number } | null;
   offices: { overallMedianDays: number | null; cases: number; rows: { code: string; name: Bilingual | null; medianDays: number; cases: number; yours: boolean }[] } | null;
   rates: { approval: { rate: number; decided: number } | null; rfe: { rate: number; cases: number } | null } | null;
-  activity: { window: InsightsWindow; cases: number | null; kinds: { key: InsightsKind; label: Bilingual; cases: number; share: number }[] }[];
-  trend: { months: { month: string; approvals: number }[]; total: number } | null;
+  activity: { window: InsightsWindow; from?: string; cases: number | null; kinds: { key: InsightsKind; label: Bilingual; cases: number; share: number }[] }[];
+  trend: { months: { month: string; approved: number; evidence: number; denied: number }[]; total: number } | null;
   processingTimesUrl: string;
 };

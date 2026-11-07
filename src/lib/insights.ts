@@ -48,18 +48,18 @@ export type PoolCase = {
   hadRfe: boolean;
 };
 
-export type ActivityKind = "received" | "biometrics" | "evidence" | "review" | "interview" | "approved" | "card" | "denied" | "other";
+export type ActivityKind = "card" | "approved" | "processing" | "interview" | "evidence" | "denied" | "other";
 export const ACTIVITY_LABEL: Record<ActivityKind, Bilingual> = {
-  received: { en: "Case received", es: "Caso recibido" },
-  biometrics: { en: "Biometrics", es: "Datos biométricos" },
-  evidence: { en: "Evidence requested", es: "Evidencia solicitada" },
-  review: { en: "In review", es: "En revisión" },
-  interview: { en: "Interview", es: "Entrevista" },
-  approved: { en: "Approved", es: "Aprobado" },
   card: { en: "Card or document", es: "Tarjeta o documento" },
-  denied: { en: "Denied or closed", es: "Negado o cerrado" },
-  other: { en: "Other updates", es: "Otras novedades" },
+  approved: { en: "Approval", es: "Aprobación" },
+  processing: { en: "Processing", es: "En proceso" },
+  interview: { en: "Interview", es: "Entrevista" },
+  evidence: { en: "Evidence request", es: "Solicitud de evidencia" },
+  denied: { en: "Denied or rejected", es: "Negado o rechazado" },
+  other: { en: "Others", es: "Otros" },
 };
+/** Fixed order of the kinds (and their colour slots), so a kind keeps its colour whatever its rank. */
+export const ACTIVITY_ORDER: ActivityKind[] = ["processing", "evidence", "interview", "approved", "card", "denied", "other"];
 
 const RFE = /request for (additional |initial )?evidence|\brfe\b/i;
 const isRfe = (titleEn: string) => RFE.test(titleEn) && !/response to/i.test(titleEn);
@@ -72,11 +72,9 @@ export function kindOf(titleEn: string): ActivityKind {
   const category = statusCategory(titleEn);
   switch (phaseOf(titleEn)) {
     case "received":
-      return "received";
     case "biometrics":
-      return "biometrics";
     case "review":
-      return "review";
+      return "processing";
     case "interview":
       return "interview";
     case "decision":
@@ -137,8 +135,13 @@ export function toPoolCase(c: CaseForInsights & { ownerUserId?: string | null },
   };
 }
 
-export type ActivityWindow = "7d" | "30d" | "12m";
-const WINDOW_DAYS: Record<ActivityWindow, number> = { "7d": 7, "30d": 30, "12m": 365 };
+/** Today, this month or this year (by USCIS's dates). */
+export type ActivityWindow = "day" | "month" | "year";
+const windowStart = (w: ActivityWindow, today: string) => (w === "day" ? today : w === "month" ? `${today.slice(0, 7)}-01` : `${today.slice(0, 4)}-01-01`);
+/** Days in a month ("YYYY-MM"). */
+const daysInMonth = (ym: string) => new Date(Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)), 0)).getUTCDate();
+const cumulative = (xs: number[]) => xs.reduce<number[]>((acc, x) => [...acc, (acc.at(-1) ?? 0) + x], []);
+const share1 = (n: number, d: number) => (d ? Math.round((1000 * n) / d) / 10 : 0);
 
 export type Insights = {
   form: { code: string; name: Bilingual | null } | null;
@@ -161,16 +164,21 @@ export type Insights = {
   };
   /** What the status library says usually happens next (always there when the status is in the library). */
   guideNext: Bilingual | null;
-  /** The next status seen after this one in other cases. */
-  next: { cases: number; options: { title: Bilingual; share: number; cases: number; medianDays: number | null }[] } | null;
-  /** Cases of the same form filed within similarWindowDays of this one. */
-  similar: { cases: number; steps: { key: string; label: Bilingual; cases: number; you: boolean }[]; aheadOf: number; approvedShare: number } | null;
+  /** The latest USCIS date among the cases behind the numbers ("YYYY-MM-DD"). */
+  dataAsOf: string | null;
+  /** Approvals so far this month against last month, added up day by day. */
+  monthly: { month: string; lastMonth: string; today: number; daysInMonth: number; thisMonth: number[]; last: number[]; thisTotal: number; lastTotal: number } | null;
+  /** The next status seen after this one in other cases (share of cases, median and average days). */
+  next: { cases: number; options: { title: Bilingual; share: number; cases: number; medianDays: number | null; avgDays: number | null }[] } | null;
+  /** Cases of the same form filed within similarWindowDays of this one; rank 1 is the furthest along. */
+  similar: { cases: number; steps: { key: string; label: Bilingual; cases: number; you: boolean }[]; aheadOf: number; approvedShare: number; rank: number; of: number } | null;
   /** Median days from filing to approval, by receiving office (recent approvals). */
   offices: { overallMedianDays: number | null; cases: number; rows: { code: string; name: Bilingual | null; medianDays: number; cases: number; yours: boolean }[] } | null;
   rates: { approval: { rate: number; decided: number } | null; rfe: { rate: number; cases: number } | null } | null;
-  activity: { window: ActivityWindow; cases: number | null; kinds: { key: ActivityKind; label: Bilingual; cases: number; share: number }[] }[];
-  /** Approvals per month, last 12 months, oldest first. */
-  trend: { months: { month: string; approvals: number }[]; total: number } | null;
+  /** Updates by kind today, this month and this year; share has one decimal. */
+  activity: { window: ActivityWindow; from: string; cases: number | null; kinds: { key: ActivityKind; label: Bilingual; cases: number; share: number }[] }[];
+  /** Approvals, evidence requests and denials per month, last 12 months, oldest first. */
+  trend: { months: { month: string; approved: number; evidence: number; denied: number }[]; total: number } | null;
   processingTimesUrl: string;
 };
 
@@ -189,13 +197,15 @@ export function buildInsights(viewer: CaseForInsights & { ownerUserId?: string |
     minGroup: MIN_GROUP,
     similarWindowDays: SIMILAR_WINDOW_DAYS,
     poolSize: null,
+    dataAsOf: null,
+    monthly: null,
     yourCase: { filed: days.filed, days: days.total, finished: lineMap.finished, daysAtStatus: days.sinceUpdate, lastUpdate: days.lastUpdate, office, status },
     guideNext: g ? { en: guideText(g, "en").next, es: guideText(g, "es").next } : null,
     next: null,
     similar: null,
     offices: null,
     rates: null,
-    activity: (["7d", "30d", "12m"] as const).map((w) => ({ window: w, cases: null, kinds: [] })),
+    activity: (["day", "month", "year"] as const).map((w) => ({ window: w, from: windowStart(w, today), cases: null, kinds: [] })),
     trend: null,
     processingTimesUrl: PROCESSING_TIMES_URL,
   };
@@ -224,7 +234,13 @@ export function buildInsights(viewer: CaseForInsights & { ownerUserId?: string |
           options: [...nextBy.values()]
             .sort((a, b) => b.cases - a.cases)
             .slice(0, 3)
-            .map((e) => ({ title: e.title, share: pct(e.cases, moved), cases: e.cases, medianDays: median(e.days) })),
+            .map((e) => ({
+              title: e.title,
+              share: pct(e.cases, moved),
+              cases: e.cases,
+              medianDays: median(e.days),
+              avgDays: e.days.length ? Math.round(e.days.reduce((a, b) => a + b, 0) / e.days.length) : null,
+            })),
         }
       : null;
 
@@ -238,6 +254,8 @@ export function buildInsights(viewer: CaseForInsights & { ownerUserId?: string |
         steps: lineMap.steps.map((s, i) => ({ key: s.key, label: s.label, cases: near.filter((c) => c.lineMap.current === i).length, you: i === lineMap.current })),
         aheadOf: pct(near.filter((c) => c.lineMap.current < lineMap.current).length, near.length),
         approvedShare: pct(near.filter((c) => c.lineMap.outcome === "approved").length, near.length),
+        rank: near.filter((c) => c.lineMap.current > lineMap.current).length + 1,
+        of: near.length + 1,
       };
     }
   }
@@ -261,19 +279,19 @@ export function buildInsights(viewer: CaseForInsights & { ownerUserId?: string |
   const approval = decided.length >= MIN_GROUP ? { rate: pct(decided.filter((c) => c.lineMap.outcome === "approved").length, decided.length), decided: decided.length } : null;
   const rfe = cases.length >= MIN_GROUP ? { rate: pct(cases.filter((c) => c.hadRfe).length, cases.length), cases: cases.length } : null;
 
-  // Activity: which kinds of updates cases got recently (by USCIS's date).
-  const activity = (["7d", "30d", "12m"] as const).map((w) => {
-    const start = new Date(Date.parse(`${today}T00:00:00Z`) - (WINDOW_DAYS[w] - 1) * 86_400_000).toISOString().slice(0, 10);
+  // Activity: which kinds of updates cases got today, this month and this year (by USCIS's date).
+  const activity = (["day", "month", "year"] as const).map((w) => {
+    const from = windowStart(w, today);
     const counts = new Map<ActivityKind, number>();
     let active = 0;
     for (const c of cases) {
-      const kinds = new Set(c.seq.filter((p) => p.date >= start && p.date <= today).map((p) => kindOf(p.titleEn)));
+      const kinds = new Set(c.seq.filter((p) => p.date >= from && p.date <= today).map((p) => kindOf(p.titleEn)));
       if (!kinds.size) continue;
       active++;
       for (const k of kinds) counts.set(k, (counts.get(k) ?? 0) + 1);
     }
-    if (active < MIN_GROUP) return { window: w, cases: null, kinds: [] };
-    // Small cells join "Other updates" so a single case never stands out.
+    if (active < MIN_GROUP) return { window: w, from, cases: null, kinds: [] };
+    // Small cells join "Others" so a single case never stands out.
     for (const [k, n] of [...counts]) {
       if (k !== "other" && n < SMALL_CELL) {
         counts.delete(k);
@@ -282,27 +300,56 @@ export function buildInsights(viewer: CaseForInsights & { ownerUserId?: string |
     }
     const sum = [...counts.values()].reduce((a, b) => a + b, 0);
     const kinds = [...counts.entries()]
-      .map(([key, n]) => ({ key, label: ACTIVITY_LABEL[key], cases: n, share: pct(n, sum) }))
+      .map(([key, n]) => ({ key, label: ACTIVITY_LABEL[key], cases: n, share: share1(n, sum) }))
       .sort((a, b) => (a.key === "other" ? 1 : b.key === "other" ? -1 : b.cases - a.cases));
-    return { window: w, cases: active, kinds };
+    return { window: w, from, cases: active, kinds };
   });
 
-  // Approvals per month, last 12 months.
-  const months: { month: string; approvals: number }[] = [];
+  // Approvals this month against last month, day by day.
+  const ym = today.slice(0, 7);
+  const prevDate = new Date(Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)) - 2, 1));
+  const lastYm = prevDate.toISOString().slice(0, 7);
+  const dayNo = Number(today.slice(8, 10));
+  const thisDaily = Array.from({ length: dayNo }, () => 0);
+  const lastDaily = Array.from({ length: daysInMonth(lastYm) }, () => 0);
+  for (const c of cases) {
+    if (!c.approvedOn) continue;
+    const d = Number(c.approvedOn.slice(8, 10));
+    if (c.approvedOn.startsWith(ym) && d <= dayNo) thisDaily[d - 1]++;
+    else if (c.approvedOn.startsWith(lastYm)) lastDaily[d - 1]++;
+  }
+  const thisTotal = thisDaily.reduce((a, b) => a + b, 0);
+  const lastTotal = lastDaily.reduce((a, b) => a + b, 0);
+  const monthly =
+    thisTotal + lastTotal >= MIN_GROUP
+      ? { month: ym, lastMonth: lastYm, today: dayNo, daysInMonth: daysInMonth(ym), thisMonth: cumulative(thisDaily), last: cumulative(lastDaily), thisTotal, lastTotal }
+      : null;
+
+  // Approvals, evidence requests and denials per month, last 12 months (each case once per month and kind).
+  const months: { month: string; approved: number; evidence: number; denied: number }[] = [];
   for (let i = 11; i >= 0; i--) {
     const d = new Date(Date.UTC(opts.now.getUTCFullYear(), opts.now.getUTCMonth() - i, 1));
-    months.push({ month: d.toISOString().slice(0, 7), approvals: 0 });
+    months.push({ month: d.toISOString().slice(0, 7), approved: 0, evidence: 0, denied: 0 });
   }
   for (const c of cases) {
-    const m = c.approvedOn?.slice(0, 7);
-    const row = months.find((x) => x.month === m);
-    if (row) row.approvals++;
+    const seen = new Set<string>();
+    for (const p of c.seq) {
+      const k = kindOf(p.titleEn);
+      const key = k === "approved" ? "approved" : k === "evidence" ? "evidence" : k === "denied" ? "denied" : null;
+      const row = key && months.find((x) => x.month === p.date.slice(0, 7));
+      if (!key || !row || seen.has(`${row.month}|${key}`)) continue;
+      seen.add(`${row.month}|${key}`);
+      row[key]++;
+    }
   }
-  const total = months.reduce((a, b) => a + b.approvals, 0);
+  const total = months.reduce((a, b) => a + b.approved + b.evidence + b.denied, 0);
+  const dataAsOf = cases.length >= MIN_GROUP ? (cases.flatMap((c) => c.seq.map((p) => p.date)).filter((d) => d <= today).sort().at(-1) ?? null) : null;
 
   return {
     ...base,
     poolSize: cases.length >= MIN_GROUP ? cases.length : null,
+    dataAsOf,
+    monthly,
     next,
     similar,
     offices,
