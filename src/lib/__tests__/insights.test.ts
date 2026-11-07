@@ -36,10 +36,10 @@ const RFE = "Request for Additional Evidence Was Sent";
 
 describe("kinds of updates", () => {
   it("groups USCIS statuses into the activity kinds", () => {
-    expect(kindOf(RECEIVED)).toBe("received");
-    expect(kindOf(FINGERPRINTS)).toBe("biometrics");
+    expect(kindOf(RECEIVED)).toBe("processing");
+    expect(kindOf(FINGERPRINTS)).toBe("processing");
     expect(kindOf(RFE)).toBe("evidence");
-    expect(kindOf("Response To USCIS' Request For Evidence Was Received")).toBe("review");
+    expect(kindOf("Response To USCIS' Request For Evidence Was Received")).toBe("processing");
     expect(kindOf(INTERVIEW)).toBe("interview");
     expect(kindOf(APPROVED)).toBe("approved");
     expect(kindOf("Card Was Mailed To Me")).toBe("card");
@@ -69,8 +69,8 @@ describe("buildInsights", () => {
     expect(r.next).toEqual({
       cases: 12,
       options: [
-        { title: { en: REVIEW, es: REVIEW }, share: 67, cases: 8, medianDays: 30 },
-        { title: { en: INTERVIEW, es: INTERVIEW }, share: 33, cases: 4, medianDays: 90 },
+        { title: { en: REVIEW, es: REVIEW }, share: 67, cases: 8, medianDays: 30, avgDays: 30 },
+        { title: { en: INTERVIEW, es: INTERVIEW }, share: 33, cases: 4, medianDays: 90, avgDays: 90 },
       ],
     });
   });
@@ -95,7 +95,8 @@ describe("buildInsights", () => {
     const mineNear = mk({ owner: "me", history: [[filed, RECEIVED]] });
     const me = mk({ owner: "me", history: [[filed, RECEIVED], ["2026-06-20", FINGERPRINTS]] });
     const r = buildInsights(me, poolOf([...near, ...far, mineNear]), opts);
-    expect(r.similar).toMatchObject({ cases: 10, aheadOf: 30, approvedShare: 30 });
+    // 3 cases are further along (approved), so this case ranks 4th of 11 (the 10 others and itself).
+    expect(r.similar).toMatchObject({ cases: 10, aheadOf: 30, approvedShare: 30, rank: 4, of: 11 });
     expect(r.similar!.steps.map((s) => [s.key, s.cases, s.you])).toEqual([
       ["received", 3, false],
       ["biometrics", 4, true],
@@ -133,28 +134,33 @@ describe("buildInsights", () => {
     expect(r.poolSize).toBe(20);
   });
 
-  it("recent activity by kind (small groups fold into Other updates) and approvals per month", () => {
+  it("updates by kind today, this month and this year (small groups fold into Others), monthly approvals and the trend", () => {
     const pool = poolOf([
       ...times(10, (i) => mk({ history: [[add("2026-03-01", i), RECEIVED], ["2026-11-05", APPROVED]] })),
       ...times(2, (i) => mk({ history: [[add("2026-03-01", i), RECEIVED], ["2026-11-06", DENIED]] })),
     ]);
     const r = buildInsights(viewer, pool, opts);
-    const week = r.activity.find((a) => a.window === "7d")!;
-    expect(week.cases).toBe(12);
-    expect(week.kinds.map((k) => [k.key, k.cases, k.share])).toEqual([
-      ["approved", 10, 83],
-      ["other", 2, 17],
+    const by = (w: string) => r.activity.find((a) => a.window === w)!;
+    expect(by("day")).toMatchObject({ from: "2026-11-07", cases: null, kinds: [] });
+    expect(by("month").cases).toBe(12);
+    expect(by("month").from).toBe("2026-11-01");
+    expect(by("month").kinds.map((k) => [k.key, k.cases, k.share])).toEqual([
+      ["approved", 10, 83.3],
+      ["other", 2, 16.7],
     ]);
-    const year = r.activity.find((a) => a.window === "12m")!;
-    expect(year.kinds.map((k) => [k.key, k.cases])).toEqual([
-      ["received", 12],
-      ["approved", 10],
-      ["other", 2],
+    expect(by("year").kinds.map((k) => [k.key, k.cases, k.share])).toEqual([
+      ["processing", 12, 50],
+      ["approved", 10, 41.7],
+      ["other", 2, 8.3],
     ]);
-    expect(r.trend?.total).toBe(10);
+    expect(r.monthly).toMatchObject({ month: "2026-11", lastMonth: "2026-10", today: 7, daysInMonth: 30, thisTotal: 10, lastTotal: 0 });
+    expect(r.monthly!.thisMonth).toEqual([0, 0, 0, 0, 10, 10, 10]);
+    expect(r.monthly!.last).toHaveLength(31);
+    expect(r.trend?.total).toBe(12);
     expect(r.trend?.months).toHaveLength(12);
-    expect(r.trend?.months.at(-1)).toEqual({ month: "2026-11", approvals: 10 });
+    expect(r.trend?.months.at(-1)).toEqual({ month: "2026-11", approved: 10, evidence: 0, denied: 2 });
     expect(r.trend?.months[0].month).toBe("2025-12");
+    expect(r.dataAsOf).toBe("2026-11-06");
   });
 
   it("only compares with the same form", () => {

@@ -77,8 +77,8 @@ describe.skipIf(!url)("app API: case insights", () => {
     expect(ins.next).toEqual({
       cases: 11,
       options: [
-        { title: { en: "Case Is Being Actively Reviewed By USCIS", es: "Case Is Being Actively Reviewed By USCIS" }, share: 91, cases: 10, medianDays: expect.any(Number) },
-        { title: { en: "Interview Was Scheduled", es: "Interview Was Scheduled" }, share: 9, cases: 1, medianDays: expect.any(Number) },
+        { title: { en: "Case Is Being Actively Reviewed By USCIS", es: "Case Is Being Actively Reviewed By USCIS" }, share: 91, cases: 10, medianDays: expect.any(Number), avgDays: expect.any(Number) },
+        { title: { en: "Interview Was Scheduled", es: "Interview Was Scheduled" }, share: 9, cases: 1, medianDays: expect.any(Number), avgDays: expect.any(Number) },
       ],
     });
     // Nothing about any other case leaks: no receipts, owners or nicknames anywhere in the answer.
