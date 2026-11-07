@@ -70,7 +70,7 @@ The order a firm meets the product: set up, bring in clients and cases, keep the
 | 4 | Sync | USCIS checks per plan schedule, "check now", last runs and health; consent records | Built (Phase 6 adds schedule settings and history page) |
 | 5 | Inbox | Status changes, stuck cases, deadline and task reminders, document uploads; assign, snooze, done; "assigned to me" or "whole firm" | Built (later phases add task and document items) |
 | 6 | Tasks and calendar | My tasks and team tasks; list and calendar views; status, type, priority, assignee, due date; linked to a case, client or matter; comments and @mentions | Built (Phase 2B); matter link in Phase 2C |
-| 7 | Matters and groups | Group cases by family, employer, lawsuit or custom; filter every page by matter | Phase 2 |
+| 7 | Matters and groups | Group cases by family, employer, lawsuit or custom; filter every page by matter | Built (Phase 2C) |
 | 8 | Documents | Upload files to a case or client; kind, visibility (internal or shared with the client), size, uploaded by; search and filters | Phase 3 |
 | 9 | Document requests | Firm builds a request from the case-type checklist (or its own list), adds a due date and message; client gets a link (email now, SMS later) and uploads from a phone; firm accepts or asks again; reminders; progress on case and client pages | Phase 3 |
 | 10 | Client portal | Client's status page plus open document requests, uploads, firm contact; English and Spanish; firm logo | Status page built; Phase 4 adds requests and branding |
@@ -98,7 +98,8 @@ Every phase: database migration with row-level security, server logic with datab
 ### Phase 2B: Tasks and calendar ✅ built
 - See BUILD_PLAN 7I.
 
-### Phase 2C: Matters and groups
+### Phase 2C: Matters and groups ✅ built
+- See BUILD_PLAN 7J. Free-form "groups" are covered by firm tags.
 - Tasks with status, type, priority, assignee, due date, links to case, client or matter; comments with @mentions; list and calendar views; my tasks and team tasks; task reminders in the inbox.
 - Matters and groups: create, add cases, filter cases, tasks and documents by matter.
 - Deadlines appear on the calendar beside tasks.

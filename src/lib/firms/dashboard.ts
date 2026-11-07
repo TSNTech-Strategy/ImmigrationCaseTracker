@@ -12,7 +12,7 @@ import { daysUntil, easternDay } from "./alerts";
  * Filters: who the cases are assigned to, and when they were added.
  */
 
-export type DashboardFilters = { assignee?: string; from?: string; to?: string };
+export type DashboardFilters = { assignee?: string; from?: string; to?: string; matter?: string };
 export type Bar = { key: string; label: string; value: number; href?: string };
 
 const DAY = 86_400_000;
@@ -53,12 +53,15 @@ export function createFirmDashboardService({ db, now = () => new Date() }: { db:
     const from = isDay(filters.from) ? filters.from : undefined;
     const to = isDay(filters.to) ? filters.to : undefined;
 
+    const matterId = filters.matter || undefined;
     const where: Prisma.TrackedCaseWhereInput = {
       firmId,
       ...(filters.assignee ? { assigneeId } : {}),
+      ...(matterId ? { matterId } : {}),
       ...(from || to ? { createdAt: { ...(from ? { gte: new Date(`${from}T00:00:00Z`) } : {}), ...(to ? { lt: new Date(new Date(`${to}T00:00:00Z`).getTime() + DAY) } : {}) } } : {}),
     };
-    const caseScope: Prisma.TrackedCaseWhereInput = filters.assignee ? { assigneeId } : {};
+    const caseScope: Prisma.TrackedCaseWhereInput = { ...(filters.assignee ? { assigneeId } : {}), ...(matterId ? { matterId } : {}) };
+    const scoped = Boolean(filters.assignee || matterId);
 
     const [cases, members, openItems, deadlines, recent] = await Promise.all([
       db.trackedCase.findMany({
@@ -73,15 +76,15 @@ export function createFirmDashboardService({ db, now = () => new Date() }: { db:
         take: 5000,
       }),
       db.firmMembership.findMany({ where: { firmId, revokedAt: null }, select: { userId: true, user: { select: { name: true, email: true } } } }),
-      db.firmUpdate.count({ where: { firmId, OR: [{ state: "OPEN" }, { state: "SNOOZED", snoozedUntil: { lte: t } }], ...(filters.assignee ? { case: caseScope } : {}) } }),
+      db.firmUpdate.count({ where: { firmId, OR: [{ state: "OPEN" }, { state: "SNOOZED", snoozedUntil: { lte: t } }], ...(scoped ? { case: caseScope } : {}) } }),
       db.caseDeadline.findMany({
-        where: { firmId, doneAt: null, dueOn: { lte: new Date(new Date(`${today}T00:00:00Z`).getTime() + 14 * DAY) }, ...(filters.assignee ? { case: caseScope } : {}) },
+        where: { firmId, doneAt: null, dueOn: { lte: new Date(new Date(`${today}T00:00:00Z`).getTime() + 14 * DAY) }, ...(scoped ? { case: caseScope } : {}) },
         select: { id: true, kind: true, dueOn: true, note: true, case: { select: { id: true, receiptMasked: true, nickname: true, client: { select: { displayName: true } } } } },
         orderBy: { dueOn: "asc" },
         take: 8,
       }),
       db.firmUpdate.findMany({
-        where: { firmId, kind: "STATUS_CHANGE", ...(filters.assignee ? { case: caseScope } : {}) },
+        where: { firmId, kind: "STATUS_CHANGE", ...(scoped ? { case: caseScope } : {}) },
         select: { id: true, createdAt: true, event: { select: { statusTitleEn: true } }, case: { select: { id: true, receiptMasked: true, nickname: true, formType: true, client: { select: { displayName: true } } } } },
         orderBy: { createdAt: "desc" },
         take: 6,
@@ -129,12 +132,13 @@ export function createFirmDashboardService({ db, now = () => new Date() }: { db:
     }
     const statusBars: Bar[] = STATUS_ORDER.filter((s) => byStatus.has(s)).map((s) => ({ key: s, label: STATUS_LABEL[s], value: byStatus.get(s)!.value }));
     const dueSoon = await db.caseDeadline.count({
-      where: { firmId, doneAt: null, dueOn: { lte: new Date(new Date(`${today}T00:00:00Z`).getTime() + 7 * DAY) }, ...(filters.assignee ? { case: caseScope } : {}) },
+      where: { firmId, doneAt: null, dueOn: { lte: new Date(new Date(`${today}T00:00:00Z`).getTime() + 7 * DAY) }, ...(scoped ? { case: caseScope } : {}) },
     });
 
     return {
       ctx,
-      filters: { assignee: filters.assignee ?? "", from: from ?? "", to: to ?? "" },
+      filters: { assignee: filters.assignee ?? "", from: from ?? "", to: to ?? "", matter: matterId ?? "" },
+      matters: await db.firmMatter.findMany({ where: { firmId, archivedAt: null }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
       members: members.map((m) => ({ id: m.userId, name: m.user.name ?? m.user.email })),
       kpis: { cases: cases.length, changedWeek, openItems, dueSoon, stuck, stuckDays, noConsent },
       byForm: top(byForm, 8),

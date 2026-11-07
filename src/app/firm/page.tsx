@@ -55,12 +55,12 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
   }
 
   const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : undefined);
-  const d = await firmDashboardService().getDashboard(user.id, { assignee: one(sp.assignee) || undefined, from: one(sp.from), to: one(sp.to) });
+  const d = await firmDashboardService().getDashboard(user.id, { assignee: one(sp.assignee) || undefined, from: one(sp.from), to: one(sp.to), matter: one(sp.matter) || undefined });
   if (!d) return null;
   const { ctx } = team;
   const trial = ctx.firm.plan ? null : trialText(ctx.firm.trialEndsAt, new Date());
   const k = d.kpis;
-  const filtered = Boolean(d.filters.assignee || d.filters.from || d.filters.to);
+  const filtered = Boolean(d.filters.assignee || d.filters.from || d.filters.to || d.filters.matter);
   const caseLink = (extra: string) => `/firm/cases${d.filters.assignee ? `?assignee=${encodeURIComponent(d.filters.assignee)}${extra ? `&${extra}` : ""}` : extra ? `?${extra}` : ""}`;
   return (
     <>
@@ -104,6 +104,19 @@ export default async function FirmPage({ searchParams }: PageProps<"/firm">) {
             ))}
           </select>
         </label>
+        {d.matters.length > 0 && (
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-[var(--muted)]">Matter</span>
+            <select name="matter" defaultValue={d.filters.matter} className={`${control} w-48`}>
+              <option value="">All matters</option>
+              {d.matters.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="flex flex-col gap-1">
           <span className="text-xs font-medium text-[var(--muted)]">Added from</span>
           <input type="date" name="from" defaultValue={d.filters.from} className={`${control} w-40`} />
