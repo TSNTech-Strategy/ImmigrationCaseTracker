@@ -38,6 +38,11 @@ export default function Privacy() {
           certificate&quot;). We never ask you to upload documents.
         </li>
         <li>
+          <strong>Not collected: immigration court cases.</strong> If you add a court case in the app (your A-Number, court and
+          next hearing, for reminders), it stays on your phone. We never receive your A-Number, and we don&apos;t look up court
+          cases.
+        </li>
+        <li>
           <strong>Operational records:</strong> when each status check ran and whether it succeeded (no case content), security
           and audit logs of account actions, and basic technical data such as IP address needed to keep the service secure.
         </li>

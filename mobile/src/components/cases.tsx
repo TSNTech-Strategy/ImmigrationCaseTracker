@@ -9,6 +9,9 @@ import { Icon } from "./icon";
 import { Pulse } from "./motion";
 
 import { CardTags } from "./tags";
+import { router } from "expo-router";
+import Svg, { Circle } from "react-native-svg";
+import { ShareJourneyButton } from "./my-cases";
 import { MiniLine, StepChip } from "./line-map";
 
 /** Big screen title with an optional line under it and round action buttons on the right. */
@@ -233,6 +236,37 @@ export function CaseCardSkeleton({ label }: { label?: string }) {
   );
 }
 
+/** "30%" in a ring: how many of the checklist's required documents are ticked. */
+function ReadyRing({ pct, size = 38 }: { pct: number; size?: number }) {
+  const { c } = useTheme();
+  const stroke = 4;
+  const r = (size - stroke) / 2;
+  const len = 2 * Math.PI * r;
+  const color = pct >= 100 ? c.st.done.fg : pct > 0 ? c.accent : c.st.stop.fg;
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <Svg width={size} height={size} style={{ position: "absolute" }}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={c.border} strokeWidth={stroke} fill="none" />
+        {pct > 0 && (
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            stroke={color}
+            strokeWidth={stroke}
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray={`${(len * Math.min(pct, 100)) / 100} ${len}`}
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          />
+        )}
+        {pct === 0 && <Circle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={stroke} fill="none" strokeOpacity={0.6} />}
+      </Svg>
+      <Text style={{ fontSize: 10, fontWeight: "800", color: c.heading }}>{pct}%</Text>
+    </View>
+  );
+}
+
 /** A case in the list: coloured edge by kind of status, progress line, last change, "New" badge. */
 export function CaseCard({ cs, stageCount, isNew, lang, onPress }: { cs: CaseSummary; stageCount: number; isNew: boolean; lang: Lang; onPress: () => void }) {
   const { c } = useTheme();
@@ -246,6 +280,9 @@ export function CaseCard({ cs, stageCount, isNew, lang, onPress }: { cs: CaseSum
   // The status date USCIS reports, else when CasePingo saw the change.
   const updated = cs.days?.lastUpdate ? formatDay(cs.days.lastUpdate, lang) : cs.lastChangeObservedAt ? shortDate(cs.lastChangeObservedAt, lang) : null;
   const stepLabel = cs.stage !== null ? t.stepOf(cs.stage + 1, stageCount, t.stages[cs.stage] ?? "") : undefined;
+  const approved = map?.outcome === "approved";
+  // Documents ready for cases still in progress (a finished case doesn't need them any more).
+  const readyPct = cs.checklist && cs.checklist.required > 0 && !map?.finished && !approved ? Math.round((cs.checklist.requiredDone / cs.checklist.required) * 100) : null;
   return (
     <Pressable
       accessibilityRole="button"
@@ -297,8 +334,21 @@ export function CaseCard({ cs, stageCount, isNew, lang, onPress }: { cs: CaseSum
               <Text style={{ fontWeight: "700", color: c.heading }}>{t.nextStep}: </Text>
               {cs.nextStep[lang]}
             </Text>
+            {readyPct !== null && cs.checklist && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${t.checklistDocsFor(code ?? "")}: ${t.docsReady(readyPct)}`}
+                onPress={() => router.push(`/checklists/${cs.checklist!.key}`)}
+                hitSlop={6}
+                style={{ alignItems: "center", gap: 2 }}
+              >
+                <ReadyRing pct={readyPct} />
+                <Text style={{ fontSize: 10, fontWeight: "700", color: c.muted }}>{t.docsLabel}</Text>
+              </Pressable>
+            )}
           </View>
         ) : null}
+        {approved && <ShareJourneyButton caseId={cs.id} lang={lang} compact />}
         {(cs.tags?.length || isNew) && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: space(2) }}>
             <View style={{ flex: 1 }}>

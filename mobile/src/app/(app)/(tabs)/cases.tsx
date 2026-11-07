@@ -6,6 +6,8 @@ import { CaseCard, CaseCardSkeleton, IconButton, LargeHeader, SearchField, caseT
 import { FlagStripe, StarBurst, StarsMark, dismissApproval, dismissedApprovals, takeUnplayed } from "../../../components/celebration";
 import { FeatureRow, IconTile, Segmented, TwoToneTitle, type Glyph, type Tint } from "../../../components/feature";
 import { COMPLETED_PREVIEW, CourtGuideView, GROUP_ORDER, GroupHeader, SummaryTiles, glanceOf, matchesFilter } from "../../../components/my-cases";
+import { CourtCasesSection } from "../../../components/court";
+import { loadCourtCases, type CourtCase } from "../../../lib/court-cases";
 import { Icon } from "../../../components/icon";
 import { FadeInDown, stagger, useSpotlight } from "../../../components/motion";
 import { api, ApiError, type CaseFilter, type CaseSummary, type CourtResponse } from "../../../lib/api";
@@ -42,6 +44,8 @@ export default function Cases() {
   // USCIS cases, or the immigration court guide.
   const [segment, setSegment] = useState<"uscis" | "court">("uscis");
   const [court, setCourt] = useState<CourtResponse | null>(null);
+  // Court cases are kept on this phone only.
+  const [courtCases, setCourtCases] = useState<CourtCase[]>([]);
   const [courtError, setCourtError] = useState<string | null>(null);
   // A summary tile picked (only those cases), and whether every completed case is shown.
   const [tile, setTile] = useState<CaseFilter | null>(null);
@@ -72,6 +76,7 @@ export default function Cases() {
   useFocusEffect(
     useCallback(() => {
       load();
+      loadCourtCases().then(setCourtCases);
     }, [load]),
   );
   useRefreshOnForeground(load);
@@ -190,21 +195,24 @@ export default function Cases() {
           value={segment}
           onChange={setSegment}
           options={[
-            { value: "uscis", label: t.segUscis, glyph: { ios: "doc.text", md: "description", fallback: "▤" } },
-            { value: "court", label: t.segCourt, glyph: { ios: "building.columns", md: "account_balance", fallback: "⚖" } },
+            { value: "uscis", label: loaded ? t.segCount(t.segUscis, list.length) : t.segUscis, glyph: { ios: "doc.text", md: "description", fallback: "▤" } },
+            { value: "court", label: t.segCount(t.segCourt, courtCases.length), glyph: { ios: "building.columns", md: "account_balance", fallback: "⚖" } },
           ]}
         />
 
         {segment === "court" ? (
-          court ? (
-            <CourtGuideView data={court} lang={lang} />
-          ) : courtError ? (
-            <Banner tone="danger">{courtError}</Banner>
-          ) : (
-            <View style={{ gap: space(3) }}>
-              <CaseCardSkeleton />
-            </View>
-          )
+          <>
+            <CourtCasesSection cases={courtCases} lang={lang} />
+            {court ? (
+              <CourtGuideView data={court} lang={lang} />
+            ) : courtError ? (
+              <Banner tone="danger">{courtError}</Banner>
+            ) : (
+              <View style={{ gap: space(3) }}>
+                <CaseCardSkeleton />
+              </View>
+            )}
+          </>
         ) : (
           <>
 

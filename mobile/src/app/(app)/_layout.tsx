@@ -35,6 +35,8 @@ export default function AppLayout() {
       <Stack.Screen name="insights/[id]" options={{ title: t.insightsTitle }} />
       <Stack.Screen name="checklists/index" options={{ title: t.checklistsTitle }} />
       <Stack.Screen name="checklists/[key]" options={{ title: "" }} />
+      <Stack.Screen name="approved/[id]" options={{ title: t.approvedTitle }} />
+      <Stack.Screen name="court/[id]" options={{ title: t.courtFormTitle }} />
     </Stack>
   );
 }

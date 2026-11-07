@@ -1,15 +1,19 @@
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Segmented } from "../../../components/feature";
+import { IconTile, Segmented } from "../../../components/feature";
+import { Icon } from "../../../components/icon";
+import { Text, View } from "react-native";
+import { space, useTheme } from "../../../lib/theme";
 import { ReceiptCamera } from "../../../components/receipt-camera";
-import { Banner, Button, Check, Choice, Field, H2, Screen, Small } from "../../../components/ui";
+import { Banner, Button, Card, Check, Choice, Field, H2, Screen, Small } from "../../../components/ui";
 import { api, ApiError, type AppConfig } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 import { canScanReceipts, scanLibraryPhoto, type ScanResult } from "../../../lib/scan";
 
 export default function NewCase() {
   const { t } = useAuth();
+  const { c } = useTheme();
   const { scan } = useLocalSearchParams<{ scan?: string }>();
   // Type the number, or Scan it with the camera ("Scan your receipt notice" opens straight on Scan).
   const [mode, setMode] = useState<"type" | "scan">(scan === "camera" && canScanReceipts ? "scan" : "type");
@@ -138,6 +142,14 @@ export default function NewCase() {
           <Button title={busy ? t.adding : t.add} onPress={submit} loading={busy} disabled={!cfg || !receipt.trim() || !consent} />
         </>
       )}
+      <Card onPress={() => router.push("/checklists")} label={`${t.notFiledYet} ${t.notFiledText}`} style={{ flexDirection: "row", alignItems: "center", gap: space(3) }}>
+        <IconTile glyph={{ ios: "checklist", md: "checklist", fallback: "☑" }} tint="green" size={40} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={{ fontSize: 16, fontWeight: "700", color: c.heading }}>{t.notFiledYet}</Text>
+          <Small>{t.notFiledText}</Small>
+        </View>
+        <Icon ios="chevron.right" md="chevron_right" size={14} color={c.accent} fallback="›" />
+      </Card>
     </Screen>
   );
 }

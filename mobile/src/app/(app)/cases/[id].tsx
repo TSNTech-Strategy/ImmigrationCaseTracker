@@ -1,7 +1,7 @@
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Platform, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Banner, Body, Button, Card, Field, H1, H2, Loading, Row, Screen, Small } from "../../../components/ui";
 import { CongratsCard, StarBurst, takeUnplayed } from "../../../components/celebration";
 import { ShareJourneyCard } from "../../../components/my-cases";
@@ -21,16 +21,7 @@ import { loadGuide } from "../../../lib/guide";
 import { useRefreshOnForeground } from "../../../lib/use-refresh";
 import { font, radius, space, useTheme } from "../../../lib/theme";
 import { CaseTags } from "../../../components/tags";
-
-function confirm(message: string, ok: string, cancel: string): Promise<boolean> {
-  if (Platform.OS === "web") return Promise.resolve(globalThis.confirm?.(message) ?? true);
-  return new Promise((resolve) =>
-    Alert.alert(message, undefined, [
-      { text: cancel, style: "cancel", onPress: () => resolve(false) },
-      { text: ok, style: "destructive", onPress: () => resolve(true) },
-    ]),
-  );
-}
+import { confirm } from "../../../lib/confirm";
 
 function Label({ children }: { children: string }) {
   return <Small style={{ textTransform: "uppercase", letterSpacing: 0.6, fontWeight: "600", fontSize: 12 }}>{children}</Small>;
@@ -331,7 +322,7 @@ export default function CaseScreen() {
           </Card>
         )}
 
-        {cs.journeyShare && <ShareJourneyCard share={cs.journeyShare} formCode={cs.form?.code ?? cs.formType} lang={lang} />}
+        {cs.journeyShare && <ShareJourneyCard share={cs.journeyShare} formCode={cs.form?.code ?? cs.formType} lang={lang} caseId={cs.id} />}
 
         {cs.checklist && (
           <Card onPress={() => router.push(`/checklists/${cs.checklist!.key}`)} label={t.checklistDocsFor(cs.checklist.form)} style={{ flexDirection: "row", alignItems: "center", gap: space(3) }}>

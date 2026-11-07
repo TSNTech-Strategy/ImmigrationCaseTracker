@@ -1,13 +1,13 @@
 import * as WebBrowser from "expo-web-browser";
-import { useState } from "react";
-import { Linking, Platform, Pressable, Share, StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import type { CaseFilter, CaseGroup, CaseSummary, CourtResponse, JourneyShare } from "../lib/api";
 import { formatDay, type Lang, strings } from "../lib/i18n";
 import { radius, space, useTheme } from "../lib/theme";
 import { FlagStripe, StarsMark } from "./celebration";
 import { IconTile, type Glyph, type Tint } from "./feature";
 import { Icon } from "./icon";
-import { Banner, Button, Card, Small } from "./ui";
+import { Button, Card, Small } from "./ui";
 
 // ---- Groups and tiles -------------------------------------------------------------
 
@@ -105,30 +105,10 @@ export function GroupHeader({ title, count, action }: { title: string; count: nu
 
 // ---- Share my journey ---------------------------------------------------------------
 
-/** Share the text: the system share sheet, or on the web (no share sheet) a copy to the clipboard. Returns "copied" when copied. */
-async function shareText(message: string): Promise<"shared" | "copied" | "failed"> {
-  try {
-    await Share.share({ message });
-    return "shared";
-  } catch {
-    if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(message);
-        return "copied";
-      } catch {
-        return "failed";
-      }
-    }
-    return "failed";
-  }
-}
-
-/** An approved case: the form, the approval day, how long it took, a preview of the message, and a Share button. */
-export function ShareJourneyCard({ share, formCode, lang }: { share: JourneyShare; formCode: string | null; lang: Lang }) {
+/** An approved case on its screen: the approval day, how long it took, and the way to the Journey approved screen (where it's shared). */
+export function ShareJourneyCard({ share, formCode, lang, caseId }: { share: JourneyShare; formCode: string | null; lang: Lang; caseId: string }) {
   const { c } = useTheme();
   const t = strings(lang);
-  const [copied, setCopied] = useState(false);
-  const [preview, setPreview] = useState(false);
   return (
     <View accessibilityRole="summary" style={{ backgroundColor: c.surface, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: c.border, overflow: "hidden" }}>
       <FlagStripe />
@@ -149,43 +129,42 @@ export function ShareJourneyCard({ share, formCode, lang }: { share: JourneyShar
             </View>
           </View>
         </View>
-
         {(share.approvedOn || share.days !== null) && (
           <View style={{ gap: 2 }}>
             {share.approvedOn && <Text style={{ fontSize: 16, fontWeight: "700", color: c.text }}>{t.shareApprovedOn(formatDay(share.approvedOn, lang))}</Text>}
             {share.days !== null && <Text style={{ fontSize: 14, color: c.muted }}>{t.shareDays(share.days)}</Text>}
           </View>
         )}
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ expanded: preview }}
-          onPress={() => setPreview((v) => !v)}
-          hitSlop={6}
-          style={{ flexDirection: "row", alignItems: "center", gap: space(1.5), alignSelf: "flex-start" }}
-        >
-          <Icon ios={preview ? "chevron.up" : "chevron.down"} md={preview ? "expand_less" : "expand_more"} size={14} color={c.accent} fallback={preview ? "▴" : "▾"} />
-          <Text style={{ color: c.accent, fontWeight: "600", fontSize: 15 }}>{preview ? t.shareHide : t.sharePreview}</Text>
-        </Pressable>
-        {preview && (
-          <View style={{ backgroundColor: c.surface2, borderRadius: 10, padding: space(3) }}>
-            <Text selectable style={{ fontSize: 14, color: c.text, lineHeight: 20 }}>
-              {share.text[lang]}
-            </Text>
-          </View>
-        )}
-
-        <Button
-          title={t.shareButton}
-          icon={{ ios: "square.and.arrow.up", md: "share", fallback: "↗" }}
-          onPress={async () => {
-            if ((await shareText(share.text[lang])) === "copied") setCopied(true);
-          }}
-        />
-        {copied && <Banner tone="success">{t.shareCopied}</Banner>}
+        <ShareJourneyButton caseId={caseId} lang={lang} />
         <Small style={{ fontSize: 12, textAlign: "center" }}>{t.shareNote}</Small>
       </View>
     </View>
+  );
+}
+
+/** The gold "Share my journey" button: opens the Journey approved screen. */
+export function ShareJourneyButton({ caseId, lang, compact = false }: { caseId: string; lang: Lang; compact?: boolean }) {
+  const t = strings(lang);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t.shareButton}
+      onPress={() => router.push(`/approved/${caseId}`)}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: space(2),
+        minHeight: compact ? 44 : 50,
+        borderRadius: radius.lg,
+        backgroundColor: pressed ? "#E0AE3A" : "#F2C14E",
+        borderWidth: 1,
+        borderColor: "#D9A632",
+      })}
+    >
+      <Icon ios="trophy" md="emoji_events" size={18} color="#0F1B2D" fallback="★" />
+      <Text style={{ fontSize: compact ? 15 : 16, fontWeight: "800", color: "#0F1B2D" }}>{t.shareButton}</Text>
+    </Pressable>
   );
 }
 

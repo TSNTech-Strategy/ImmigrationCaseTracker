@@ -3,9 +3,29 @@ import type { CaseFilter, JourneyShare } from "@/lib/my-cases";
 import { TILE_FILTERS } from "@/lib/my-cases";
 import { COURT_GUIDE, COURT_REVIEWED } from "@/lib/court";
 import { formatDay } from "@/components/line-map";
-import { ShareButton } from "@/components/share-button";
 
 type Lang = "en" | "es";
+
+export function TrophyIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM17 6h2.5a2.5 2.5 0 0 1-2.8 3.5M7 6H4.5a2.5 2.5 0 0 0 2.8 3.5" />
+    </svg>
+  );
+}
+
+/** "30%" in a small ring: how many of the checklist's required documents are ticked. */
+export function ReadyRing({ pct, size = 28 }: { pct: number; size?: number }) {
+  const r = (size - 4) / 2;
+  const len = 2 * Math.PI * r;
+  const color = pct >= 100 ? "var(--success)" : pct > 0 ? "var(--accent)" : "var(--st-stop)";
+  return (
+    <svg aria-hidden="true" width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--border)" strokeWidth="3" />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeDasharray={pct > 0 ? `${(len * Math.min(pct, 100)) / 100} ${len}` : `${len} 0`} strokeOpacity={pct > 0 ? 1 : 0.6} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+    </svg>
+  );
+}
 
 /** USCIS cases | Immigration court, above the list. */
 export function CasesTabs({ current, es = false }: { current: "uscis" | "court"; es?: boolean }) {
@@ -81,9 +101,8 @@ export function SummaryTiles({ counts, active, hrefFor, es = false }: { counts: 
   );
 }
 
-/** An approved case: the approval day, how long it took, a preview of the message, and a Share button. */
-export function ShareJourneyCard({ share, formCode, es = false }: { share: JourneyShare; formCode: string | null; es?: boolean }) {
-  const lang: Lang = es ? "es" : "en";
+/** An approved case on its page: the approval day, how long it took, and the way to the Journey approved page (where it's shared). */
+export function ShareJourneyCard({ share, formCode, href, es = false }: { share: JourneyShare; formCode: string | null; href: string; es?: boolean }) {
   return (
     <section aria-labelledby="share-h" className="relative flex flex-col gap-4 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
       <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,var(--brand-red),var(--accent))]" />
@@ -102,17 +121,13 @@ export function ShareJourneyCard({ share, formCode, es = false }: { share: Journ
             </p>
           )}
         </div>
-        <details className="group rounded-md bg-[var(--surface-2)] px-3 py-2 text-sm">
-          <summary className="cursor-pointer font-medium text-[var(--accent)]">{es ? "Ver el mensaje" : "Preview the message"}</summary>
-          <p className="mt-2 whitespace-pre-line leading-relaxed">{share.text[lang]}</p>
-        </details>
-        <ShareButton
-          text={share.text[lang]}
-          title={es ? "Mi trayectoria de inmigración" : "My immigration journey"}
-          label={es ? "Compartir mi trayectoria" : "Share my journey"}
-          copiedLabel={es ? "Copiado. Péguelo donde quiera." : "Copied. Paste it wherever you like."}
-          fallbackLabel={es ? "Copie este texto:" : "Copy this text:"}
-        />
+        <Link
+          href={href}
+          className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-[#d9a632] bg-[#f2c14e] px-5 py-2.5 font-extrabold text-[#0f1b2d] hover:bg-[#e0ae3a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        >
+          <TrophyIcon />
+          {es ? "Compartir mi trayectoria" : "Share my journey"}
+        </Link>
         <p className="text-xs text-[var(--muted)]">{es ? "No se incluye su número de recibo." : "Your receipt number isn't included."}</p>
       </div>
     </section>
