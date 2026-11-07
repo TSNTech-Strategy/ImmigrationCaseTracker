@@ -28,13 +28,19 @@ const TEXT = {
 
 const short = (day: string, lang: Lang) => new Intl.DateTimeFormat(lang === "es" ? "es-US" : "en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${day}T00:00:00Z`));
 
-let assets: Promise<{ fonts: { name: string; data: Buffer; weight: 500 | 700 | 800 }[]; mark: string }> | null = null;
+let assets: Promise<{ fonts: { name: string; data: Buffer; weight: 500 | 700 | 800 }[]; mark: string | null }> | null = null;
 function loadAssets() {
   assets ??= (async () => {
     const dir = join(process.cwd(), "src/assets");
     const font = async (weight: 500 | 700 | 800) => ({ name: "Jakarta", data: await readFile(join(dir, `fonts/PlusJakartaSans-${weight}.woff`)), weight });
-    const [f5, f7, f8, mark] = await Promise.all([font(500), font(700), font(800), readFile(join(dir, "casepingo-mark.png"))]);
-    return { fonts: [f5, f7, f8], mark: `data:image/png;base64,${mark.toString("base64")}` };
+    try {
+      const [f5, f7, f8, mark] = await Promise.all([font(500), font(700), font(800), readFile(join(dir, "casepingo-mark.png"))]);
+      return { fonts: [f5, f7, f8], mark: `data:image/png;base64,${mark.toString("base64")}` };
+    } catch (err) {
+      // Files missing from the server bundle: still draw the picture, in the default font and without the logo.
+      console.error("journey-card: assets unavailable, using the default font", err);
+      return { fonts: [], mark: null };
+    }
   })();
   return assets;
 }
@@ -54,14 +60,14 @@ export async function renderJourneyCard({ share, formCode, scenario, lang }: Jou
   );
   return new ImageResponse(
     (
-      <div style={{ width: W, height: H, display: "flex", padding: 40, background: C.page, fontFamily: "Jakarta" }}>
+      <div style={{ width: W, height: H, display: "flex", padding: 40, background: C.page, ...(fonts.length ? { fontFamily: "Jakarta" } : {}) }}>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", background: "#FFFFFF", borderRadius: 48, border: `6px solid ${C.blue}`, overflow: "hidden" }}>
           <div style={{ display: "flex", width: "100%", height: 14 }}>
             <div style={{ flex: 1, background: C.red }} />
             <div style={{ flex: 1, background: C.blue }} />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 30 }}>
-            <img src={mark} alt="" width={64} height={64} style={{ borderRadius: 16 }} />
+            {mark && <img src={mark} alt="" width={64} height={64} style={{ borderRadius: 16 }} />}
             <div style={{ display: "flex", fontSize: 46, fontWeight: 800, color: C.navy }}>
               Case<span style={{ color: C.red }}>Pingo</span>
             </div>
@@ -109,7 +115,7 @@ export async function renderJourneyCard({ share, formCode, scenario, lang }: Jou
         </div>
       </div>
     ),
-    { width: W, height: H, fonts, headers: { "Cache-Control": "private, no-store" } },
+    { width: W, height: H, ...(fonts.length ? { fonts } : {}), headers: { "Cache-Control": "private, no-store" } },
   );
 }
 
