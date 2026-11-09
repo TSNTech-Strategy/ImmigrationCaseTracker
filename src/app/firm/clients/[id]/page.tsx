@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Toast } from "@/components/toast";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
@@ -183,7 +184,7 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
             ))}
           </ul>
         )}
-        {docNotice && <p role={docNotice.error ? "alert" : "status"} className={`rounded-md border px-3 py-2 text-sm ${docNotice.error ? "border-[var(--danger)] text-[var(--danger)]" : "border-[var(--success)] text-[var(--success)]"}`}>{docNotice.text}</p>}
+        {docNotice && <Toast key={String(notice)} message={docNotice.text} kind={docNotice.error ? "error" : "success"} />}
         {docs && docs.documents.length > 0 && <DocumentTable documents={docs.documents} back={`/firm/clients/${client.id}`} userId={user.id} isManager={ctx.membership.role !== "STAFF"} showLink={false} />}
         {docs?.storageReady ? (
           <DocumentUploadForm accept={ACCEPT} kinds={Object.entries(DOCUMENT_KINDS).map(([value, label]) => ({ value, label }))} visibilities={Object.entries(DOCUMENT_VISIBILITY).map(([value, label]) => ({ value, label }))} fixed={{ clientId: client.id }} />

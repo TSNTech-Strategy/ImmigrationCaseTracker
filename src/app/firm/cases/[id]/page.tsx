@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Toast } from "@/components/toast";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CaseStatusPanel, ObservedChanges, UscisHistory, USCIS_SOURCE_NOTE } from "@/components/case-status";
@@ -218,7 +219,7 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
             ))}
           </ul>
         )}
-        {docNotice && <p role={docNotice.error ? "alert" : "status"} className={`rounded-md border px-3 py-2 text-sm ${docNotice.error ? "border-[var(--danger)] text-[var(--danger)]" : "border-[var(--success)] text-[var(--success)]"}`}>{docNotice.text}</p>}
+        {docNotice && <Toast key={String(notice)} message={docNotice.text} kind={docNotice.error ? "error" : "success"} />}
         {docs && docs.documents.length > 0 && <DocumentTable documents={docs.documents} back={`/firm/cases/${c.id}#docs-h`} userId={user.id} isManager={ctx.membership.role !== "STAFF"} showLink={false} />}
         {docs?.storageReady ? (
           <DocumentUploadForm accept={ACCEPT} kinds={Object.entries(DOCUMENT_KINDS).map(([value, label]) => ({ value, label }))} visibilities={Object.entries(DOCUMENT_VISIBILITY).map(([value, label]) => ({ value, label }))} fixed={{ caseId: c.id }} />

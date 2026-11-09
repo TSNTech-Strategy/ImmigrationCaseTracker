@@ -1,6 +1,8 @@
 # CasePingo for Firms: platform and business plan
 
-Status: draft for the owner's review, November 2026. Each phase below is built, tested, merged and released on its own.
+Status (Nov 9, 2026): phases 1 to 7 are built, tested and live on casepingo.com, plus upload scanning. Prices are confirmed; Stripe stays in test mode and USCIS in sandbox until USCIS approves production access.
+
+Launch steps left (owner): five consecutive days of USCIS sandbox evidence, then the production-access request; `npm run stripe:setup`; lawyer review of client-facing wording; support email; 3 to 5 pilot firms on the founding offer.
 
 ## 1. The business
 
