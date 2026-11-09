@@ -3,6 +3,7 @@ import type { DocumentKind, DocumentSource, DocumentVisibility } from "@prisma/c
 import { DOCUMENT_KINDS } from "@/lib/firms/documents";
 import { LocalTime } from "@/components/local-time";
 import { td, th } from "@/components/workspace-ui";
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import { deleteDocumentAction, updateDocumentAction } from "./actions";
 
 export type DocumentRow = {
@@ -100,9 +101,9 @@ export function DocumentTable({ documents, back, userId, isManager, showLink = t
                     <form action={deleteDocumentAction} className="inline">
                       <input type="hidden" name="documentId" value={d.id} />
                       <input type="hidden" name="back" value={back} />
-                      <button type="submit" className={`${small} hover:text-[var(--danger)]`} aria-label={`Delete ${d.name}`}>
+                      <ConfirmSubmit message={`Delete "${d.name}"? This can't be undone.`} className={`${small} hover:text-[var(--danger)]`} label={`Delete ${d.name}`}>
                         Delete
-                      </button>
+                      </ConfirmSubmit>
                     </form>
                   )}
                 </td>
@@ -117,6 +118,8 @@ export function DocumentTable({ documents, back, userId, isManager, showLink = t
 
 export const DOC_NOTICES: Record<string, { text: string; error?: boolean }> = {
   "doc-updated": { text: "Document updated." },
+  "doc-shared": { text: "Shared with the client. They can open it from their status page." },
+  "doc-unshared": { text: "No longer shared with the client." },
   "doc-deleted": { text: "Document deleted." },
   "doc-error": { text: "That didn't work. Only the uploader, an Owner or an Admin can change a document.", error: true },
 };

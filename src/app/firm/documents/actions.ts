@@ -27,10 +27,11 @@ export async function updateDocumentAction(formData: FormData) {
   const user = await getCurrentUser();
   const back = safeBack(formData.get("back"), "/firm/documents");
   if (!user) redirect(`/login?next=${encodeURIComponent(back)}`);
-  const r = await firmDocumentService().update(user.id, String(formData.get("documentId") ?? ""), { visibility: String(formData.get("visibility") ?? "") || undefined, kind: String(formData.get("kind") ?? "") || undefined });
+  const visibility = String(formData.get("visibility") ?? "") || undefined;
+  const r = await firmDocumentService().update(user.id, String(formData.get("documentId") ?? ""), { visibility, kind: String(formData.get("kind") ?? "") || undefined });
   refresh();
   const url = new URL(back, "http://x");
-  url.searchParams.set("notice", r.ok ? "doc-updated" : "doc-error");
+  url.searchParams.set("notice", !r.ok ? "doc-error" : visibility === "CLIENT" ? "doc-shared" : visibility === "INTERNAL" ? "doc-unshared" : "doc-updated");
   redirect(`${url.pathname}${url.search}`);
 }
 

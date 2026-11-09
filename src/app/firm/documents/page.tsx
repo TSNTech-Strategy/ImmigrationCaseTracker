@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Toast } from "@/components/toast";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
@@ -38,7 +39,7 @@ export default async function DocumentsPage({ searchParams }: PageProps<"/firm/d
         </Link>
       </div>
       <DocumentsSubNav current="files" />
-      {notice && DOC_NOTICES[notice] && <Notice kind={DOC_NOTICES[notice].error ? "error" : "success"}>{DOC_NOTICES[notice].text}</Notice>}
+      {notice && DOC_NOTICES[notice] && <Toast key={notice} message={DOC_NOTICES[notice].text} kind={DOC_NOTICES[notice].error ? "error" : "success"} />}
       {!data.storageReady && <Notice kind="error">File storage isn&apos;t set up on this site, so uploads are off here.</Notice>}
 
       {data.storageReady && (

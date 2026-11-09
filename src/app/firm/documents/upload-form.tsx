@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { FormMessage, SubmitButton, type FormState } from "@/components/form";
+import { Toast } from "@/components/toast";
 import { uploadDocumentAction } from "./actions";
 
 type Option = { value: string; label: string };
@@ -43,7 +44,9 @@ export function DocumentUploadForm({
       <summary className="cursor-pointer text-sm font-semibold text-[var(--accent)]">
         Upload a document
       </summary>
-      <FormMessage state={state} />
+      {/* Errors stay by the form; success is a toast (one per upload, keyed by its stamp). */}
+      <FormMessage state={{ error: state.error }} />
+      {state.success && <Toast key={state.values?.stamp ?? state.success} message={state.success} />}
       <form
         action={action}
         className="mt-4 flex max-w-3xl flex-col gap-4"
