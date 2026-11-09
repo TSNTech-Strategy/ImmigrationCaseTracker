@@ -135,7 +135,7 @@ Every phase: database migration with row-level security, server logic with datab
 - SMS is dropped: no Twilio, no A2P 10DLC registration, no text-message consent to manage. A firm can still copy a request or status link into its own text or WhatsApp.
 
 ### Trust paperwork (Nov 9, 2026)
-- Built as drafts for the lawyer: Data Processing Agreement (/dpa) and Subprocessors page (/subprocessors). Still to do: security page, status page, SOC 2 roadmap, signing the DPA with each provider we list.
+- Built as drafts for the lawyer: Data Processing Agreement (/dpa) and Subprocessors page (/subprocessors). Security page (/security, with security.txt) and status page (/system-status, /api/health) built the same day. Still to do: an external uptime monitor on /api/health, SOC 2 roadmap, accepting each listed provider's DPA.
 
 ### Technical items to build later (noted, not started)
 | Item | What it needs | Notes |
