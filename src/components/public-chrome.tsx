@@ -75,6 +75,8 @@ export function PublicFooter() {
           <Link href="/terms" className={link}>Terms of Service</Link>
           <Link href="/dpa" className={link}>Data Processing Agreement</Link>
           <Link href="/subprocessors" className={link}>Subprocessors</Link>
+          <Link href="/security" className={link}>Security</Link>
+          <Link href="/system-status" className={link}>System status</Link>
           <Link href="/accessibility" className={link}>Accessibility</Link>
         </nav>
       </div>

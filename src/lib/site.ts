@@ -10,6 +10,8 @@ export const SITE = {
   company: "TSN TECH & STRATEGY NETWORK LLC",
   /** Shown on legal pages. Set NEXT_PUBLIC_CONTACT_EMAIL once the company mailbox exists. */
   contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "[contact email — to be added]",
+  /** Where security reports go (security.txt, the Security page). Forwarded by ImprovMX. */
+  securityEmail: "security@casepingo.com",
   /** Date the current legal drafts were written. */
   legalUpdated: "November 7, 2026",
   disclaimer:
