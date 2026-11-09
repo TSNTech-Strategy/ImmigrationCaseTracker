@@ -4,6 +4,7 @@ import { DraftNotice, Prose } from "@/components/public-chrome";
 import { FEATURES } from "@/lib/features";
 import { MIN_GROUP } from "@/lib/insights";
 import { SITE } from "@/lib/site";
+import { subprocessors } from "@/lib/legal/subprocessors";
 
 export const metadata: Metadata = { title: "Privacy Policy · CasePingo" };
 
@@ -58,8 +59,9 @@ export default function Privacy() {
         </li>
       </ul>
       <p>
-        We do not ask individuals for passport numbers, A-numbers, documents or other immigration records. A law firm may record its own
-        clients&apos; A-Numbers and dates of birth in its workspace, as described above.
+        If you track your own cases, we do not ask you for passport numbers, A-numbers, documents or other immigration records. A law firm
+        may record its own clients&apos; A-Numbers and dates of birth in its workspace, and its clients may upload documents the firm asks
+        for, as described above.
       </p>
       {FEATURES.assistant && (
         <p>
@@ -96,28 +98,30 @@ export default function Privacy() {
       </p>
 
       <h2>Who we share it with</h2>
-      <p>We share information only with service providers who process it on our behalf, under contract:</p>
+      <p>
+        We share information only with service providers who process it on our behalf, under contract, and only for the job they do for us.
+        The full, current list with what each one receives is on our <Link href="/subprocessors">Subprocessors page</Link>:
+      </p>
       <ul>
         <li>
           <strong>USCIS</strong>: we send a receipt number to the official USCIS Case Status API to retrieve its status.
         </li>
-        <li>
-          <strong>Supabase</strong>: database and sign-in (United States).
-        </li>
-        <li>
-          <strong>Vercel</strong>: website hosting.
-        </li>
+        {subprocessors()
+          .filter((p) => p.active)
+          .map((p) => (
+            <li key={p.name}>
+              <strong>{p.name}</strong>: {p.purpose}. It receives: {p.data.charAt(0).toLowerCase() + p.data.slice(1)}.
+            </li>
+          ))}
         {FEATURES.assistant && (
           <li>
-            <strong>Anthropic</strong>: the AI model behind the assistant. It receives your questions, the conversation so far and,
-            when you ask from a case, that case&apos;s form type and status text. Under its commercial terms it doesn&apos;t use them to
-            train its models. [Retention terms to be confirmed with counsel.]
+            Our AI provider doesn&apos;t use assistant conversations to train its models under its commercial terms. [Retention terms to be confirmed with counsel.]
           </li>
         )}
-        <li>
-          <strong>Email delivery provider</strong>: to send account and alert emails. [Provider to be named before launch.]
-        </li>
       </ul>
+      <p>
+        Law firms: how we process your clients&apos; information is set out in our <Link href="/dpa">Data Processing Agreement</Link>.
+      </p>
       <p>We may also disclose information if the law requires it. We will tell you unless the law forbids us to.</p>
 
       <h2>Security</h2>

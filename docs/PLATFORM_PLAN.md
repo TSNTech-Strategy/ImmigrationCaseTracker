@@ -134,6 +134,9 @@ Every phase: database migration with row-level security, server logic with datab
 - Email only, through Resend (SMTP, from alerts@casepingo.com; working as of Nov 7, 2026). It sends invitations, client status updates, document requests and reminders (with the firm's logo), staff case-change emails and billing notices.
 - SMS is dropped: no Twilio, no A2P 10DLC registration, no text-message consent to manage. A firm can still copy a request or status link into its own text or WhatsApp.
 
+### Trust paperwork (Nov 9, 2026)
+- Built as drafts for the lawyer: Data Processing Agreement (/dpa) and Subprocessors page (/subprocessors). Still to do: security page, status page, SOC 2 roadmap, signing the DPA with each provider we list.
+
 ### Technical items to build later (noted, not started)
 | Item | What it needs | Notes |
 |---|---|---|

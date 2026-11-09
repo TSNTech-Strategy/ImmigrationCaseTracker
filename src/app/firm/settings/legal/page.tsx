@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { SITE } from "@/lib/site";
 import { requireUser } from "@/lib/auth/session";
 import { firmDataService, firmService } from "@/lib/firms";
 import { DELETION_GRACE_DAYS } from "@/lib/firms/data";
@@ -66,6 +67,14 @@ export default async function LegalPage() {
           <li>No advertising or tracking cookies, and we don&apos;t sell or share your data.</li>
           <li>
             Read the{" "}
+            <Link href="/dpa" className="font-medium text-[var(--accent)] underline underline-offset-2">
+              Data Processing Agreement
+            </Link>
+            ,{" "}
+            <Link href="/subprocessors" className="font-medium text-[var(--accent)] underline underline-offset-2">
+              Subprocessors
+            </Link>
+            ,{" "}
             <Link href="/privacy" className="font-medium text-[var(--accent)] underline underline-offset-2">
               Privacy Policy
             </Link>{" "}
@@ -73,7 +82,7 @@ export default async function LegalPage() {
             <Link href="/terms" className="font-medium text-[var(--accent)] underline underline-offset-2">
               Terms
             </Link>
-            .
+            . For a countersigned DPA or a security questionnaire, write to {SITE.contactEmail}.
           </li>
         </ul>
       </section>

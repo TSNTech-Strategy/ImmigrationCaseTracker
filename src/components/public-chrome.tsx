@@ -73,6 +73,8 @@ export function PublicFooter() {
           <p className="font-semibold">Legal</p>
           <Link href="/privacy" className={link}>Privacy Policy</Link>
           <Link href="/terms" className={link}>Terms of Service</Link>
+          <Link href="/dpa" className={link}>Data Processing Agreement</Link>
+          <Link href="/subprocessors" className={link}>Subprocessors</Link>
           <Link href="/accessibility" className={link}>Accessibility</Link>
         </nav>
       </div>

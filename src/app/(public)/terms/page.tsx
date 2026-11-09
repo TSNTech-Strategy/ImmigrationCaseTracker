@@ -65,7 +65,9 @@ export default function Terms() {
 
       <h2>Privacy</h2>
       <p>
-        Our <Link href="/privacy">Privacy Policy</Link> explains how we handle your information.
+        Our <Link href="/privacy">Privacy Policy</Link> explains how we handle your information. For law firms using CasePingo Pro, our{" "}
+        <Link href="/dpa">Data Processing Agreement</Link> is part of these terms and governs how we process the firm&apos;s client data;
+        the companies that help us are listed on our <Link href="/subprocessors">Subprocessors page</Link>.
       </p>
 
       <h2>Changes of ownership</h2>
