@@ -51,5 +51,15 @@ describe.skipIf(!url)("live status", () => {
     expect(s.components.find((x) => x.key === "uscis")!.level).toBe("degraded");
     expect(s.components.find((x) => x.key === "jobs")!.level).toBe("degraded");
     expect(s.overall).toBe("degraded");
+
+    // Everything failing (e.g. the USCIS test system closed for the weekend): "down" in production,
+    // but only "degraded", with an explanation, while we're on the test system.
+    const weekend = new Date(now.getTime() + 60 * 3_600_000);
+    for (let i = 0; i < 3; i++) await run(-58, "server");
+    const prod = await getSystemStatus({ db, now: () => weekend, config });
+    expect(prod.components.find((x) => x.key === "uscis")!.level).toBe("down");
+    const sandbox = await getSystemStatus({ db, now: () => weekend, config: { ...config, uscisSandbox: true } });
+    const sb = sandbox.components.find((x) => x.key === "uscis")!;
+    expect(sb).toMatchObject({ level: "degraded", name: expect.stringContaining("test system"), detail: expect.stringContaining("weekends") });
   });
 });
