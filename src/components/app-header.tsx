@@ -44,6 +44,7 @@ export function AppFooter({ wide = false }: { wide?: boolean } = {}) {
       <nav aria-label="Legal" className="flex flex-wrap gap-4">
         <Link href="/privacy" className="underline underline-offset-2">Privacy</Link>
         <Link href="/terms" className="underline underline-offset-2">Terms</Link>
+        <Link href="/subprocessors" className="underline underline-offset-2">Subprocessors</Link>
         <Link href="/accessibility" className="underline underline-offset-2">Accessibility</Link>
       </nav>
       <p>
