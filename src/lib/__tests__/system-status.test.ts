@@ -32,7 +32,8 @@ describe.skipIf(!url)("live status", () => {
     const run = (hoursAgo: number, outcome: string, trigger: "SCHEDULED" | "MANUAL" = "SCHEDULED") =>
       db.caseCheckRun.create({ data: { caseId: c.id, trigger, uscisEnv: "sandbox", outcome, durationMs: 100, attemptedAt: new Date(now.getTime() - hoursAgo * 3_600_000) } });
 
-    for (let i = 0; i < 9; i++) await run(2, "ok");
+    for (let i = 0; i < 8; i++) await run(2, "ok");
+    await run(2, "not_found"); // USCIS answered: one receipt it doesn't know (always so for real receipts in the sandbox)
     await run(3, "server");
     let s = await getSystemStatus({ db, now: () => now, config });
     const byKey = Object.fromEntries(s.components.map((x) => [x.key, x]));
