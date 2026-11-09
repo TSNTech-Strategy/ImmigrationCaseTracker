@@ -11,6 +11,12 @@ export function liveSystemStatus() {
       storage: getFileStore() !== null,
       email: Boolean(process.env.SMTP_HOST),
       jobs: Boolean(process.env.INNGEST_SIGNING_KEY) || process.env.NODE_ENV !== "production",
+      uscisSandbox: usingUscisSandbox(),
     },
   });
+}
+
+/** True until production USCIS access is approved and USCIS_ENV=production is set. */
+export function usingUscisSandbox(): boolean {
+  return (process.env.USCIS_ENV?.trim() || "sandbox") !== "production";
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { liveSystemStatus } from "@/lib/system-status-live";
+import { liveSystemStatus, usingUscisSandbox } from "@/lib/system-status-live";
 import { INCIDENTS, type Level } from "@/lib/system-status";
 import { SITE } from "@/lib/site";
 
@@ -37,6 +37,11 @@ async function Live() {
           <p className="text-sm text-[var(--muted)]">Checked {time} Eastern. Refresh to check again.</p>
         </div>
       </section>
+      {usingUscisSandbox() && (
+        <p className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-5 py-3 text-sm">
+          <span className="font-medium">Using the USCIS test system.</span> Until USCIS approves our production access, status checks go to USCIS&apos;s test system, which is usually offline on weekends. When it&apos;s offline, checks pause and resume on their own; this isn&apos;t a {SITE.name} outage.
+        </p>
+      )}
       <ul className="flex flex-col divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] bg-[var(--surface)]">
         {s.components.map((c) => (
           <li key={c.key} className="flex flex-wrap items-start justify-between gap-x-6 gap-y-1 px-5 py-4">

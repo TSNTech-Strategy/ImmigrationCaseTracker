@@ -40,7 +40,8 @@ export async function getSystemStatus({
 }: {
   db: PrismaClient;
   now?: () => Date;
-  config: { storage: boolean; email: boolean; jobs: boolean };
+  /** uscisSandbox: the site is still on USCIS's test system (only knows test receipts; usually offline on weekends). */
+  config: { storage: boolean; email: boolean; jobs: boolean; uscisSandbox?: boolean };
 }): Promise<SystemStatus> {
   const t = now();
   const components: Component[] = [{ key: "website", name: "Website and app", level: "operational", detail: "Pages and the mobile app's API are responding." }];
@@ -66,17 +67,30 @@ export async function getSystemStatus({
       db.caseCheckRun.findFirst({ where: { trigger: "SCHEDULED" }, orderBy: { attemptedAt: "desc" }, select: { attemptedAt: true } }),
     ]);
     if (total === 0) {
-      components.push({ key: "uscis", name: "USCIS status checks", level: "operational", detail: "No checks were due in the last 24 hours." });
+      components.push({ key: "uscis", name: config.uscisSandbox ? "USCIS status checks (USCIS test system)" : "USCIS status checks", level: "operational", detail: "No checks were due in the last 24 hours." });
     } else {
       const rate = ok / total;
       const pct = Math.round(rate * 1000) / 10;
       const level: Level = ok === 0 ? "down" : rate < 0.9 ? "degraded" : "operational";
-      components.push({
-        key: "uscis",
-        name: "USCIS status checks",
-        level,
-        detail: level === "operational" ? `${pct}% of checks in the last 24 hours got an answer from USCIS.` : level === "degraded" ? `Only ${pct}% of checks in the last 24 hours got an answer from USCIS. Checks are retried automatically.` : "USCIS isn't answering our checks right now. They're retried automatically.",
-      });
+      if (config.uscisSandbox) {
+        // The test system closing (weekends) isn't a CasePingo outage: never report it as "down".
+        components.push({
+          key: "uscis",
+          name: "USCIS status checks (USCIS test system)",
+          level: level === "down" ? "degraded" : level,
+          detail:
+            level === "operational"
+              ? `${pct}% of checks in the last 24 hours got an answer. We're on USCIS's test system until production access is approved.`
+              : `The USCIS test system answered ${pct}% of checks in the last 24 hours. It's usually offline on weekends; checks resume automatically when it's back.`,
+        });
+      } else {
+        components.push({
+          key: "uscis",
+          name: "USCIS status checks",
+          level,
+          detail: level === "operational" ? `${pct}% of checks in the last 24 hours got an answer from USCIS.` : level === "degraded" ? `Only ${pct}% of checks in the last 24 hours got an answer from USCIS. Checks are retried automatically.` : "USCIS isn't answering our checks right now. They're retried automatically.",
+        });
+      }
     }
     if (!config.jobs) {
       components.push({ key: "jobs", name: "Scheduled checks and reminders", level: "not_configured", detail: "Not set up on this site." });
