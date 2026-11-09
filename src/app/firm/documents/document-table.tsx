@@ -115,11 +115,3 @@ export function DocumentTable({ documents, back, userId, isManager, showLink = t
     </div>
   );
 }
-
-export const DOC_NOTICES: Record<string, { text: string; error?: boolean }> = {
-  "doc-updated": { text: "Document updated." },
-  "doc-shared": { text: "Shared with the client. They can open it from their status page." },
-  "doc-unshared": { text: "No longer shared with the client." },
-  "doc-deleted": { text: "Document deleted." },
-  "doc-error": { text: "That didn't work. Only the uploader, an Owner or an Admin can change a document.", error: true },
-};

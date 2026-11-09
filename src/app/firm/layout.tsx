@@ -3,6 +3,7 @@ import { AppFooter, AppHeader } from "@/components/app-header";
 import { requireUser } from "@/lib/auth/session";
 import { firmAlertService, firmService, firmTaskService, firmTeamService, firmUpdateService } from "@/lib/firms";
 import { FirmNav } from "./firm-nav";
+import { FlashToast } from "@/components/flash-toast";
 
 export const instant = false;
 
@@ -24,6 +25,7 @@ export default async function FirmLayout({ children }: { children: ReactNode }) 
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6">
         {ctx && <FirmNav firmName={ctx.firm.name} isManager={ctx.membership.role !== "STAFF"} openUpdates={openUpdates} dueDeadlines={dueDeadlines} dueTasks={dueTasks} />}
         {children}
+        <FlashToast />
       </div>
       <AppFooter wide />
     </>

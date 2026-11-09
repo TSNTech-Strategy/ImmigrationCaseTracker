@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { RequestCheck, RequestProgress } from "@/components/request-check";
 import { FirmBrand } from "@/components/firm-brand";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -18,6 +19,7 @@ const T = {
     asks: (f: string) => `${f} needs these documents from you. Upload each one from your phone or computer: no account needed.`,
     due: "Please upload by",
     progress: (a: number, b: number) => `${a} of ${b} accepted`,
+    received: (a: number, b: number) => `${a} of ${b} documents sent`,
     choose: "Choose a file or take a photo",
     send: "Send",
     sending: "Sending…",
@@ -36,6 +38,7 @@ const T = {
     asks: (f: string) => `${f} necesita estos documentos. Suba cada uno desde su teléfono o computadora: no necesita cuenta.`,
     due: "Fecha límite",
     progress: (a: number, b: number) => `${a} de ${b} aceptados`,
+    received: (a: number, b: number) => `${a} de ${b} documentos enviados`,
     choose: "Elija un archivo o tome una foto",
     send: "Enviar",
     sending: "Enviando…",
@@ -107,6 +110,12 @@ async function UploadView({ params, searchParams }: PageProps<"/upload/[token]">
             {t.done}
           </p>
         )}
+        <RequestProgress
+          received={v.items.filter((i) => i.status === "UPLOADED" || i.status === "ACCEPTED").length}
+          accepted={v.items.filter((i) => i.status === "ACCEPTED").length}
+          total={v.items.length}
+          text={t.received(v.items.filter((i) => i.status === "UPLOADED" || i.status === "ACCEPTED").length, v.items.length)}
+        />
         <ol className="flex flex-col gap-3">
           {v.items.map((it) => {
             const label = es && it.labelEs ? it.labelEs : it.label;
@@ -114,10 +123,13 @@ async function UploadView({ params, searchParams }: PageProps<"/upload/[token]">
             return (
               <li key={it.id} className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <h2 className="min-w-0 font-semibold">
-                    {label}
-                    {!it.required && <span className="ml-1.5 text-xs font-normal text-[var(--muted)]">({t.optional})</span>}
-                  </h2>
+                  <div className="flex min-w-0 items-start gap-3">
+                    <RequestCheck status={it.status} label={REQUEST_ITEM_STATUS[it.status][lang]} />
+                    <h2 className="min-w-0 font-semibold">
+                      {label}
+                      {!it.required && <span className="ml-1.5 text-xs font-normal text-[var(--muted)]">({t.optional})</span>}
+                    </h2>
+                  </div>
                   <span className={`whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold ${BADGE[it.status]}`}>{REQUEST_ITEM_STATUS[it.status][lang]}</span>
                 </div>
                 {it.note && !es && <p className="text-sm text-[var(--muted)]">{it.note}</p>}

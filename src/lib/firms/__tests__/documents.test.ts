@@ -103,9 +103,9 @@ describe.skipIf(!url)("firm documents", () => {
 
     // Another staff member can't change or delete it; the uploader and the owner can.
     expect(await docs.update(staff2, up.id, { visibility: "CLIENT" })).toMatchObject({ ok: false });
-    expect(await docs.update(staff, up.id, { visibility: "CLIENT" })).toEqual({ ok: true });
+    expect(await docs.update(staff, up.id, { visibility: "CLIENT" })).toEqual({ ok: true, name: "I-797C notice.pdf" });
     expect(await docs.remove(staff2, up.id)).toMatchObject({ ok: false });
-    expect(await docs.remove(owner, up.id)).toEqual({ ok: true });
+    expect(await docs.remove(owner, up.id)).toEqual({ ok: true, name: "I-797C notice.pdf" });
     expect(await readdir(join(dir, firmDir!))).toEqual([]);
     const acts = (await db.auditLog.findMany({ where: { firmId: f.firm.id, action: { startsWith: "document." } }, select: { action: true }, orderBy: { createdAt: "asc" } })).map((r) => r.action);
     expect(acts).toEqual(["document.uploaded", "document.downloaded", "document.updated", "document.deleted"]);
