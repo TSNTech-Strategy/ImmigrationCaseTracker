@@ -13,6 +13,11 @@ const HOUR = 3_600_000;
 /** Scheduled checks run about every 12 hours per case; a gap longer than this means the scheduler is behind. */
 const SCHEDULE_GRACE_HOURS = 14;
 const ORDER: Level[] = ["operational", "not_configured", "degraded", "down"];
+/**
+ * Check outcomes where USCIS did answer. "Case not found" or "receipt not accepted" are about one
+ * receipt (or, in the USCIS sandbox, any real receipt), not USCIS being unavailable.
+ */
+export const ANSWERED_OUTCOMES = ["ok", "not_found", "bad_request", "invalid_receipt"];
 
 export function worst(levels: Level[]): Level {
   // "Not configured" parts (e.g. email on a preview) don't make the whole service look broken.
@@ -57,7 +62,7 @@ export async function getSystemStatus({
     const since = new Date(t.getTime() - 24 * HOUR);
     const [total, ok, lastScheduled] = await Promise.all([
       db.caseCheckRun.count({ where: { attemptedAt: { gte: since } } }),
-      db.caseCheckRun.count({ where: { attemptedAt: { gte: since }, outcome: "ok" } }),
+      db.caseCheckRun.count({ where: { attemptedAt: { gte: since }, outcome: { in: ANSWERED_OUTCOMES } } }),
       db.caseCheckRun.findFirst({ where: { trigger: "SCHEDULED" }, orderBy: { attemptedAt: "desc" }, select: { attemptedAt: true } }),
     ]);
     if (total === 0) {
