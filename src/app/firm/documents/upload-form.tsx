@@ -46,7 +46,7 @@ export function DocumentUploadForm({
       </summary>
       {/* Errors stay by the form; success is a toast (one per upload, keyed by its stamp). */}
       <FormMessage state={{ error: state.error }} />
-      {state.success && <Toast key={state.values?.stamp ?? state.success} message={state.success} />}
+      {state.success && <Toast key={state.values?.stamp ?? state.success} title={`${state.success} uploaded`} detail="Checked for safety and stored encrypted." />}
       <form
         action={action}
         className="mt-4 flex max-w-3xl flex-col gap-4"

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RequestCheck, RequestProgress } from "@/components/request-check";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
@@ -29,7 +30,7 @@ const NOTICES: Record<string, { text: string; error?: boolean }> = {
 };
 const ITEM: Record<string, { label: string; cls: string }> = {
   PENDING: { label: "Waiting for the client", cls: "bg-[var(--surface-2)] text-[var(--muted)]" },
-  UPLOADED: { label: "Ready to review", cls: "bg-[var(--st-action-bg)] text-[var(--st-action)]" },
+  UPLOADED: { label: "Received: ready to review", cls: "bg-[var(--st-action-bg)] text-[var(--st-action)]" },
   ACCEPTED: { label: "Accepted", cls: "bg-[var(--st-done-bg)] text-[var(--st-done)]" },
   REJECTED: { label: "Asked again", cls: "bg-[var(--st-stop-bg)] text-[var(--st-stop)]" },
 };
@@ -114,16 +115,25 @@ export default async function RequestPage({ params, searchParams }: PageProps<"/
         <h2 id="items-h" className="text-lg font-semibold">
           Documents
         </h2>
+        <RequestProgress
+          received={r.items.filter((i) => i.status === "UPLOADED" || i.status === "ACCEPTED").length}
+          accepted={r.items.filter((i) => i.status === "ACCEPTED").length}
+          total={r.items.length}
+          text={`${r.items.filter((i) => i.status === "UPLOADED" || i.status === "ACCEPTED").length} of ${r.items.length} received · ${r.items.filter((i) => i.status === "ACCEPTED").length} accepted. Boxes tick themselves when the client uploads.`}
+        />
         <ol className="flex flex-col gap-3">
           {r.items.map((it) => (
             <li key={it.id} className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-start gap-3">
+                  <RequestCheck status={it.status} label={ITEM[it.status]!.label} />
+                  <div className="min-w-0">
                   <p className="font-medium">
                     {it.label}
                     {!it.required && <span className="ml-1.5 text-xs font-normal text-[var(--muted)]">(if it applies)</span>}
                   </p>
                   {it.note && <p className="text-xs text-[var(--muted)]">{it.note}</p>}
+                  </div>
                 </div>
                 <span className={`whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold ${ITEM[it.status]!.cls}`}>{ITEM[it.status]!.label}</span>
               </div>

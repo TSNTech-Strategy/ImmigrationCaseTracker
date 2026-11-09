@@ -227,7 +227,7 @@ export function createFirmDocumentService({ db, store, scan = createUploadScanne
     return { ctx, d };
   }
 
-  async function update(userId: string, id: string, input: { name?: string; kind?: string; visibility?: string }): Promise<{ ok: true } | Fail> {
+  async function update(userId: string, id: string, input: { name?: string; kind?: string; visibility?: string }): Promise<{ ok: true; name: string } | Fail> {
     const r = await editable(userId, id);
     if ("error" in r) return r.error!;
     const { ctx, d } = r;
@@ -237,20 +237,20 @@ export function createFirmDocumentService({ db, store, scan = createUploadScanne
     if (!(kind in DOCUMENT_KINDS) || !(visibility in DOCUMENT_VISIBILITY)) return fail("Choose from the list.");
     if (visibility === "CLIENT" && !d.clientId) return fail("Link the document to a client to share it with them.", "visibility");
     const fields = [name !== d.name && "name", kind !== d.kind && "kind", visibility !== d.visibility && "visibility"].filter((x): x is string => Boolean(x));
-    if (!fields.length) return { ok: true };
+    if (!fields.length) return { ok: true, name };
     await db.firmDocument.update({ where: { id: d.id }, data: { name, kind, visibility } });
     await audit(ctx.firm.id, userId, "document.updated", d.id, { name, fields });
-    return { ok: true };
+    return { ok: true, name };
   }
 
-  async function remove(userId: string, id: string): Promise<{ ok: true } | Fail> {
+  async function remove(userId: string, id: string): Promise<{ ok: true; name: string } | Fail> {
     const r = await editable(userId, id);
     if ("error" in r) return r.error!;
     const { ctx, d } = r;
     await db.firmDocument.delete({ where: { id: d.id } });
     if (store) await store.remove(d.storageKey).catch(() => {}); // the record is gone either way; a stray encrypted blob is harmless
     await audit(ctx.firm.id, userId, "document.deleted", d.id, { name: d.name });
-    return { ok: true };
+    return { ok: true, name: d.name };
   }
 
   /** A file the firm shared with this client (or the client uploaded), for the client's own status page. */

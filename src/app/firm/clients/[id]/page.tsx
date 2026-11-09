@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { Toast } from "@/components/toast";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
 import { firmCaseService, documentRequestService, firmDocumentService, firmTaskService, firmUpdateService } from "@/lib/firms";
 import { TaskTable } from "../../tasks/task-list";
-import { DOC_NOTICES, DocumentTable } from "../../documents/document-table";
+import { DocumentTable } from "../../documents/document-table";
 import { DocumentUploadForm } from "../../documents/upload-form";
 import { ACCEPT, DOCUMENT_KINDS, DOCUMENT_VISIBILITY } from "@/lib/firms/documents";
 
@@ -89,7 +88,6 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
   const clientTasks = await firmTaskService().list(user.id, { scope: "team", status: "active", clientId: client.id });
   const docs = await firmDocumentService().list(user.id, { clientId: client.id });
   const requests = await documentRequestService().list(user.id, { status: "OPEN", clientId: client.id });
-  const docNotice = typeof notice === "string" ? DOC_NOTICES[notice] : undefined;
   const canArchive = ctx.membership.role !== "STAFF";
 
   return (
@@ -184,7 +182,6 @@ export default async function ClientPage({ params, searchParams }: PageProps<"/f
             ))}
           </ul>
         )}
-        {docNotice && <Toast key={String(notice)} message={docNotice.text} kind={docNotice.error ? "error" : "success"} />}
         {docs && docs.documents.length > 0 && <DocumentTable documents={docs.documents} back={`/firm/clients/${client.id}`} userId={user.id} isManager={ctx.membership.role !== "STAFF"} showLink={false} />}
         {docs?.storageReady ? (
           <DocumentUploadForm accept={ACCEPT} kinds={Object.entries(DOCUMENT_KINDS).map(([value, label]) => ({ value, label }))} visibilities={Object.entries(DOCUMENT_VISIBILITY).map(([value, label]) => ({ value, label }))} fixed={{ clientId: client.id }} />

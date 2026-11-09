@@ -2,7 +2,7 @@ import Constants from "expo-constants";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useState, type ReactNode } from "react";
-import { Platform, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { Banner, Button, Card, Field, Screen, Small } from "../../../components/ui";
 import { LargeHeader } from "../../../components/cases";
 import { IconTile, LangSwitch, type Glyph, type Tint } from "../../../components/feature";
@@ -271,14 +271,28 @@ export default function Settings() {
                 accessibilityLabel={t.pushAlerts}
                 {...switchColors}
                 onValueChange={async (v) => {
-                  if (v && Platform.OS !== "web") {
-                    const r = await registerForPush();
+                  if (v) {
+                    // Turning on: this phone needs a push token first; say why if it can't get one.
+                    let r: Awaited<ReturnType<typeof registerForPush>>;
+                    try {
+                      r = await registerForPush();
+                    } catch (e) {
+                      setNote({ tone: "danger", text: e instanceof ApiError ? e.message : t.pushFailed });
+                      return;
+                    }
                     if (r === "denied") {
                       setNote({ tone: "danger", text: t.pushDenied });
                       return;
                     }
+                    if (r === "unavailable") {
+                      setNote({ tone: "danger", text: t.pushUnavailable });
+                      return;
+                    }
+                    // Registering the phone also turns push alerts on for the account.
+                    await refreshMe();
+                    return;
                   }
-                  await patch({ pushOnChange: v });
+                  await patch({ pushOnChange: false });
                 }}
               />
             }

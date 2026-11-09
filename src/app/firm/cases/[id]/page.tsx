@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Toast } from "@/components/toast";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CaseStatusPanel, ObservedChanges, UscisHistory, USCIS_SOURCE_NOTE } from "@/components/case-status";
@@ -13,7 +12,7 @@ import { ModeBanner } from "@/components/mode-banner";
 import { requireUser } from "@/lib/auth/session";
 import { firmAlertService, firmCaseService, documentRequestService, firmDocumentService, firmMatterService, firmService, firmTagService, firmTaskService } from "@/lib/firms";
 import { setCasesMatterAction } from "../../matters/actions";
-import { DOC_NOTICES, DocumentTable } from "../../documents/document-table";
+import { DocumentTable } from "../../documents/document-table";
 import { DocumentUploadForm } from "../../documents/upload-form";
 import { ACCEPT, DOCUMENT_KINDS, DOCUMENT_VISIBILITY } from "@/lib/firms/documents";
 
@@ -62,7 +61,6 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
   const matters = await firmMatterService().options(ctx.firm.id);
   const docs = await firmDocumentService().list(user.id, { caseId: c.id });
   const requests = await documentRequestService().list(user.id, { status: "OPEN", caseId: c.id });
-  const docNotice = typeof notice === "string" ? DOC_NOTICES[notice] : undefined;
   const alerts = firmAlertService();
   const deadlines = await alerts.caseDeadlines(ctx.firm.id, c.id);
   const today = alerts.today(ctx.firm.timeZone);
@@ -219,7 +217,6 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
             ))}
           </ul>
         )}
-        {docNotice && <Toast key={String(notice)} message={docNotice.text} kind={docNotice.error ? "error" : "success"} />}
         {docs && docs.documents.length > 0 && <DocumentTable documents={docs.documents} back={`/firm/cases/${c.id}#docs-h`} userId={user.id} isManager={ctx.membership.role !== "STAFF"} showLink={false} />}
         {docs?.storageReady ? (
           <DocumentUploadForm accept={ACCEPT} kinds={Object.entries(DOCUMENT_KINDS).map(([value, label]) => ({ value, label }))} visibilities={Object.entries(DOCUMENT_VISIBILITY).map(([value, label]) => ({ value, label }))} fixed={{ caseId: c.id }} />

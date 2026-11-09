@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Toast } from "@/components/toast";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
@@ -7,7 +6,7 @@ import { firmDocumentService } from "@/lib/firms";
 import { ACCEPT, DOCUMENT_KINDS, DOCUMENT_VISIBILITY } from "@/lib/firms/documents";
 import { EmptyState, Notice, btn, control } from "@/components/workspace-ui";
 import { taskFormOptions } from "../tasks/options";
-import { DOC_NOTICES, DocumentTable } from "./document-table";
+import { DocumentTable } from "./document-table";
 import { DocumentUploadForm } from "./upload-form";
 import { DocumentsSubNav } from "./sub-nav";
 
@@ -24,7 +23,6 @@ export default async function DocumentsPage({ searchParams }: PageProps<"/firm/d
   if (!data) redirect("/firm");
   const options = await taskFormOptions(data.ctx.firm.id);
   const filtered = Boolean(filters.scope || filters.kind || filters.visibility || filters.source || filters.q);
-  const notice = one(sp.notice);
   const isManager = data.ctx.membership.role !== "STAFF";
 
   return (
@@ -39,7 +37,6 @@ export default async function DocumentsPage({ searchParams }: PageProps<"/firm/d
         </Link>
       </div>
       <DocumentsSubNav current="files" />
-      {notice && DOC_NOTICES[notice] && <Toast key={notice} message={DOC_NOTICES[notice].text} kind={DOC_NOTICES[notice].error ? "error" : "success"} />}
       {!data.storageReady && <Notice kind="error">File storage isn&apos;t set up on this site, so uploads are off here.</Notice>}
 
       {data.storageReady && (

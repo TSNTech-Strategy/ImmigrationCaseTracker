@@ -18,7 +18,8 @@ Notifications.setNotificationHandler({
 export type PushResult = "registered" | "denied" | "unavailable";
 
 export async function registerForPush(): Promise<PushResult> {
-  if (Platform.OS === "web" || !Device.isDevice) return "unavailable";
+  // Simulators, the web and builds without an EAS project can't get a push token.
+  if (Platform.OS === "web" || !Device.isDevice || !config.easProjectId) return "unavailable";
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("case-updates", {
       name: "Case updates",
@@ -29,7 +30,7 @@ export async function registerForPush(): Promise<PushResult> {
   const existing = await Notifications.getPermissionsAsync();
   const status = existing.granted ? existing : await Notifications.requestPermissionsAsync();
   if (!status.granted) return "denied";
-  const { data } = await Notifications.getExpoPushTokenAsync(config.easProjectId ? { projectId: config.easProjectId } : undefined);
+  const { data } = await Notifications.getExpoPushTokenAsync({ projectId: config.easProjectId });
   currentToken = data;
   await api("/api/v1/devices", { method: "POST", body: { token: data, platform: Platform.OS, appVersion: "1.0.0" } });
   return "registered";
