@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { checkFailureMessage, cooldownRemainingMs, formatWait, nextCheckAfterFailure, startOfUtcDay, uscisDailyBudget } from "../policy";
-import { isSandboxReceipt } from "@/lib/receipt";
+import { checkFailureMessage, cooldownRemainingMs, formatWait, nextCheckAfterFailure, startOfUtcDay, uscisDailyBudget, uscisErrorText } from "../policy";
+import { isSandboxReceipt, SANDBOX_STAGING_RECEIPTS } from "@/lib/receipt";
 
 const t = new Date("2026-11-05T15:00:00Z");
 
@@ -23,9 +23,24 @@ describe("policy", () => {
     expect(uscisDailyBudget({ USCIS_DAILY_BUDGET: "-3" })).toBe(800);
   });
   it("friendly failure messages", () => {
-    expect(checkFailureMessage("not_found")).toMatch(/couldn't find/);
     expect(checkFailureMessage("timeout")).toMatch(/couldn't be reached/);
     expect(checkFailureMessage("sandbox_only")).toMatch(/sample receipt/);
+  });
+  it("a distinct message for each response the Case Status API documents", () => {
+    expect(checkFailureMessage("auth", 401)).toMatch(/couldn't sign in to USCIS/);
+    // 404 also covers people protected under 8 U.S.C. 1367: point to the Contact Center.
+    expect(checkFailureMessage("not_found", 404)).toMatch(/doesn't recognize.*1-800-375-5283/);
+    expect(checkFailureMessage("bad_request", 422)).toMatch(/3 letters followed by 10 digits/);
+    expect(checkFailureMessage("rate_limited", 429)).toMatch(/busy/);
+    expect(checkFailureMessage("server", 503)).toMatch(/unavailable right now/);
+    expect(checkFailureMessage("server", 500)).toMatch(/had a problem/);
+  });
+  it("quotes USCIS's own message", () => {
+    expect(uscisErrorText(404, "Case Status Online does not recognize the receipt number entered.")).toBe(
+      'USCIS said (HTTP 404): "Case Status Online does not recognize the receipt number entered."',
+    );
+    expect(uscisErrorText(null, "down")).toBe('USCIS said: "down"');
+    expect(uscisErrorText(503, null)).toBeNull();
   });
   it("formats waits", () => {
     expect(formatWait(30_000)).toBe("about a minute");
@@ -35,5 +50,12 @@ describe("policy", () => {
     expect(isSandboxReceipt("eac9999103402", {})).toBe(true);
     expect(isSandboxReceipt("IOE0912345678", {})).toBe(false);
     expect(isSandboxReceipt("IOE0912345678", { USCIS_SANDBOX_EXTRA_RECEIPTS: "WAC1, ioe0912345678" })).toBe(true);
+  });
+  it("allows all 50 staging receipts USCIS publishes, and nothing near them", () => {
+    const all = [...SANDBOX_STAGING_RECEIPTS.withHistory, ...SANDBOX_STAGING_RECEIPTS.withoutHistory];
+    expect(new Set(all).size).toBe(50);
+    expect(all.every((r) => isSandboxReceipt(r, {}))).toBe(true);
+    expect(isSandboxReceipt("lin9999106498", {})).toBe(true);
+    expect(isSandboxReceipt("EAC9999103499", {})).toBe(false);
   });
 });

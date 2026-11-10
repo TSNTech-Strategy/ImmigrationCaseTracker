@@ -10,8 +10,18 @@ export type UscisErrorKind =
   | "network"
   | "bad_response"; // 2xx we couldn't parse
 
-/** A USCIS error code/message pair from the JSON error body — never a token. */
-export type UscisApiErrorDetail = { code?: string; message?: string; category?: string };
+/**
+ * One error from a USCIS JSON error body — never a token. USCIS documents RFC
+ * 9457-style fields (code, message, category, reference, status, traceId);
+ * reference and traceId identify the request when talking to USCIS support.
+ */
+export type UscisApiErrorDetail = {
+  code?: string;
+  message?: string;
+  category?: string;
+  reference?: string;
+  traceId?: string;
+};
 
 export class UscisError extends Error {
   readonly kind: UscisErrorKind;
@@ -43,6 +53,11 @@ export class UscisError extends Error {
 
   declare readonly responseBody: unknown;
 
+  /** USCIS's own error message, when its error body had one. */
+  get uscisMessage(): string | undefined {
+    return this.details.find((d) => d.message)?.message;
+  }
+
   /** Worth retrying later without changing anything. */
   get transient(): boolean {
     return this.kind === "server" || this.kind === "timeout" || this.kind === "network" || this.kind === "rate_limited";
@@ -62,9 +77,12 @@ const str = (v: unknown) =>
 
 function detail(o: Record<string, unknown>): UscisApiErrorDetail {
   return {
-    code: str(o.code ?? o.errorCode ?? o.errorcode ?? o.error),
-    message: str(o.message ?? o.detail ?? o.error_description ?? o.title ?? o.faultstring),
+    // The sandbox OAuth endpoint capitalizes its keys: { ErrorCode, Error }.
+    code: str(o.code ?? o.errorCode ?? o.ErrorCode ?? o.errorcode ?? o.error ?? o.status),
+    message: str(o.message ?? o.detail ?? o.error_description ?? o.Error ?? o.title ?? o.faultstring),
     category: str(o.category ?? o.type),
+    reference: str(o.reference),
+    traceId: str(o.traceId ?? o.traceid ?? o.trace_id),
   };
 }
 
@@ -72,14 +90,20 @@ const hasAny = (d: UscisApiErrorDetail) => Boolean(d.code || d.message || d.cate
 
 /**
  * Pull error codes/messages out of a USCIS error body, keeping only safe,
- * short fields. Accepts the documented `{ errors: [...] }` shape plus the
- * other common gateway shapes (`{ error, error_description }`, Apigee
- * `{ fault: { faultstring, detail: { errorcode } } }`, RFC 7807
- * `{ title, detail }`, a bare `{ code, message }`).
+ * short fields. Accepts the documented bare `{ code, message }` and RFC 9457
+ * shapes, `{ errors: [...] }`, `{ error: { code, message } }` (the sandbox's
+ * 503 outside opening hours), `{ error, error_description }` (OAuth), Apigee
+ * `{ fault: { faultstring, detail: { errorcode } } }` and RFC 7807
+ * `{ title, detail }`.
  */
 export function parseErrorDetails(body: unknown): UscisApiErrorDetail[] {
   if (!body || typeof body !== "object") return [];
   const o = body as Record<string, unknown>;
+
+  if (o.error && typeof o.error === "object" && !Array.isArray(o.error)) {
+    const d = detail(o.error as Record<string, unknown>);
+    return hasAny(d) ? [d] : [];
+  }
 
   const errors = o.errors;
   if (Array.isArray(errors)) {

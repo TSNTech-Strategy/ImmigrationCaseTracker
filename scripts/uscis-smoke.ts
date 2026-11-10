@@ -2,7 +2,7 @@
  * USCIS sandbox smoke test — run once a day for the five-consecutive-day
  * traffic requirement before requesting production access.
  *
- *   npm run uscis:smoke                     # standard daily run
+ *   npm run uscis:smoke                     # standard daily run (200, 422 and 404)
  *   npm run uscis:smoke -- --with-auth-error  # also prove 401 handling (bad secret)
  *   npm run uscis:smoke -- --show-errors      # print USCIS's raw error bodies (console only)
  *
@@ -17,7 +17,7 @@ import { getUscisConfig, type UscisConfig } from "@/lib/uscis/config";
 import { fetchCaseStatus } from "@/lib/uscis/client";
 import { clearUscisTokenCache } from "@/lib/uscis/token";
 import { UscisError } from "@/lib/uscis/errors";
-import { SANDBOX_RECEIPTS } from "@/lib/receipt";
+import { isSandboxReceipt, SANDBOX_RECEIPTS } from "@/lib/receipt";
 
 type Entry = {
   ts: string;
@@ -38,6 +38,15 @@ type Entry = {
   /** USCIS's own error message (generic wording, e.g. the receipt-format rule). */
   errorMessage?: string;
 };
+
+/**
+ * Well-formed, not a published staging receipt, and unknown to the sandbox
+ * (checked Nov 10, 2026). The sandbox holds more cases than USCIS lists —
+ * EAC9999103499 and WAC0000000001 both return 200 — so this must be one it
+ * answers with the documented 404.
+ */
+const UNKNOWN_STAGING_RECEIPT = "EAC0000000001";
+if (isSandboxReceipt(UNKNOWN_STAGING_RECEIPT, {})) throw new Error("UNKNOWN_STAGING_RECEIPT must not be a published staging receipt");
 
 const withAuthError = process.argv.includes("--with-auth-error");
 const showErrors = process.argv.includes("--show-errors");
@@ -126,6 +135,8 @@ async function main() {
   entries.push(await run("token-reuse", SANDBOX_RECEIPTS.noHistory, config));
   // Deliberately malformed — must come back as a handled USCIS 4xx.
   entries.push(await run("error-invalid-receipt", "INVALID", config, true));
+  // Well-formed but not one of USCIS's published staging receipts — the documented 404.
+  entries.push(await run("error-unknown-receipt", UNKNOWN_STAGING_RECEIPT, config, true));
   if (withAuthError) {
     const bad = { ...config, clientSecret: "deliberately-wrong-secret" };
     clearUscisTokenCache(bad);
@@ -162,6 +173,7 @@ async function main() {
     "success-with-history": (e) => e.httpStatus === 200,
     "token-reuse": (e) => e.httpStatus === 200 && e.tokenRequests === 0,
     "error-invalid-receipt": (e) => e.httpStatus !== null && e.httpStatus >= 400 && e.httpStatus < 500,
+    "error-unknown-receipt": (e) => e.httpStatus === 404,
     "error-bad-credentials": (e) => e.httpStatus === 401 || e.httpStatus === 403 || e.httpStatus === 400,
   };
   const failed = entries.filter((e) => !expectations[e.test]?.(e));
