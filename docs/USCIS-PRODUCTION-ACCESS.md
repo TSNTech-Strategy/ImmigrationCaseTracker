@@ -9,6 +9,7 @@ How CasePingo meets the Case Status API's production-access rules, how to run th
 | Registered developer account and a Case Status API sandbox app | Done (credentials in `.env` / Vercel) |
 | Actively implemented and tested in sandbox | Done: the whole app, plus `npm run uscis:smoke` |
 | **Minimum of 5 consecutive calendar days of API traffic** | `docs/uscis-evidence/`. The sandbox is closed on weekends (503 outside M-F 7:00 AM to 8:00 PM ET), so the only unbroken 5-day run is Monday to Friday of one week. A missed day restarts the count. |
+| Daily run | `npm run uscis:smoke:publish`: smoke test, then (only if every check passed) commit the evidence, push, open a PR to main and merge it (evidence-only PRs only) |
 | 200 and 4xx responses tested | The smoke test covers 200 (with and without history, token reuse), 422 (bad format), 404 (unknown receipt) and 401 (bad credentials) every run |
 
 Request by email to **developersupport@uscis.dhs.gov** (draft in §5). USCIS replies with the Developer Portal Affidavit (print, wet signature), then issues a 4-digit demo ID, then a scheduler link. **Demo slots are booked through February 2027** (next openings March 2027), so request as soon as the five days are complete.

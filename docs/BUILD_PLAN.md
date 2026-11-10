@@ -37,6 +37,7 @@ USCIS requires at least 5 consecutive calendar days of sandbox traffic **from ou
 - Once the app is deployed (Step 6), the daily polling job and real use of the app also generate traffic.
 - A missed day restarts the sequence. Never back-fill the log.
 - Requirements, demo script and request email: `docs/USCIS-PRODUCTION-ACCESS.md`.
+- `npm run uscis:smoke:publish` does the daily run end to end: smoke test, then (only if every check passed) commit the evidence, push, open a PR to main and merge it. It only merges a PR that contains nothing but evidence.
 
 ---
 
