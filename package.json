@@ -10,6 +10,7 @@
     "test": "vitest run",
     "typecheck": "next typegen && tsc --noEmit",
     "uscis:smoke": "tsx --env-file=.env scripts/uscis-smoke.ts",
+    "uscis:smoke:publish": "tsx scripts/uscis-smoke-publish.ts",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
