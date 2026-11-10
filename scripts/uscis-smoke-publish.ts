@@ -5,6 +5,7 @@
  *
  *   npm run uscis:smoke:publish                  # smoke test with --with-auth-error
  *   npm run uscis:smoke:publish -- --show-errors # extra flags go to the smoke test
+ *   npm run uscis:smoke:publish -- --skip-if-done  # no-op when today's evidence is on main
  *
  * Only docs/uscis-evidence/ is staged; other local changes are left alone.
  * The PR is merged only when it contains nothing but evidence — if the branch
@@ -26,8 +27,19 @@ const centralDate = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicag
 const branch = run("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
 if (branch === "main" || branch === "HEAD") fail(`Run this from your working branch, not "${branch}".`);
 
+// --skip-if-done (used by the scheduled runs): today's evidence is already on main.
+const args = process.argv.slice(2);
+if (args.includes("--skip-if-done")) {
+  run("git", ["fetch", "--quiet", "origin", "main"]);
+  const done = run("git", ["log", "origin/main", "--oneline", "--fixed-strings", `--grep=USCIS sandbox evidence: ${centralDate}`]);
+  if (done) {
+    console.log(`✔ Evidence for ${centralDate} is already on main; nothing to do.`);
+    process.exit(0);
+  }
+}
+
 // 1. The smoke test itself (it appends to the evidence log either way).
-const smokeArgs = ["--with-auth-error", ...process.argv.slice(2).filter((a) => a !== "--with-auth-error")];
+const smokeArgs = ["--with-auth-error", ...args.filter((a) => a !== "--with-auth-error" && a !== "--skip-if-done")];
 const smoke = spawnSync("npx", ["tsx", "--env-file=.env", "scripts/uscis-smoke.ts", ...smokeArgs], { stdio: "inherit" });
 if (smoke.status !== 0) fail("Smoke test didn't pass, so nothing was committed or merged. The evidence lines are in your working tree.");
 
