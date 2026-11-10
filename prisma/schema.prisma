@@ -329,15 +329,19 @@ model TrackedCase {
   statusSource        String?
 
   /// Last time we asked USCIS (success or failure).
-  lastCheckedAt        DateTime?
+  lastCheckedAt         DateTime?
   /// Outcome of that check: "ok" or a UscisError kind.
-  lastCheckOutcome     String?
+  lastCheckOutcome      String?
+  /// HTTP status of that check (null when USCIS wasn't reached).
+  lastCheckHttpStatus   Int?
+  /// USCIS's own error message from that check, receipt number masked. Null after a success.
+  lastCheckUscisMessage String?
   /// Last time we observed the status change. Shown separately from lastCheckedAt.
-  lastChangeObservedAt DateTime?
+  lastChangeObservedAt  DateTime?
   /// When the scheduler should next poll this case.
-  nextCheckAt          DateTime?
+  nextCheckAt           DateTime?
   /// For backoff / circuit breaking on repeated failures.
-  consecutiveFailures  Int       @default(0)
+  consecutiveFailures   Int       @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -428,16 +432,21 @@ model CaseStatusEvent {
 
 /// Sanitized operational record of every USCIS call for a case. No payloads.
 model CaseCheckRun {
-  id          String       @id @default(cuid())
-  caseId      String
-  case        TrackedCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  trigger     CheckTrigger
-  uscisEnv    String
-  httpStatus  Int?
-  outcome     String
-  durationMs  Int
-  changed     Boolean      @default(false)
-  attemptedAt DateTime     @default(now())
+  id                String       @id @default(cuid())
+  caseId            String
+  case              TrackedCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  trigger           CheckTrigger
+  uscisEnv          String
+  httpStatus        Int?
+  outcome           String
+  durationMs        Int
+  changed           Boolean      @default(false)
+  attemptedAt       DateTime     @default(now())
+  /// From USCIS's error body on a failed check (receipt number masked).
+  uscisErrorCode    String?
+  uscisErrorMessage String?
+  /// USCIS's traceId / reference, for asking USCIS support about this request.
+  uscisTraceId      String?
 
   @@index([caseId, attemptedAt])
   @@index([attemptedAt])

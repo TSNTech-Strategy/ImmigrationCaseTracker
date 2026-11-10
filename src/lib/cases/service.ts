@@ -1,7 +1,7 @@
 import type { CheckTrigger, ConsentBasis, Prisma, PrismaClient, TrackedCase } from "@prisma/client";
-import { isSandboxReceipt } from "@/lib/receipt";
+import { isSandboxReceipt, maskReceiptNumber } from "@/lib/receipt";
 import type { CaseStatusSnapshot } from "@/lib/uscis/normalize";
-import { UscisError } from "@/lib/uscis/errors";
+import { UscisError, type UscisApiErrorDetail } from "@/lib/uscis/errors";
 import type { CaseStatusResult } from "@/lib/uscis/client";
 import { CONSENT_STATEMENT_VERSION } from "./consent";
 import {
@@ -14,9 +14,10 @@ import {
   nextCheckAfterFailure,
   startOfUtcDay,
   uscisDailyBudget,
+  uscisErrorText,
 } from "./policy";
 import { InvalidReceiptError, protectReceipt, revealReceipt } from "./receipt-store";
-import { redactSnapshot } from "@/lib/uscis/text";
+import { redactReceiptInText, redactSnapshot } from "@/lib/uscis/text";
 import { checkIntervalMs, formatUsd, PLAN_LIMITS, PRICES } from "@/lib/plans";
 import { firmChecksAllowed } from "@/lib/billing/entitlements";
 import { createTrialService } from "@/lib/billing/trial";
@@ -40,6 +41,8 @@ export type CaseServiceDeps = {
   uscis: UscisPort;
   now?: () => Date;
   env?: Record<string, string | undefined>;
+  /** Structured server log (one JSON line per failed USCIS check). */
+  log?: (entry: Record<string, unknown>) => void;
 };
 
 export type AddCaseInput = { receipt: string; nickname?: string | null; basis: Extract<ConsentBasis, "SELF" | "AUTHORIZED_BY_APPLICANT"> };
@@ -71,13 +74,21 @@ export const caseViewSelect = {
   uscisHistory: true,
   lastCheckedAt: true,
   lastCheckOutcome: true,
+  lastCheckHttpStatus: true,
+  lastCheckUscisMessage: true,
   lastChangeObservedAt: true,
   createdAt: true,
 } satisfies Prisma.TrackedCaseSelect;
 
 export type CaseView = Prisma.TrackedCaseGetPayload<{ select: typeof caseViewSelect }>;
 
-export function createCaseService({ db, uscis, now = () => new Date(), env = process.env }: CaseServiceDeps) {
+export function createCaseService({
+  db,
+  uscis,
+  now = () => new Date(),
+  env = process.env,
+  log = (entry) => console.warn(JSON.stringify(entry)),
+}: CaseServiceDeps) {
   const own = (userId: string, caseId: string) => ({ id: caseId, ownerUserId: userId });
 
   async function listCases(userId: string) {
@@ -273,7 +284,7 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
     try {
       const result = await uscis.getCaseStatus(receipt);
       // USCIS text can contain the full receipt number — never store it.
-      const { changed, eventId } = await applySnapshot(c, redactSnapshot(result.snapshot, receipt), t);
+      const { changed, eventId } = await applySnapshot(c, redactSnapshot(result.snapshot, receipt), t, result.httpStatus);
       await db.caseCheckRun.create({
         data: {
           caseId: c.id,
@@ -294,24 +305,70 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
       };
     } catch (err) {
       const e = err instanceof UscisError ? err : new UscisError("network", "unexpected error");
-      await recordFailure(c, trigger, t, e.kind, e.httpStatus, Date.now() - started);
-      return { status: "failed", message: checkFailureMessage(e.kind) };
+      // USCIS can echo the receipt number back in its message — mask it before storing or logging.
+      const detail = e.details.find((d) => d.message) ?? e.details[0];
+      const uscisMessage = redactReceiptInText(detail?.message ?? null, receipt);
+      await recordFailure(c, trigger, t, e.kind, e.httpStatus, Date.now() - started, detail, uscisMessage);
+      log({
+        event: "uscis.check_failed",
+        uscisEnv: uscis.mode,
+        caseId: c.id,
+        receipt: maskReceiptNumber(receipt),
+        trigger,
+        httpStatus: e.httpStatus,
+        kind: e.kind,
+        uscisCode: detail?.code ?? null,
+        uscisMessage,
+        uscisTraceId: detail?.traceId ?? null,
+        uscisReference: detail?.reference ?? null,
+      });
+      const said = uscisErrorText(e.httpStatus, uscisMessage);
+      return { status: "failed", message: [checkFailureMessage(e.kind, e.httpStatus), said].filter(Boolean).join(" ") };
     }
   }
 
-  async function recordFailure(c: TrackedCase, trigger: CheckTrigger, t: Date, outcome: string, httpStatus: number | null, durationMs: number) {
+  async function recordFailure(
+    c: TrackedCase,
+    trigger: CheckTrigger,
+    t: Date,
+    outcome: string,
+    httpStatus: number | null,
+    durationMs: number,
+    detail?: UscisApiErrorDetail,
+    uscisMessage: string | null = null,
+  ) {
     const failures = c.consecutiveFailures + 1;
     await db.$transaction([
-      db.caseCheckRun.create({ data: { caseId: c.id, trigger, uscisEnv: uscis.mode, httpStatus, outcome, durationMs, attemptedAt: t } }),
+      db.caseCheckRun.create({
+        data: {
+          caseId: c.id,
+          trigger,
+          uscisEnv: uscis.mode,
+          httpStatus,
+          outcome,
+          durationMs,
+          attemptedAt: t,
+          uscisErrorCode: detail?.code ?? null,
+          uscisErrorMessage: uscisMessage,
+          uscisTraceId: detail?.traceId ?? detail?.reference ?? null,
+        },
+      }),
       db.trackedCase.update({
         where: { id: c.id },
-        data: { lastCheckedAt: t, lastCheckOutcome: outcome, consecutiveFailures: failures, nextCheckAt: nextCheckAfterFailure(t, failures) },
+        data: {
+          lastCheckedAt: t,
+          lastCheckOutcome: outcome,
+          lastCheckHttpStatus: httpStatus,
+          lastCheckUscisMessage: uscisMessage,
+          consecutiveFailures: failures,
+          nextCheckAt: nextCheckAfterFailure(t, failures),
+        },
       }),
     ]);
   }
 
   /** Save the latest status; record an event only when the fingerprint changes. */
-  async function applySnapshot(c: TrackedCase, s: CaseStatusSnapshot, t: Date): Promise<{ changed: boolean; eventId?: string }> {
+  async function applySnapshot(c: TrackedCase, s: CaseStatusSnapshot, t: Date, httpStatus: number): Promise<{ changed: boolean; eventId?: string }> {
     const changed = c.statusFingerprint !== s.fingerprint;
     // Individuals are checked per their plan; firm cases like Premium.
     const ownerPlan = c.ownerUserId
@@ -353,6 +410,8 @@ export function createCaseService({ db, uscis, now = () => new Date(), env = pro
           statusSource: uscis.mode,
           lastCheckedAt: t,
           lastCheckOutcome: "ok",
+          lastCheckHttpStatus: httpStatus,
+          lastCheckUscisMessage: null,
           consecutiveFailures: 0,
           nextCheckAt: new Date(t.getTime() + checkIntervalMs(ownerPlan)),
           ...(changed ? { lastChangeObservedAt: t } : {}),

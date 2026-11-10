@@ -18,6 +18,7 @@ describe.skipIf(!url)("case service", () => {
   let alice: string, bob: string;
   let clock = new Date("2026-11-05T15:00:00Z");
   const calls: string[] = [];
+  const logs: Record<string, unknown>[] = [];
   let nextResponse: ((r: string) => Promise<ReturnType<typeof mockFetchCaseStatus> extends Promise<infer T> ? T : never>) | null = null;
 
   const uscis = (mode: UscisPort["mode"] = "mock"): UscisPort => ({
@@ -28,7 +29,7 @@ describe.skipIf(!url)("case service", () => {
     },
   });
   const service = (mode: UscisPort["mode"] = "mock", env: Record<string, string | undefined> = {}) =>
-    createCaseService({ db, uscis: uscis(mode), now: () => clock, env });
+    createCaseService({ db, uscis: uscis(mode), now: () => clock, env, log: (e) => logs.push(e) });
   const minutes = (n: number) => (clock = new Date(clock.getTime() + n * 60_000));
 
   beforeAll(async () => {
@@ -39,6 +40,7 @@ describe.skipIf(!url)("case service", () => {
   beforeEach(async () => {
     await db.user.updateMany({ where: { id: { in: [alice, bob] } }, data: { plan: "PREMIUM" } });
     calls.length = 0;
+    logs.length = 0;
     nextResponse = null;
     clock = new Date(clock.getTime() + 24 * 3600_000); // fresh day each test
     await db.trackedCase.deleteMany({ where: { ownerUserId: { in: [alice, bob] } } });
@@ -193,10 +195,37 @@ describe.skipIf(!url)("case service", () => {
     };
     const r = await service().addCase(alice, { receipt: "EAC9999103402", basis: "SELF" });
     if (!r.ok) throw new Error();
-    expect(r.check).toMatchObject({ status: "failed", message: expect.stringMatching(/couldn't be reached/) });
+    expect(r.check).toMatchObject({ status: "failed", message: expect.stringMatching(/unavailable right now/) });
     const c = await db.trackedCase.findUniqueOrThrow({ where: { id: r.caseId } });
-    expect(c).toMatchObject({ lastCheckOutcome: "server", consecutiveFailures: 1 });
+    expect(c).toMatchObject({ lastCheckOutcome: "server", lastCheckHttpStatus: 503, lastCheckUscisMessage: null, consecutiveFailures: 1 });
     expect(c.nextCheckAt!.getTime() - clock.getTime()).toBe(3600_000);
+  });
+
+  it("shows, stores and logs USCIS's own error message, receipt masked", async () => {
+    nextResponse = async (receipt) => {
+      throw new UscisError("not_found", "HTTP 404", {
+        httpStatus: 404,
+        details: [{ code: "404", message: `Case Status Online does not recognize ${receipt}.`, traceId: "t-123" }],
+      });
+    };
+    const r = await service().addCase(alice, { receipt: "EAC9999103402", basis: "SELF" });
+    if (!r.ok) throw new Error();
+    expect(r.check.message).toMatch(/doesn't recognize this receipt number/);
+    expect(r.check.message).toContain('USCIS said (HTTP 404): "Case Status Online does not recognize EAC*******402."');
+
+    const c = await db.trackedCase.findUniqueOrThrow({ where: { id: r.caseId }, include: { checkRuns: true } });
+    expect(c).toMatchObject({ lastCheckHttpStatus: 404, lastCheckUscisMessage: "Case Status Online does not recognize EAC*******402." });
+    expect(c.checkRuns[0]).toMatchObject({ httpStatus: 404, uscisErrorCode: "404", uscisTraceId: "t-123" });
+    expect(JSON.stringify(c)).not.toContain("9999103402");
+
+    expect(logs).toEqual([expect.objectContaining({ event: "uscis.check_failed", httpStatus: 404, receipt: "EAC*******402", uscisTraceId: "t-123" })]);
+    expect(JSON.stringify(logs)).not.toContain("9999103402");
+
+    // A later success clears USCIS's message.
+    nextResponse = null;
+    minutes(11);
+    await service().refreshCase(alice, r.caseId);
+    expect(await db.trackedCase.findUniqueOrThrow({ where: { id: r.caseId } })).toMatchObject({ lastCheckOutcome: "ok", lastCheckHttpStatus: 200, lastCheckUscisMessage: null });
   });
 
   it("removes a case and leaves an audit record", async () => {

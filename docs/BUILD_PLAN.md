@@ -36,6 +36,7 @@ USCIS requires at least 5 consecutive calendar days of sandbox traffic **from ou
 - `npm run uscis:smoke` runs on **your computer** once a day, with sandbox credentials in a local `.env`. It calls USCIS through the same adapter the app uses and appends sanitized evidence to `docs/uscis-evidence/YYYY-MM.jsonl`. Commit that file.
 - Once the app is deployed (Step 6), the daily polling job and real use of the app also generate traffic.
 - A missed day restarts the sequence. Never back-fill the log.
+- Requirements, demo script and request email: `docs/USCIS-PRODUCTION-ACCESS.md`.
 
 ---
 

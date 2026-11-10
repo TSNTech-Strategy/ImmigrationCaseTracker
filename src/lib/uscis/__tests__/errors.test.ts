@@ -36,6 +36,24 @@ describe("parseErrorDetails", () => {
   it("reads errors as a single object", () => {
     expect(parseErrorDetails({ errors: { code: "A", message: "b" } })).toEqual([{ code: "A", message: "b", category: undefined }]);
   });
+  it("reads the sandbox's { error: { code, message } } body (503 outside opening hours)", () => {
+    const body = { error: { code: "503", message: "The Case Status API Sandbox is unavailable at this time." } };
+    expect(parseErrorDetails(body)).toEqual([{ code: "503", message: "The Case Status API Sandbox is unavailable at this time." }]);
+  });
+  it("reads the sandbox OAuth body with capitalized keys", () => {
+    expect(parseErrorDetails({ ErrorCode: "invalid_client", Error: "Client credentials are invalid", token_type: "Bearer" })).toEqual([
+      { code: "invalid_client", message: "Client credentials are invalid" },
+    ]);
+  });
+  it("keeps the RFC 9457 reference and traceId USCIS documents", () => {
+    const body = { code: "E404", message: "not found", category: "client", reference: "ref-1", status: 404, traceId: "abc123" };
+    expect(parseErrorDetails(body)).toEqual([{ code: "E404", message: "not found", category: "client", reference: "ref-1", traceId: "abc123" }]);
+  });
+  it("exposes USCIS's message on the error", () => {
+    const e = new UscisError("not_found", "HTTP 404", { httpStatus: 404, details: [{ code: "404" }, { message: "Case Status Online does not recognize…" }] });
+    expect(e.uscisMessage).toBe("Case Status Online does not recognize…");
+    expect(new UscisError("network", "down").uscisMessage).toBeUndefined();
+  });
   it("returns nothing for empty or non-object bodies", () => {
     expect(parseErrorDetails(null)).toEqual([]);
     expect(parseErrorDetails("Bad gateway")).toEqual([]);

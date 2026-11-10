@@ -4,7 +4,7 @@ import type { CaseStatusEvent } from "@prisma/client";
 import { LocalTime } from "@/components/local-time";
 import { UscisText } from "@/components/uscis-text";
 import { StatusBadge, statusDotClass } from "@/components/status-badge";
-import { checkFailureMessage } from "@/lib/cases/policy";
+import { checkFailureMessage, uscisErrorText } from "@/lib/cases/policy";
 import type { CaseView } from "@/lib/cases/service";
 import { PROCESSING_TIMES_URL, formInfo, receivingOffice } from "@/lib/case-insights";
 import { findStatusGuide, guidePath, guideText } from "@/lib/status-guide";
@@ -147,9 +147,10 @@ export function CaseStatusPanel({
       )}
       <StatusGuide titleEn={c.statusTitleEn} es={es} collapsed={guideCollapsed} />
       {failed && (
-        <p role="alert" className="rounded-md border border-[var(--danger)] px-3 py-2 text-sm text-[var(--danger)]">
-          Last check didn&apos;t succeed: {checkFailureMessage(c.lastCheckOutcome!)}
-        </p>
+        <div role="alert" className="flex flex-col gap-1 rounded-md border border-[var(--danger)] px-3 py-2 text-sm text-[var(--danger)]">
+          <p>Last check didn&apos;t succeed: {checkFailureMessage(c.lastCheckOutcome!, c.lastCheckHttpStatus)}</p>
+          {c.lastCheckUscisMessage && <p>{uscisErrorText(c.lastCheckHttpStatus, c.lastCheckUscisMessage)}</p>}
+        </div>
       )}
       <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
         {days?.filed && (
