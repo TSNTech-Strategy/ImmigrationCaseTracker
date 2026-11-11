@@ -81,7 +81,7 @@ export async function getSystemStatus({
           detail:
             level === "operational"
               ? `${pct}% of checks in the last 24 hours got an answer. We're on USCIS's test system until production access is approved.`
-              : `The USCIS test system answered ${pct}% of checks in the last 24 hours. It's usually offline on weekends; checks resume automatically when it's back.`,
+              : `The USCIS test system answered ${pct}% of checks in the last 24 hours. It's only open Monday to Friday, 7 AM to 8 PM Eastern; scheduled checks wait for it to open.`,
         });
       } else {
         components.push({

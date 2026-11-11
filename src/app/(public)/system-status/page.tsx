@@ -39,7 +39,7 @@ async function Live() {
       </section>
       {usingUscisSandbox() && (
         <p className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-5 py-3 text-sm">
-          <span className="font-medium">Using the USCIS test system.</span> Until USCIS approves our production access, status checks go to USCIS&apos;s test system, which is usually offline on weekends. When it&apos;s offline, checks pause and resume on their own; this isn&apos;t a {SITE.name} outage.
+          <span className="font-medium">Using the USCIS test system.</span> Until USCIS approves our production access, status checks go to USCIS&apos;s test system, which is only open Monday to Friday, 7 AM to 8 PM Eastern. Outside those hours scheduled checks wait for it to open, and a manual refresh shows USCIS&apos;s &ldquo;unavailable&rdquo; message; this isn&apos;t a {SITE.name} outage.
         </p>
       )}
       <ul className="flex flex-col divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] bg-[var(--surface)]">

@@ -60,6 +60,6 @@ describe.skipIf(!url)("live status", () => {
     expect(prod.components.find((x) => x.key === "uscis")!.level).toBe("down");
     const sandbox = await getSystemStatus({ db, now: () => weekend, config: { ...config, uscisSandbox: true } });
     const sb = sandbox.components.find((x) => x.key === "uscis")!;
-    expect(sb).toMatchObject({ level: "degraded", name: expect.stringContaining("test system"), detail: expect.stringContaining("weekends") });
+    expect(sb).toMatchObject({ level: "degraded", name: expect.stringContaining("test system"), detail: expect.stringContaining("7 AM to 8 PM Eastern") });
   });
 });
