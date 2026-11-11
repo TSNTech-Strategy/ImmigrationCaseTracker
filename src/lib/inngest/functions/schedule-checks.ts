@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { EVENTS, inngest } from "@/lib/inngest/client";
 import { findDueCaseIds, tickSlot, uscisLooksDown } from "@/lib/jobs/scheduler";
+import { sandboxClosedNow } from "@/lib/uscis/sandbox-hours";
 
 // Every 15 minutes: find cases due for a check and queue one event each.
 // The check function's throttle spaces the actual USCIS calls.
@@ -14,6 +15,9 @@ export const scheduleChecks = inngest.createFunction(
   async ({ step }) => {
     const now = new Date();
     const plan = await step.run("find-due-cases", async () => {
+      // The USCIS test system only answers on weekdays, 7 AM to 8 PM Eastern: wait instead of
+      // filling the night with failed checks. Due cases are picked up at the first tick after it opens.
+      if (sandboxClosedNow(now)) return { paused: true, ids: [] as string[] };
       if (await uscisLooksDown(prisma, now)) return { paused: true, ids: [] as string[] };
       return { paused: false, ids: await findDueCaseIds(prisma, now) };
     });
