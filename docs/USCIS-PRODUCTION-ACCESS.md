@@ -12,7 +12,7 @@ How CasePingo meets the Case Status API's production-access rules, how to run th
 | Daily run | `npm run uscis:smoke:publish`: smoke test, then (only if every check passed) commit the evidence, push, open a PR to main and merge it (evidence-only PRs only) |
 | 200 and 4xx responses tested | The smoke test covers 200 (with and without history, token reuse), 422 (bad format), 404 (unknown receipt) and 401 (bad credentials) every run |
 
-Request by email to **developersupport@uscis.dhs.gov** (draft in §5). USCIS replies with the Developer Portal Affidavit (print, wet signature), then issues a 4-digit demo ID, then a scheduler link. **Demo slots are booked through February 2027** (next openings March 2027), so request as soon as the five days are complete.
+Request by email to **developersupport@uscis.dhs.gov** (draft in §5). USCIS replies with the Developer Portal Affidavit (print, wet signature), then issues a 4-digit demo ID, then a scheduler link. **Demo slots are booked through March 2027** (next openings April 2027, checked Nov 13, 2026), so request as soon as the five days are complete. Demos are first come, first served: Wednesdays 1:00 to 2:00 PM ET and Thursdays 2:00 to 3:00 PM ET, 30 minutes for the Case Status API. USCIS doesn't publish a reply time for the request email.
 
 ## 2. Demo criteria (Pass/Fail) and where we meet them
 

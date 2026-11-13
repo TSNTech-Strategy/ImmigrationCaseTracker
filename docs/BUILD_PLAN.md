@@ -158,7 +158,7 @@ Each step is small enough to review on its own before the next one starts.
 
 ### Step 10 — Production readiness and USCIS approval
 - Counsel-reviewed policies, accessibility statement, incident and deletion runbooks.
-- Email `developersupport@uscis.dhs.gov` once the 5-day evidence is real. Then the affidavit, the `USCIS_DEMO_ID` header (already supported) and the technical demo. Slots currently open **Feb 2027**.
+- Email `developersupport@uscis.dhs.gov` once the 5-day evidence is real. Then the affidavit, the `USCIS_DEMO_ID` header (already supported) and the technical demo. Slots currently open **April 2027** (booked through March, checked Nov 13, 2026).
 - Switch `USCIS_ENV=production` with the USCIS-issued URL and keys **only after approval**.
 
 ---
