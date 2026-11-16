@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import { protectReceipt } from "@/lib/cases/receipt-store";
-import { getSystemStatus, worst } from "../system-status";
+import { sandboxOpenMs, getSystemStatus, worst } from "../system-status";
 
 describe("overall level", () => {
   it("is the worst part, ignoring parts not set up", () => {
@@ -61,5 +61,17 @@ describe.skipIf(!url)("live status", () => {
     const sandbox = await getSystemStatus({ db, now: () => weekend, config: { ...config, uscisSandbox: true } });
     const sb = sandbox.components.find((x) => x.key === "uscis")!;
     expect(sb).toMatchObject({ level: "degraded", name: expect.stringContaining("test system"), detail: expect.stringContaining("7 AM to 8 PM Eastern") });
+  });
+});
+
+describe("scheduler lateness on the USCIS test system", () => {
+  it("counts only the hours the test system is open", () => {
+    const h = 3_600_000;
+    // Friday 8 PM to Monday 1 AM Eastern: closed the whole time.
+    expect(sandboxOpenMs(new Date("2026-11-14T01:00:00Z"), new Date("2026-11-16T06:00:00Z"))).toBe(0);
+    // Monday 7 AM to 9:30 AM Eastern: 2.5 open hours.
+    expect(sandboxOpenMs(new Date("2026-11-16T12:00:00Z"), new Date("2026-11-16T14:30:00Z"))).toBe(2.5 * h);
+    // Tuesday 6 PM to Wednesday 8 AM Eastern: 2 h before closing + 1 h after opening.
+    expect(sandboxOpenMs(new Date("2026-11-17T23:00:00Z"), new Date("2026-11-18T13:00:00Z"))).toBe(3 * h);
   });
 });
