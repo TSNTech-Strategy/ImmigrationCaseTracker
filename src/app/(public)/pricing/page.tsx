@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TRIAL_CASE_LIMIT, TRIAL_DAYS } from "@/lib/firms/service";
-import { FIRM_PLANS, formatUsd, FOUNDING_FIRM_OFFER, perMonth, PRICES } from "@/lib/plans";
+import { FIRM_PLANS, firmPlusOpen, formatUsd, FOUNDING_FIRM_OFFER, perMonth, PRICES } from "@/lib/plans";
+import { SITE } from "@/lib/site";
 import { billingEnabled } from "@/lib/billing/stripe";
 
 export const metadata: Metadata = {
@@ -39,7 +40,7 @@ const INDIVIDUAL: Card[] = [
     period: "/year",
     note: `That's ${perMonth(PRICES.premium.yearly)} a month. Or ${formatUsd(PRICES.premium.monthly)} month to month.`,
     features: [
-      "Checked automatically twice a day: no more checking",
+      "Checked automatically every day, twice a day while your case is moving",
       "Email alert the moment a status changes; phone push alerts with the app",
       "Up to 10 cases for the whole family",
       "Everything in Free",
@@ -63,6 +64,16 @@ const FIRM_FEATURES: Record<"SOLO" | "FIRM" | "PLUS", string[]> = {
   highlight: k === "FIRM",
   cta: { label: "Start your free trial", href: "/firm" },
 }));
+
+/** Firm Plus waits for a confirmed USCIS quota (firmPlusOpen); until then it's a waitlist. */
+function firmCards(): Card[] {
+  if (firmPlusOpen()) return FIRMS;
+  return FIRMS.map((c) =>
+    c.name === FIRM_PLANS.PLUS.label
+      ? { ...c, note: "Opening soon, once USCIS confirms our capacity for larger firms.", cta: { label: "Join the waitlist", href: `mailto:${SITE.contactEmail}?subject=${encodeURIComponent("Firm Plus waitlist")}` } }
+      : c,
+  );
+}
 
 function PlanCard({ p: card }: { p: Card }) {
   const p = billingEnabled() && card.paid ? { ...card, cta: card.paid } : card;
@@ -149,7 +160,7 @@ export default function Pricing() {
           their first {FOUNDING_FIRM_OFFER.months} months.
         </p>
         <ul className="grid gap-6 md:grid-cols-3">
-          {FIRMS.map((p) => (
+          {firmCards().map((p) => (
             <PlanCard key={p.name} p={p} />
           ))}
         </ul>

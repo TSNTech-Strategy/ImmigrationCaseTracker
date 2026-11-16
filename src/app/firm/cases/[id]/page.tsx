@@ -152,7 +152,7 @@ export default async function FirmCasePage({ params, searchParams }: PageProps<"
         actions={active ? <FirmRefreshButton caseId={c.id} /> : undefined}
         footnote={
           <>
-            Firm cases are checked automatically about twice a day. Changes go to {c.assignee ? `${who(c.assignee)}'s` : "the firm's"} Inbox; each person chooses their own emails in{" "}
+            Firm cases are checked automatically every day, about twice a day while a case is moving. Changes go to {c.assignee ? `${who(c.assignee)}'s` : "the firm's"} Inbox; each person chooses their own emails in{" "}
             <Link href="/firm/settings/notifications" className="underline underline-offset-2">
               My notifications
             </Link>

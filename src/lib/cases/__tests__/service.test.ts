@@ -16,7 +16,8 @@ const url = process.env.TEST_DATABASE_URL;
 describe.skipIf(!url)("case service", () => {
   const db = new PrismaClient({ datasourceUrl: url });
   let alice: string, bob: string;
-  let clock = new Date("2026-11-05T15:00:00Z");
+  // Far from the real date, so check runs other tests make "today" never count against this budget.
+  let clock = new Date("2040-11-05T15:00:00Z");
   const calls: string[] = [];
   const logs: Record<string, unknown>[] = [];
   let nextResponse: ((r: string) => Promise<ReturnType<typeof mockFetchCaseStatus> extends Promise<infer T> ? T : never>) | null = null;
@@ -241,7 +242,7 @@ describe.skipIf(!url)("case service", () => {
 describe.skipIf(!url)("check cadence by plan", () => {
   const db = new PrismaClient({ datasourceUrl: url });
   afterAll(() => db.$disconnect());
-  it("schedules the next check in 24h on Free and 12h on Premium", async () => {
+  it("schedules the next check in about 24h on Free and 12h on Premium", async () => {
     process.env.ENCRYPTION_KEY ??= Buffer.alloc(32, 5).toString("base64");
     const t = new Date("2027-01-01T10:00:00Z");
     const s = createCaseService({ db, uscis: { mode: "mock", getCaseStatus: mockFetchCaseStatus }, now: () => t });
@@ -250,7 +251,10 @@ describe.skipIf(!url)("check cadence by plan", () => {
       const r = await s.addCase(u.id, { receipt: "EAC9999103402", basis: "SELF" });
       if (!r.ok) throw new Error("add failed");
       const c = await db.trackedCase.findUniqueOrThrow({ where: { id: r.caseId } });
-      expect((c.nextCheckAt!.getTime() - t.getTime()) / 3600_000).toBe(hours);
+      // A new case is "active" (checked about every 12 h), never more often than the plan allows, give or take 10%.
+      const h = (c.nextCheckAt!.getTime() - t.getTime()) / 3600_000;
+      expect(h).toBeGreaterThanOrEqual(hours * 0.9);
+      expect(h).toBeLessThanOrEqual(hours * 1.1);
       await db.user.delete({ where: { id: u.id } });
     }
   });

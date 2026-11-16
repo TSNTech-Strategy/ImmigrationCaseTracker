@@ -306,8 +306,8 @@ export const RESOURCES: Resource[] = [
         heading: { en: "For you and your family", es: "Para usted y su familia" },
         bullets: [
           {
-            en: "Status checks with USCIS: check yourself on the Free plan, or get automatic checks twice a day with Premium.",
-            es: "Consultas de estado con USCIS: revise usted mismo con el plan Free, o reciba consultas automáticas dos veces al día con Premium.",
+            en: "Status checks with USCIS: check yourself on the Free plan, or get automatic daily checks with Premium.",
+            es: "Consultas de estado con USCIS: revise usted mismo con el plan Free, o reciba consultas automáticas diarias con Premium.",
           },
           { en: "Alerts by email and phone notification when a status changes (Premium).", es: "Alertas por correo y notificación en el teléfono cuando cambia un estado (Premium)." },
           { en: "Plain-language explanations of each status, in English and Spanish.", es: "Explicaciones sencillas de cada estado, en inglés y español." },

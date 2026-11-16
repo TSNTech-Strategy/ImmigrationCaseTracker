@@ -19,6 +19,7 @@ import {
 import { InvalidReceiptError, protectReceipt, revealReceipt } from "./receipt-store";
 import { redactReceiptInText, redactSnapshot } from "@/lib/uscis/text";
 import { checkIntervalMs, formatUsd, PLAN_LIMITS, PRICES } from "@/lib/plans";
+import { nextCheckDelayMs } from "./cadence";
 import { firmChecksAllowed } from "@/lib/billing/entitlements";
 import { createTrialService } from "@/lib/billing/trial";
 import { caseTagsSelect } from "./tags";
@@ -413,7 +414,13 @@ export function createCaseService({
           lastCheckHttpStatus: httpStatus,
           lastCheckUscisMessage: null,
           consecutiveFailures: 0,
-          nextCheckAt: new Date(t.getTime() + checkIntervalMs(ownerPlan)),
+          // Smart cadence: twice a day while the case is moving, less often during long waits.
+          nextCheckAt: new Date(
+            t.getTime() +
+              nextCheckDelayMs({ statusTitleEn: s.status.en.title, lastChangeObservedAt: changed ? t : c.lastChangeObservedAt, createdAt: c.createdAt }, t, {
+                minHours: checkIntervalMs(ownerPlan) / 3_600_000,
+              }),
+          ),
           ...(changed ? { lastChangeObservedAt: t } : {}),
         },
       });

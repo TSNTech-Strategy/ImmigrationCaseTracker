@@ -16,7 +16,7 @@
  */
 import Stripe from "stripe";
 import { CATALOG, FOUNDING_COUPON_ID, PRODUCTS, WEBHOOK_EVENTS, type LookupKey } from "@/lib/billing/catalog";
-import { FOUNDING_FIRM_OFFER } from "@/lib/plans";
+import { firmPlusOpen, FOUNDING_FIRM_OFFER } from "@/lib/plans";
 
 const args = process.argv.slice(2);
 const siteArg = args.indexOf("--site");
@@ -115,7 +115,8 @@ async function ensurePortal() {
           { product: PRODUCTS.PREMIUM.id, prices: ids(PRODUCTS.PREMIUM.id) },
           { product: PRODUCTS.FIRM_SOLO.id, prices: ids(PRODUCTS.FIRM_SOLO.id) },
           { product: PRODUCTS.FIRM.id, prices: ids(PRODUCTS.FIRM.id) },
-          { product: PRODUCTS.FIRM_PLUS.id, prices: ids(PRODUCTS.FIRM_PLUS.id) },
+          // Firm Plus is only offered for switching once it's open (FIRM_PLUS_OPEN=true; see lib/plans).
+          ...(firmPlusOpen() ? [{ product: PRODUCTS.FIRM_PLUS.id, prices: ids(PRODUCTS.FIRM_PLUS.id) }] : []),
         ],
       },
     },

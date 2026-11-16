@@ -51,7 +51,7 @@ export default function Home() {
           <p className="text-sm font-semibold text-[var(--brand-red-text)]">USCIS case alerts for families and immigration law firms</p>
           <h1 className="text-4xl leading-[1.08] sm:text-5xl lg:text-[3.6rem]">We check your USCIS case, so you don&apos;t have to.</h1>
           <p className="max-w-xl text-lg leading-relaxed text-[var(--muted)]">
-            Enter the receipt number from your I-797C notice. With Premium, CasePingo checks it with USCIS twice a day, keeps every change
+            Enter the receipt number from your I-797C notice. With Premium, CasePingo checks it with USCIS every day (twice a day while it&apos;s moving), keeps every change
             it sees, and emails you when the status moves. In English or Spanish.
           </p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
@@ -140,7 +140,7 @@ export default function Home() {
             </thead>
             <tbody className="divide-y divide-[var(--border)] bg-[var(--surface)]">
               {[
-                ["Who checks", "You, whenever you remember", "We do, twice a day"],
+                ["Who checks", "You, whenever you remember", "We do, every day"],
                 ["When you hear about a change", "Next time you look", "By email shortly after we see it"],
                 ["History", "Only the latest status", "Every change we've seen, with dates"],
                 ["Family members", "One receipt number at a time", "Up to 10 cases on one screen"],
@@ -222,7 +222,7 @@ export default function Home() {
             <dd className="text-2xl font-bold">
               {formatUsd(PRICES.premium.yearly)} <span className="text-base font-medium text-[var(--muted)]">a year</span>
             </dd>
-            <dd className="text-sm text-[var(--muted)]">Up to 10 family cases, checked twice a day, with alerts.</dd>
+            <dd className="text-sm text-[var(--muted)]">Up to 10 family cases, checked every day, with alerts.</dd>
           </div>
           <div className="flex flex-col gap-1 p-6" id="firms-teaser">
             <dt className="font-semibold">For law firms</dt>

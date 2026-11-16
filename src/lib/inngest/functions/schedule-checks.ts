@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { EVENTS, inngest } from "@/lib/inngest/client";
-import { findDueCaseIds, tickSlot, uscisLooksDown } from "@/lib/jobs/scheduler";
+import { findDueCaseIds, MAX_DISPATCH_PER_TICK, scheduledAllowance, tickSlot, uscisLooksDown } from "@/lib/jobs/scheduler";
+import { uscisDailyBudget } from "@/lib/cases/policy";
 import { sandboxClosedNow } from "@/lib/uscis/sandbox-hours";
 
 // Every 15 minutes: find cases due for a check and queue one event each.
@@ -19,7 +20,10 @@ export const scheduleChecks = inngest.createFunction(
       // filling the night with failed checks. Due cases are picked up at the first tick after it opens.
       if (sandboxClosedNow(now)) return { paused: true, ids: [] as string[] };
       if (await uscisLooksDown(prisma, now)) return { paused: true, ids: [] as string[] };
-      return { paused: false, ids: await findDueCaseIds(prisma, now) };
+      // Spread today's quota over the rest of the day, and share each tick fairly between accounts.
+      const allowance = await scheduledAllowance(prisma, now, { budget: uscisDailyBudget(), isOpen: (at) => !sandboxClosedNow(at) });
+      if (allowance === 0) return { paused: true, ids: [] as string[] };
+      return { paused: false, ids: await findDueCaseIds(prisma, now, MAX_DISPATCH_PER_TICK, allowance) };
     });
     if (plan.paused || plan.ids.length === 0) return { dispatched: 0, paused: plan.paused };
 

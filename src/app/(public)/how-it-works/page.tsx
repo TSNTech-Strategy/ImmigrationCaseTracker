@@ -19,7 +19,7 @@ export default function HowItWorks() {
       <p>
         We use the official USCIS Case Status API from our own secure servers. USCIS doesn&apos;t send updates on its own, so we
         ask once when you add a case, and whenever you press &quot;Check now&quot; (at most once every 10 minutes per case; 3 times a day
-        on Free). On Premium we also check automatically, twice a day, and email you when we see a change (you can turn this off in
+        on Free). On Premium we also check automatically every day (twice a day while your case is moving) and email you when we see a change (you can turn this off in
         Settings). New accounts get 7 days of Premium to try it. A change appears here only after our next check.
       </p>
       <h2>3. See what changed and when</h2>

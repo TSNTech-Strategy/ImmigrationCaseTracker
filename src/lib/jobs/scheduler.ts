@@ -15,7 +15,7 @@ const OUTAGE_KINDS = ["server", "timeout", "network", "auth", "rate_limited"];
  * Cases due for an automatic check: tracking active, an active (not withdrawn)
  * consent, and nextCheckAt reached (or never scheduled). Oldest first.
  */
-export async function findDueCaseIds(db: PrismaClient, now: Date, limit = MAX_DISPATCH_PER_TICK): Promise<string[]> {
+export async function findDueCaseIds(db: PrismaClient, now: Date, limit = MAX_DISPATCH_PER_TICK, allowance = limit): Promise<string[]> {
   const rows = await db.trackedCase.findMany({
     where: {
       trackingStatus: "ACTIVE",
@@ -30,9 +30,57 @@ export async function findDueCaseIds(db: PrismaClient, now: Date, limit = MAX_DI
     },
     orderBy: [{ nextCheckAt: { sort: "asc", nulls: "first" } }],
     take: limit,
-    select: { id: true },
+    select: { id: true, firmId: true, ownerUserId: true },
   });
-  return rows.map((r) => r.id);
+  return pickFairly(rows, allowance);
+}
+
+/**
+ * Take up to `allowance` cases, one per account in turn (most overdue first within each), so a
+ * firm with 2,000 cases due can't use a whole tick while a family with one case waits.
+ */
+export function pickFairly(rows: { id: string; firmId: string | null; ownerUserId: string | null }[], allowance: number): string[] {
+  const queues = new Map<string, string[]>();
+  for (const r of rows) {
+    const key = r.firmId ? `f:${r.firmId}` : `u:${r.ownerUserId}`;
+    const q = queues.get(key);
+    if (q) q.push(r.id);
+    else queues.set(key, [r.id]);
+  }
+  const picked: string[] = [];
+  const lists = [...queues.values()];
+  for (let i = 0; picked.length < allowance; i++) {
+    let any = false;
+    for (const q of lists) {
+      if (i < q.length) {
+        any = true;
+        picked.push(q[i]!);
+        if (picked.length >= allowance) break;
+      }
+    }
+    if (!any) break;
+  }
+  return picked;
+}
+
+/** Share of the USCIS daily quota for automatic checks; the rest stays free for people pressing "Check now". */
+export const SCHEDULED_SHARE = 0.8;
+
+/**
+ * How many automatic checks this tick may send: what's left of today's automatic share (UTC day,
+ * as USCIS counts it), spread evenly over the ticks left today when USCIS can answer. Spreading
+ * keeps a burst of due cases in the morning from using the whole day's quota.
+ */
+export async function scheduledAllowance(db: PrismaClient, now: Date, { budget, isOpen = () => true }: { budget: number; isOpen?: (at: Date) => boolean }): Promise<number> {
+  const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const used = await db.caseCheckRun.count({ where: { attemptedAt: { gte: dayStart }, httpStatus: { not: null } } });
+  const remaining = Math.floor(budget * SCHEDULED_SHARE) - used;
+  if (remaining <= 0) return 0;
+  const tickMs = SCHEDULER_TICK_MINUTES * 60 * 1000;
+  const dayEnd = dayStart.getTime() + 86_400_000;
+  let ticksLeft = 0;
+  for (let at = now.getTime(); at < dayEnd; at += tickMs) if (isOpen(new Date(at))) ticksLeft++;
+  return Math.min(MAX_DISPATCH_PER_TICK, Math.ceil(remaining / Math.max(1, ticksLeft)));
 }
 
 /**

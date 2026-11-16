@@ -5,6 +5,7 @@ import { renewalReminderEmail } from "@/lib/email/templates";
 import { findFirmContext } from "@/lib/firms/service";
 import { CATALOG, FOUNDING_COUPON_ID, isLookupKey, lookupKeyFor, PRODUCTS, productForFirmPlan, type LookupKey } from "./catalog";
 import { createEntitlements, isEntitled } from "./entitlements";
+import { firmPlusOpen } from "@/lib/plans";
 
 /**
  * Billing with Stripe Checkout (hosted payment page) and the Stripe customer
@@ -54,9 +55,10 @@ export type BillingDeps = {
   siteUrl: string;
   automaticTax?: boolean;
   now?: () => Date;
+  env?: Record<string, string | undefined>;
 };
 
-export function createBillingService({ db, stripe, mailer, siteUrl, automaticTax = true, now = () => new Date() }: BillingDeps) {
+export function createBillingService({ db, stripe, mailer, siteUrl, automaticTax = true, now = () => new Date(), env = process.env }: BillingDeps) {
   const ent = createEntitlements({ db, now });
   const priceIds = new Map<LookupKey, { id: string; at: number }>();
   let portalConfig: { id: string | null; at: number } | null = null;
@@ -129,6 +131,9 @@ export function createBillingService({ db, stripe, mailer, siteUrl, automaticTax
     const existing = await db.subscription.findMany({ where: p.firm ? { firmId: p.firm.id } : { userId: p.user.id, product: "PREMIUM" } });
     if (existing.some((s) => isEntitled(s, t))) return openPortal(userId, choice.kind === "firm" ? "firm" : "user");
 
+    if (choice.kind === "firm" && choice.plan === "PLUS" && !firmPlusOpen(env)) {
+      return fail("Firm Plus isn't open yet. Choose Firm for now, or write to us to join the Firm Plus waitlist.");
+    }
     const product: BillingProduct = choice.kind === "premium" ? "PREMIUM" : productForFirmPlan(choice.plan);
     const key = lookupKeyFor(product, choice.interval ?? "month")!;
     const customer = await ensureCustomer(p);

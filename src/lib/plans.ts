@@ -40,7 +40,7 @@ export function checkIntervalMs(plan: Plan | null): number {
 
 export function describeCadence(plan: Plan): string {
   if (!PLAN_LIMITS[plan].autoChecks) return "only when you press Check now";
-  return PLAN_LIMITS[plan].checkIntervalHours >= 24 ? "about once a day" : "about twice a day";
+  return PLAN_LIMITS[plan].checkIntervalHours >= 24 ? "about once a day" : "every day, about twice a day while your case is moving";
 }
 
 /**
@@ -63,6 +63,15 @@ export const FIRM_PLANS: Record<"SOLO" | "FIRM" | "PLUS", { label: string; maxCa
 };
 /** Smallest to largest. */
 export const FIRM_PLAN_ORDER = ["SOLO", "FIRM", "PLUS"] as const;
+
+/**
+ * Firm Plus (2,000 cases) is sold only once USCIS has confirmed a production quota that can check
+ * that many cases every day. Until then it shows as "opening soon" and checkout refuses it. Turn on
+ * with FIRM_PLUS_OPEN=true after raising USCIS_DAILY_BUDGET (see Admin, Capacity).
+ */
+export function firmPlusOpen(env: Record<string, string | undefined> = process.env): boolean {
+  return env.FIRM_PLUS_OPEN?.trim() === "true";
+}
 
 /** Founding-firm launch offer, applied as a Stripe coupon in Step 8. */
 export const FOUNDING_FIRM_OFFER = { percentOff: 50, months: 12, firms: 25 } as const;
