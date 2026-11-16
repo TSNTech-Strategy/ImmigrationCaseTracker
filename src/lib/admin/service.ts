@@ -1,5 +1,6 @@
 import type { DeletionStatus, PrismaClient } from "@prisma/client";
 import { startOfUtcDay, uscisDailyBudget } from "@/lib/cases/policy";
+import { estimateCapacity } from "@/lib/jobs/capacity";
 import { uscisLooksDown } from "@/lib/jobs/scheduler";
 
 /**
@@ -44,6 +45,7 @@ export function createAdminService({ db, now = () => new Date(), env = process.e
       pausedCases,
       subsByStatus,
       pastDue,
+      capacity,
     ] = await Promise.all([
       db.caseCheckRun.count({ where: { attemptedAt: { gte: today }, httpStatus: { not: null } } }),
       db.caseCheckRun.groupBy({ by: ["outcome"], where: { attemptedAt: { gte: day } }, _count: { _all: true } }),
@@ -80,6 +82,7 @@ export function createAdminService({ db, now = () => new Date(), env = process.e
         take: 20,
         select: { id: true, product: true, pastDueSince: true, user: { select: { email: true } }, firm: { select: { name: true } } },
       }),
+      estimateCapacity(db, t, uscisDailyBudget(env)),
     ]);
 
     const planCount = (p: "SOLO" | "FIRM" | "PLUS" | null) => firmsByPlan.find((f) => f.plan === p)?._count._all ?? 0;
@@ -92,6 +95,7 @@ export function createAdminService({ db, now = () => new Date(), env = process.e
         lastScheduledAt: lastScheduled?.attemptedAt ?? null,
         circuitOpen: down,
         overdue,
+        capacity,
       },
       notifications: {
         sent7,

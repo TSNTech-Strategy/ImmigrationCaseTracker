@@ -74,13 +74,13 @@ export async function PlanSection({ userId, plan: planIn, billing, sessionId }: 
       {!enabled ? (
         plan === "FREE" && (
           <p className="text-sm text-[var(--muted)]">
-            Premium (automatic checks twice a day, alerts, up to 10 family cases) is coming soon for {formatUsd(PRICES.premium.yearly)} a year.
+            Premium (automatic daily checks, twice a day while a case is moving, alerts, up to 10 family cases) is coming soon for {formatUsd(PRICES.premium.yearly)} a year.
           </p>
         )
       ) : plan === "FREE" || trialActive ? (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-[var(--muted)]">
-            Premium: automatic checks twice a day, email alerts the moment a status changes, up to 10 family cases. Cancel any time in two clicks.
+            Premium: automatic daily checks (twice a day while a case is moving), email alerts the moment a status changes, up to 10 family cases. Cancel any time in two clicks.
           </p>
           <div className="flex flex-wrap items-start gap-3">
             <CheckoutButton fields={{ kind: "premium", interval: "year" }}>

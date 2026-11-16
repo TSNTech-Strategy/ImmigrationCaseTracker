@@ -4,6 +4,7 @@ import { LocalTime } from "@/components/local-time";
 import { adminService, requireAdminPage } from "@/lib/admin";
 import { billingEnabled, billingTestMode } from "@/lib/billing";
 import { getUscisClient } from "@/lib/uscis";
+import type { Capacity } from "@/lib/jobs/capacity";
 import { DeletionControls } from "./forms";
 
 export const metadata: Metadata = { title: "Admin · CasePingo", robots: { index: false } };
@@ -79,6 +80,7 @@ export default async function AdminPage() {
           <Tile label="Last scheduled check" value={ago(o.uscis.lastScheduledAt, now)} tone={schedulerQuiet ? "bad" : "ok"} />
           <Tile label="Cases overdue > 1 h" value={String(o.uscis.overdue)} tone={o.uscis.overdue > 0 ? "bad" : "ok"} />
         </dl>
+        <CapacityCard c={o.uscis.capacity} />
         <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm">
           <p className="mb-2 font-medium">Check results, last 24 hours</p>
           {o.uscis.outcomes24h.length === 0 ? (
@@ -186,5 +188,36 @@ export default async function AdminPage() {
         )}
       </section>
     </>
+  );
+}
+
+/** How much of the USCIS quota automatic checks need: shows whether there's room to take on a new firm. */
+function CapacityCard({ c }: { c: Capacity }) {
+  const pct = Math.round(c.utilization * 100);
+  const tone = pct >= 100 ? "var(--danger)" : pct >= 80 ? "var(--warning, var(--danger))" : "var(--success)";
+  const n = (x: number) => x.toLocaleString("en-US");
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm">
+      <p className="mb-1 font-medium">Capacity for automatic checks</p>
+      <p className="text-[var(--muted)]">
+        {n(c.cases)} cases on automatic checks need about {n(Math.round(c.checksPerDay))} USCIS calls a day, out of {n(c.scheduledBudget)} set aside for automatic checks ({Math.round((c.scheduledBudget / Math.max(1, c.budget)) * 100)}% of the {n(c.budget)} daily budget; the rest is kept for &ldquo;Check now&rdquo;).
+      </p>
+      <div className="my-3 h-2 overflow-hidden rounded-full bg-[var(--surface-2)]" role="img" aria-label={`${pct}% of the automatic-check budget in use`}>
+        <div className="h-full rounded-full" style={{ width: `${Math.min(100, pct)}%`, background: tone }} />
+      </div>
+      <dl className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
+        <div className="flex justify-between gap-3"><dt>In use</dt><dd className="font-medium tabular-nums">{pct}%</dd></div>
+        <div className="flex justify-between gap-3"><dt>Room for about</dt><dd className="font-medium tabular-nums">{n(c.roomForCases)} more cases ({n(c.roomForActiveCases)} if all are active)</dd></div>
+        <div className="flex justify-between gap-3"><dt>Active (about twice a day)</dt><dd className="tabular-nums">{n(c.byTier.active)}</dd></div>
+        <div className="flex justify-between gap-3"><dt>Steady (once a day)</dt><dd className="tabular-nums">{n(c.byTier.steady)}</dd></div>
+        <div className="flex justify-between gap-3"><dt>Long wait (every 2 days)</dt><dd className="tabular-nums">{n(c.byTier.quiet)}</dd></div>
+        <div className="flex justify-between gap-3"><dt>Finished (weekly)</dt><dd className="tabular-nums">{n(c.byTier.settled)}</dd></div>
+      </dl>
+      {pct >= 80 && (
+        <p role="alert" className="mt-3 text-[var(--danger)]">
+          {pct >= 100 ? "Automatic checks need more than the budget: some cases will be checked late." : "Over 80% in use."} Ask USCIS for a higher quota (then raise USCIS_DAILY_BUDGET) before adding large firms.
+        </p>
+      )}
+    </div>
   );
 }

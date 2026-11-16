@@ -7,7 +7,8 @@ import { billingEnabled, billingService, billingTestMode } from "@/lib/billing";
 import { prisma } from "@/lib/db";
 import { firmService } from "@/lib/firms";
 import { TRIAL_CASE_LIMIT } from "@/lib/firms/service";
-import { FIRM_PLAN_ORDER, FIRM_PLANS, FOUNDING_FIRM_OFFER, formatUsd } from "@/lib/plans";
+import { SITE } from "@/lib/site";
+import { FIRM_PLAN_ORDER, FIRM_PLANS, firmPlusOpen, FOUNDING_FIRM_OFFER, formatUsd } from "@/lib/plans";
 
 export const metadata: Metadata = { title: "Firm billing · CasePingo" };
 
@@ -72,7 +73,14 @@ export default async function FirmBillingPage({ searchParams }: PageProps<"/firm
         </ul>
         <div className="mt-auto">
           {enabled && isOwner && !firm.plan && (
-            tooSmall ? (
+            key === "PLUS" && !firmPlusOpen() ? (
+              <p className="text-sm text-[var(--muted)]">
+                Opening soon, once USCIS confirms our capacity for larger firms.{" "}
+                <a className="font-medium text-[var(--accent)] hover:underline" href={`mailto:${SITE.contactEmail}?subject=${encodeURIComponent("Firm Plus waitlist")}`}>
+                  Join the waitlist
+                </a>
+              </p>
+            ) : tooSmall ? (
               <p className="text-sm text-[var(--muted)]">Your firm has more people or cases than {p.label} includes.</p>
             ) : (
               <CheckoutButton fields={{ kind: "firm", plan: key, interval: yearly ? "year" : "month" }} secondary={key !== "FIRM"}>

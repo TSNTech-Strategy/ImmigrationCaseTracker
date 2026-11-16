@@ -7,7 +7,8 @@ import { mockFetchCaseStatus } from "@/lib/uscis/mock";
 import { normalizeCaseStatus } from "@/lib/uscis/normalize";
 import { protectReceipt } from "@/lib/cases/receipt-store";
 import type { EmailDriver, EmailMessage } from "@/lib/email";
-import { findDueCaseIds, runScheduledCheck, uscisLooksDown } from "../scheduler";
+import { findDueCaseIds, pickFairly, runScheduledCheck, scheduledAllowance, uscisLooksDown } from "../scheduler";
+import { estimateCapacity } from "../capacity";
 import { notifyStatusChange } from "../notifications";
 
 const url = process.env.TEST_DATABASE_URL;
@@ -142,5 +143,47 @@ describe.skipIf(!url)("scheduler and notifications", () => {
     expect(await uscisLooksDown(db, at)).toBe(true);
     await db.caseCheckRun.create({ data: { caseId: c.id, trigger: "SCHEDULED", uscisEnv: "mock", outcome: "ok", durationMs: 1, attemptedAt: at } });
     expect(await uscisLooksDown(db, at)).toBe(false);
+  });
+
+  it("shares a tick fairly between accounts, most overdue first within each", () => {
+    const rows = [
+      ...Array.from({ length: 5 }, (_, i) => ({ id: `big${i}`, firmId: "big", ownerUserId: null })),
+      { id: "fam1", firmId: null, ownerUserId: "u1" },
+      { id: "small1", firmId: "small", ownerUserId: null },
+      { id: "small2", firmId: "small", ownerUserId: null },
+    ];
+    expect(pickFairly(rows, 4)).toEqual(["big0", "fam1", "small1", "big1"]);
+    expect(pickFairly(rows, 100)).toHaveLength(8);
+    expect(pickFairly(rows, 0)).toEqual([]);
+  });
+
+  it("spreads what's left of today's automatic budget over the ticks left, keeping 20% for Check now", async () => {
+    const c = await makeCase("EAC9999103402");
+    const morning = new Date("2031-05-05T00:00:00Z"); // start of a UTC day: 96 ticks left
+    expect(await scheduledAllowance(db, morning, { budget: 960 })).toBe(8); // 768 / 96
+    // Only 48 ticks when USCIS can answer: twice as many per tick.
+    expect(await scheduledAllowance(db, morning, { budget: 960, isOpen: (at) => at.getUTCHours() >= 12 })).toBe(16);
+    await db.caseCheckRun.createMany({
+      data: Array.from({ length: 768 }, () => ({ caseId: c.id, trigger: "SCHEDULED" as const, uscisEnv: "mock", httpStatus: 200, outcome: "ok", durationMs: 1, attemptedAt: new Date("2031-05-05T00:00:01Z") })),
+    });
+    expect(await scheduledAllowance(db, new Date("2031-05-05T06:00:00Z"), { budget: 960 })).toBe(0);
+  });
+
+  it("estimates the daily checks automatic cases need, by cadence", async () => {
+    const at = new Date("2032-01-01T12:00:00Z");
+    const old = new Date("2031-01-01T00:00:00Z");
+    await makeCase("EAC9999103402", { statusTitleEn: "Interview Was Scheduled", createdAt: old, lastChangeObservedAt: old }); // active: 2/day
+    await makeCase("EAC9999103403", { statusTitleEn: "Case Was Received", createdAt: old, lastChangeObservedAt: old }); // quiet: 0.5/day
+    await makeCase("EAC9999103404", { statusTitleEn: "Case Was Denied", createdAt: old, lastChangeObservedAt: old }); // settled: 1/7 a day
+    await makeCase("EAC9999103405", { statusTitleEn: "Case Was Received", trackingStatus: "PAUSED" }); // not counted
+    const cap = await estimateCapacity(db, at, 100);
+    const mine = { active: 1, steady: 0, quiet: 1, settled: 1 };
+    // Other tests' cases may share the database: check our three at least, and the arithmetic.
+    expect(cap.byTier.active).toBeGreaterThanOrEqual(mine.active);
+    expect(cap.byTier.quiet).toBeGreaterThanOrEqual(mine.quiet);
+    expect(cap.byTier.settled).toBeGreaterThanOrEqual(mine.settled);
+    expect(cap.scheduledBudget).toBe(80);
+    expect(cap.utilization).toBeCloseTo(cap.checksPerDay / 80, 1);
+    expect(cap.roomForActiveCases).toBe(Math.floor(Math.max(0, 80 - cap.checksPerDay) / 2));
   });
 });

@@ -212,8 +212,11 @@ describe.skipIf(!url)("billing", () => {
     coupon = { id: FOUNDING_COUPON_ID, valid: true, max_redemptions: 25, times_redeemed: 25 };
     await billing.startCheckout(owner, { kind: "firm", plan: "FIRM" });
     expect(calls.checkout[1].discounts).toBeUndefined();
-    // Yearly billing and the Firm Plus plan.
-    await billing.startCheckout(owner, { kind: "firm", plan: "PLUS", interval: "year" });
+    // Firm Plus waits for a confirmed USCIS quota; once open, yearly billing works like the others.
+    expect(await billing.startCheckout(owner, { kind: "firm", plan: "PLUS", interval: "year" })).toMatchObject({ ok: false, error: expect.stringMatching(/isn't open yet/) });
+    expect(calls.checkout).toHaveLength(2);
+    const open = createBillingService({ db, stripe, mailer, siteUrl: "https://casepingo.test", now, env: { FIRM_PLUS_OPEN: "true" } });
+    await open.startCheckout(owner, { kind: "firm", plan: "PLUS", interval: "year" });
     expect(calls.checkout[2].line_items).toEqual([{ price: "price_casepingo_firm_plus_year", quantity: 1 }]);
 
     const cus = (await db.firm.findUniqueOrThrow({ where: { id: f.firm.id } })).stripeCustomerId!;
