@@ -1,7 +1,7 @@
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
 import { Banner, Body, Button, Card, Field, H1, H2, Loading, Row, Screen, Small } from "../../../components/ui";
 import { CongratsCard, StarBurst, takeUnplayed } from "../../../components/celebration";
 import { ShareJourneyCard } from "../../../components/my-cases";
@@ -340,6 +340,23 @@ export default function CaseScreen() {
           <View style={{ flex: 1, gap: 2 }}>
             <Text style={{ fontSize: 16, fontWeight: "700", color: c.heading }}>{t.insightsCard}</Text>
             <Small>{t.insightsCardText}</Small>
+          </View>
+          <Icon ios="chevron.right" md="chevron_right" size={14} color={c.accent} fallback="›" />
+        </Card>
+
+        {/* Invite your lawyer: a plain email with no case details, only a link to the firm plans. */}
+        <Card
+          onPress={() => {
+            const link = `${config.siteUrl}/pricing?ref=client-invite#firms`;
+            void Linking.openURL(`mailto:?subject=${encodeURIComponent(t.inviteLawyerSubject)}&body=${encodeURIComponent(t.inviteLawyerBody(link))}`).catch(() => {});
+          }}
+          label={t.inviteLawyer}
+          style={{ flexDirection: "row", alignItems: "center", gap: space(3) }}
+        >
+          <IconTile glyph={{ ios: "envelope", md: "mail", fallback: "✉" }} tint="blue" size={40} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: c.heading }}>{t.inviteLawyer}</Text>
+            <Small>{t.inviteLawyerText}</Small>
           </View>
           <Icon ios="chevron.right" md="chevron_right" size={14} color={c.accent} fallback="›" />
         </Card>

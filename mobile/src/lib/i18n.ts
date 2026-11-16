@@ -298,6 +298,11 @@ const en = {
   anTrendMonth: (m: string, a: number, r: number, d: number) => `${m}: ${a} approved · ${r} RFE · ${d} denied`,
   insightsCard: "How your case compares",
   insightsCardText: "Times, next steps and cases filed near yours, from CasePingo cases like this one.",
+  inviteLawyer: "Does your lawyer use CasePingo?",
+  inviteLawyerText: "Invite them: with CasePingo Pro, their office keeps you updated on every change. The email includes no case details.",
+  inviteLawyerSubject: "Could you use CasePingo for my case?",
+  inviteLawyerBody: (link: string) =>
+    `Hi,\n\nI use CasePingo to follow my USCIS case. It also has a version for law firms (CasePingo Pro) that checks all your clients' cases automatically and keeps clients updated. It might be useful to you:\n\n${link}\n\nThank you.`,
   insightsBasedOn: (n: number, form: string) => `Based on ${n.toLocaleString("en-US")} CasePingo cases for Form ${form}.`,
   insightsCollecting: (form: string) => `We're still collecting cases for Form ${form}. Numbers appear as more people track cases like yours.`,
   insightsNoForm: "Insights appear once USCIS reports this case's form.",
@@ -833,6 +838,11 @@ const es: Strings = {
   anTrendMonth: (m: string, a: number, r: number, d: number) => `${m}: ${a} aprobados · ${r} RFE · ${d} negados`,
   insightsCard: "Cómo va su caso comparado con otros",
   insightsCardText: "Tiempos, próximos pasos y casos presentados cerca de su fecha, con casos parecidos de CasePingo.",
+  inviteLawyer: "¿Su abogado usa CasePingo?",
+  inviteLawyerText: "Invítelo: con CasePingo Pro su despacho le avisa de cada cambio. El correo no incluye datos de su caso.",
+  inviteLawyerSubject: "¿Podría usar CasePingo para mi caso?",
+  inviteLawyerBody: (link: string) =>
+    `Hola:\n\nUso CasePingo para seguir el estado de mi caso con USCIS. También tiene una versión para despachos de abogados (CasePingo Pro) que revisa los casos de todos sus clientes automáticamente y nos avisa de los cambios. Quizás le sea útil:\n\n${link}\n\nGracias.`,
   insightsBasedOn: (n: number, form: string) => `Basado en ${n.toLocaleString("es-US")} casos de CasePingo del Formulario ${form}.`,
   insightsCollecting: (form: string) => `Todavía estamos reuniendo casos del Formulario ${form}. Los números aparecen cuando más personas siguen casos como el suyo.`,
   insightsNoForm: "El análisis aparece cuando USCIS informa el formulario de este caso.",
