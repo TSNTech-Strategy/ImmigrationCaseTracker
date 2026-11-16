@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { sandboxOpen } from "@/lib/uscis/sandbox-hours";
 
 /**
  * Live system status for the public status page and the health endpoint. Everything is measured
@@ -32,6 +33,14 @@ const ago = (d: Date, now: Date) => {
   const h = Math.round(m / 60);
   return `${h} hour${h === 1 ? "" : "s"} ago`;
 };
+
+/** Time between two moments when the USCIS test system was open, in 15-minute steps. */
+export function sandboxOpenMs(from: Date, to: Date): number {
+  const step = 15 * 60_000;
+  let open = 0;
+  for (let at = from.getTime(); at < to.getTime(); at += step) if (sandboxOpen(new Date(at))) open += Math.min(step, to.getTime() - at);
+  return open;
+}
 
 export async function getSystemStatus({
   db,
@@ -97,7 +106,8 @@ export async function getSystemStatus({
     } else if (!lastScheduled) {
       components.push({ key: "jobs", name: "Scheduled checks and reminders", level: "operational", detail: "Waiting for the first scheduled run." });
     } else {
-      const late = t.getTime() - lastScheduled.attemptedAt.getTime() > SCHEDULE_GRACE_HOURS * HOUR;
+      // On the USCIS test system, checks wait while it's closed (nights, weekends): only open hours count.
+      const late = (config.uscisSandbox ? sandboxOpenMs(lastScheduled.attemptedAt, t) : t.getTime() - lastScheduled.attemptedAt.getTime()) > SCHEDULE_GRACE_HOURS * HOUR;
       components.push({ key: "jobs", name: "Scheduled checks and reminders", level: late ? "degraded" : "operational", detail: late ? `The last scheduled run was ${ago(lastScheduled.attemptedAt, t)}; runs are behind.` : `Last scheduled run ${ago(lastScheduled.attemptedAt, t)}.` });
     }
   }
