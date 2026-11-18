@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { DraftNotice, Prose } from "@/components/public-chrome";
+import { Prose } from "@/components/public-chrome";
 import { FEATURES } from "@/lib/features";
 import { MIN_GROUP } from "@/lib/insights";
 import { SITE } from "@/lib/site";
@@ -13,7 +13,6 @@ export default function Privacy() {
     <Prose>
       <h1>Privacy Policy</h1>
       <p className="text-sm text-[var(--muted)]">Last updated {SITE.legalUpdated}</p>
-      <DraftNotice />
       <p>
         This policy explains what {SITE.name} (&quot;we&quot;), operated by {SITE.company}, collects, why, who we share it with,
         how long we keep it, and how you can delete it. {SITE.disclaimer}
@@ -44,14 +43,22 @@ export default function Privacy() {
           cases.
         </li>
         <li>
-          <strong>Law firm clients:</strong> when a law firm uses CasePingo, it adds its clients&apos; names, contact details, and
-          optionally date of birth, country of birth, citizenship and A-Number (date of birth and A-Number are stored encrypted, and lists
-          show only the last four A-Number digits), and documents it uploads for its cases and clients, or that its clients upload through a private
-          request link the firm sends them (each file is encrypted before it is stored in private storage and is checked for harmful content such as hidden programs or macros, opened only by members of
-          that firm, or by the client through their own status page link when the firm shares a file with them),
-          preferred language and whether the client agreed to get case updates. If the firm turns on client updates, we use that email
-          address only to send status updates and document requests on the firm&apos;s behalf (with the firm&apos;s logo, if it added one), and the firm can give its client a private status page link,
-          which it can replace or turn off at any time. The firm decides what is added; clients can ask the firm, or us, to stop.
+          <strong>Law firm clients:</strong> when a law firm uses CasePingo, the firm decides what to add about its clients:
+          <ul>
+            <li>Names, contact details, preferred language, and whether the client agreed to get case updates.</li>
+            <li>
+              Optionally, date of birth, country of birth, citizenship and A-Number. Date of birth and A-Number are stored encrypted.
+              Lists show only the last four A-Number digits.
+            </li>
+            <li>
+              Documents the firm uploads, or that its clients upload through a private request link. Each file is checked for harmful
+              content, encrypted, and kept in private storage. Only members of that firm can open it, or the client, if the firm shares
+              the file on the client&apos;s status page.
+            </li>
+          </ul>
+          If the firm turns on client updates, we use the client&apos;s email address only to send status updates and document requests
+          for the firm. The firm can also give its client a private status page link, and can replace or turn off that link at any
+          time. Clients can ask the firm, or us, to stop.
         </li>
         <li>
           <strong>Operational records:</strong> when each status check ran and whether it succeeded (no case content), security
@@ -89,7 +96,10 @@ export default function Privacy() {
         {FEATURES.assistant && <li>To answer the questions you ask the assistant.</li>}
         <li>To secure accounts, prevent abuse, and meet legal obligations.</li>
       </ul>
-      <p>We do not use your case information for advertising, and we do not sell or rent personal information to anyone.</p>
+      <p>
+        We do not use your case information for advertising. <strong>We do not sell, rent or trade personal information</strong>,
+        for money or anything else. This includes de-identified, anonymized or pseudonymized data.
+      </p>
 
       <h2>Consent</h2>
       <p>
@@ -114,15 +124,39 @@ export default function Privacy() {
             </li>
           ))}
         {FEATURES.assistant && (
-          <li>
-            Our AI provider doesn&apos;t use assistant conversations to train its models under its commercial terms. [Retention terms to be confirmed with counsel.]
-          </li>
+          <li>Our AI provider doesn&apos;t use assistant conversations to train its models under its commercial terms.</li>
         )}
       </ul>
+      <p>
+        Every provider is bound by a written contract to protect your information as this policy requires, and may use it only to
+        provide its service to us. <strong>No third party may use or disclose your information</strong>, including de-identified,
+        anonymized or pseudonymized data, for any other purpose without your active consent.
+      </p>
       <p>
         Law firms: how we process your clients&apos; information is set out in our <Link href="/dpa">Data Processing Agreement</Link>.
       </p>
       <p>We may also disclose information if the law requires it. We will tell you unless the law forbids us to.</p>
+
+      <h2>Your choices about sharing</h2>
+      <ul>
+        <li>
+          <strong>Which cases to add.</strong> We only contact USCIS about receipt numbers you add. Removing a case stops all checks.
+        </li>
+        <li>
+          <strong>Alerts.</strong> You can turn email and phone alerts on or off. Alerts can show a case nickname and status on your
+          lock screen or in your inbox, so anyone who can see your phone or email may see them. Using a nickname that doesn&apos;t
+          name the person lowers this risk.
+        </li>
+        <li>
+          <strong>Case insights.</strong> Your personal cases count toward anonymous totals that help everyone see typical timelines.
+          The benefit is better information for all users. The limit is that totals are never shown for fewer than {MIN_GROUP} cases,
+          so no one can be singled out. To leave the totals, remove the case.
+        </li>
+        <li>
+          <strong>Sharing a case with others.</strong> Information about an immigration case can also concern family members on the
+          same application. Only add a case, or share its details, with the permission of the people it is about.
+        </li>
+      </ul>
 
       <h2>Security</h2>
       <p>
@@ -135,16 +169,21 @@ export default function Privacy() {
         <li>Case information: until you remove the case or delete your account.</li>
         <li>Case insights: not stored; they are calculated from the cases being tracked at that moment.</li>
         <li>Account information: until you delete your account.</li>
+        <li>
+          Dormant accounts: if you don&apos;t sign in for 24 months, we email you. If you still don&apos;t sign in within 30 days of
+          that email, we delete the account and everything in it. This doesn&apos;t apply while you have a paid plan or belong to a law
+          firm workspace.
+        </li>
         {FEATURES.assistant && (
           <li>Assistant: conversations aren&apos;t stored by CasePingo; daily question counts (no content) are kept for 30 days.</li>
         )}
-        <li>Records of deletion requests and security logs: [retention period to be confirmed with counsel], without case content.</li>
+        <li>Records of deletion requests and security logs: 12 months, without case content.</li>
         <li>
           Free-trial records: a one-way fingerprint of the email address and of receipt numbers used during a free trial (never the
           email or receipt number itself), kept for 12 months so each person and each case gets one trial. They are kept even if you
           delete your account, and can&apos;t be used to identify you or your case.
         </li>
-        <li>Backups: deleted data may remain in encrypted backups for up to [backup window] before being overwritten.</li>
+        <li>Backups: deleted data may remain in encrypted backups for up to 30 days before being overwritten.</li>
       </ul>
 
       <h2>Deleting your data</h2>
@@ -162,7 +201,22 @@ export default function Privacy() {
       <h2>Data breaches</h2>
       <p>
         If a security incident affects your personal information, we will notify you and any authorities as the law requires,
-        without undue delay.
+        without undue delay. Our notice will say what happened, what information was involved, what we are doing about it, and
+        what you can do to protect yourself, such as changing your password or watching for suspicious emails. We will never ask
+        for your password by email.
+      </p>
+
+      <h2>California residents</h2>
+      <p>If you live in California, you have the right to:</p>
+      <ul>
+        <li>Know what personal information we collect, use and share (this policy describes it).</li>
+        <li>Ask for a copy of your personal information, or ask us to correct or delete it.</li>
+        <li>Not have your personal information sold or shared. We don&apos;t sell or share it.</li>
+        <li>Not be treated differently for using these rights.</li>
+      </ul>
+      <p>
+        To make a request, email {SITE.contactEmail}. We will confirm it&apos;s you and reply within 45 days. We give the same rights
+        to every user, wherever they live.
       </p>
 
       <h2>Children</h2>
@@ -171,11 +225,16 @@ export default function Privacy() {
       <h2>Changes of ownership</h2>
       <p>
         If {SITE.company} is involved in a merger, acquisition or sale of assets, personal information may transfer to the new
-        owner, who must honor this policy. We will notify you before your information becomes subject to a different policy.
+        owner. The new owner must follow this policy. We will notify you before the transfer, and you can delete your account
+        before it happens. If {SITE.company} closes without a new owner, we will delete all personal information.
       </p>
 
       <h2>Changes to this policy</h2>
-      <p>We will post updates here and email you about material changes before they take effect.</p>
+      <p>
+        We will post updates here and email you before material changes take effect, with a plain-language summary of what changed.
+        We will ask you to accept the updated policy the next time you sign in. We won&apos;t apply a material change to your
+        information until you accept it. If you don&apos;t accept, you can delete your account.
+      </p>
 
       <h2>Contact</h2>
       <p>

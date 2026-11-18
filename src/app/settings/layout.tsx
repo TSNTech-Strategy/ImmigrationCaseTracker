@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth/session";
 export const instant = false;
 
 export default async function SettingsLayout({ children }: { children: ReactNode }) {
-  const user = await requireUser("/settings");
+  const user = await requireUser("/settings", { allowLegalPending: true });
   return (
     <>
       <AppHeader user={user} />

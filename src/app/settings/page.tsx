@@ -23,7 +23,7 @@ function Section({ id, title, children, danger }: { id: string; title: string; c
 }
 
 export default async function SettingsPage({ searchParams }: PageProps<"/settings">) {
-  const user = await requireUser("/settings");
+  const user = await requireUser("/settings", { allowLegalPending: true });
   const sp = await searchParams;
   const prefs = await prisma.notificationPreference.findUnique({ where: { userId: user.id } });
   const plan = (await prisma.user.findUnique({ where: { id: user.id }, select: { plan: true } }))?.plan ?? "FREE";

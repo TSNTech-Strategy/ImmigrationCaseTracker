@@ -112,6 +112,28 @@ export function renewalReminderEmail(p: {
   };
 }
 
+/** A personal account unused for 24 months, 30 days before it is deleted (Privacy Policy). */
+export function dormantAccountEmail(p: { to: string; name: string | null; deleteOn: Date; signInUrl: string }): EmailMessage {
+  const day = p.deleteOn.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
+  return {
+    to: p.to,
+    subject: "Your CasePingo account will be deleted unless you sign in",
+    body: [
+      `Hi${p.name ? ` ${p.name}` : ""},`,
+      "",
+      "Nobody has signed in to your CasePingo account for 24 months.",
+      `As our Privacy Policy explains, we will delete the account and everything in it on ${day}, unless you sign in before then.`,
+      "",
+      "To keep your account, just sign in:",
+      p.signInUrl,
+      "",
+      "If you no longer need it, you don't need to do anything.",
+      "",
+      "CasePingo is an independent service, not affiliated with USCIS or DHS, and does not provide legal advice.",
+    ].join("\n"),
+  };
+}
+
 /** Two days before the new-account Premium trial ends. */
 export function trialEndingEmail(p: { to: string; name: string | null; endsAt: Date; upgradeUrl: string }): EmailMessage {
   const day = p.endsAt.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
