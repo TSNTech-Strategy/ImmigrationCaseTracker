@@ -65,6 +65,8 @@ export type Me = {
   plan: Plan;
   cases: { count: number; pausedByPlan: number };
   alerts: { email: boolean; push: boolean };
+  /** Terms and Privacy Policy: when accepted is false the app asks before anything else (older servers omit it). */
+  legal?: { accepted: boolean; version: string; updated: string; changes: string[] };
 };
 export type StatusCategory = "progress" | "action" | "done" | "stop" | "none";
 export type GuideText = { meaning: string; next: string; todo: string | null };

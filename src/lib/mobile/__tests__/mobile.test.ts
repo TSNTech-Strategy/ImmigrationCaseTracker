@@ -1,5 +1,6 @@
 /** Mobile API handlers and push alerts against a real Postgres (TEST_DATABASE_URL; skipped otherwise). */
 import { randomUUID } from "node:crypto";
+import { SITE } from "@/lib/site";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import { createCaseService, type UscisPort } from "@/lib/cases/service";
@@ -163,6 +164,15 @@ describe.skipIf(!url)("mobile API", () => {
       en: { meaning: "USCIS approved your application or petition." },
       es: { meaning: "USCIS aprobó su solicitud o petición." },
     });
+  });
+
+  it("asks for the current Terms and Privacy Policy until the user accepts them", async () => {
+    const u = await mkUser();
+    expect(body(await api.me(u)).legal).toMatchObject({ accepted: false, version: SITE.legalVersion, changes: SITE.legalChanges });
+    const r = await api.acceptLegal(u);
+    expect(body(r).legal.accepted).toBe(true);
+    expect(await db.user.findUnique({ where: { id: u }, select: { legalAcceptedVersion: true } })).toEqual({ legalAcceptedVersion: SITE.legalVersion });
+    expect(await db.auditLog.count({ where: { actorUserId: u, action: "legal.accepted" } })).toBe(1);
   });
 
   it("returns the profile and plan, and updates language and alerts with strict validation", async () => {

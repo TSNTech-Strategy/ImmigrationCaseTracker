@@ -17,6 +17,7 @@ import { COMMON_TIPS, REVIEWED, checklistByKey, checklistForForm, checklistProgr
 import { createChecklistService } from "@/lib/checklists-service";
 import { caseGlance, journeyShare, nextStepFor } from "@/lib/my-cases";
 import { COURT_GUIDE, COURT_REVIEWED } from "@/lib/court";
+import { SITE } from "@/lib/site";
 
 /**
  * The mobile app's API (/api/v1/*), as plain functions so they can be tested
@@ -93,7 +94,7 @@ export function createMobileApi({
   async function me(userId: string): Promise<ApiResult> {
     const u = await db.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, locale: true, plan: true, mfaEnrolledAt: true, trialEndsAt: true, notificationPreference: true },
+      select: { id: true, email: true, name: true, locale: true, plan: true, mfaEnrolledAt: true, trialEndsAt: true, notificationPreference: true, legalAcceptedVersion: true },
     });
     if (!u) return err(404, "not_found", "Account not found.");
     const [caseCount, paused] = await Promise.all([
@@ -118,7 +119,18 @@ export function createMobileApi({
       },
       cases: { count: caseCount, pausedByPlan: paused },
       alerts: { email: u.notificationPreference?.emailOnChange ?? true, push: u.notificationPreference?.pushOnChange ?? false },
+      // Active consent to policy changes: the app asks before anything else when accepted is false.
+      legal: { accepted: u.legalAcceptedVersion === SITE.legalVersion, version: SITE.legalVersion, updated: SITE.legalUpdated, changes: SITE.legalChanges },
     });
+  }
+
+  /** The user accepts the current Terms and Privacy Policy (SITE.legalVersion). */
+  async function acceptLegal(userId: string): Promise<ApiResult> {
+    await db.user.update({ where: { id: userId }, data: { legalAcceptedVersion: SITE.legalVersion, legalAcceptedAt: now() } });
+    await db.auditLog.create({
+      data: { actorUserId: userId, action: "legal.accepted", targetType: "User", targetId: userId, metadata: { version: SITE.legalVersion, via: "app" } },
+    });
+    return me(userId);
   }
 
   async function updateMe(userId: string, input: unknown): Promise<ApiResult> {
@@ -497,7 +509,7 @@ export function createMobileApi({
     return tagResult(await tags.setCaseTags(userId, caseId, ids), (list) => ({ tags: list }));
   }
 
-  return { me, updateMe, config, guide, listCases, getCase, addCase, refreshCase, renameCase, removeCase, checkInstead, registerDevice, unregisterDevice, listTags, createTag, updateTag, deleteTag, setCaseTags, updates, journey, caseInsights, listChecklists, getChecklist, setChecklistItem, court };
+  return { me, updateMe, acceptLegal, config, guide, listCases, getCase, addCase, refreshCase, renameCase, removeCase, checkInstead, registerDevice, unregisterDevice, listTags, createTag, updateTag, deleteTag, setCaseTags, updates, journey, caseInsights, listChecklists, getChecklist, setChecklistItem, court };
 }
 
 export type MobileApi = ReturnType<typeof createMobileApi>;
