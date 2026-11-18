@@ -1,4 +1,5 @@
 import { Redirect, Stack } from "expo-router";
+import { LegalGate } from "../../components/legal-gate";
 import { Loading } from "../../components/ui";
 import { useAuth } from "../../lib/auth";
 import { useLaunchHidden } from "../../lib/launch";
@@ -6,12 +7,14 @@ import { useTheme } from "../../lib/theme";
 
 /** Signed-in area: the tabs, plus screens that open on top of them. Needs a session (and the two-factor step, if on). */
 export default function AppLayout() {
-  const { ready, session, needsMfa, t } = useAuth();
+  const { ready, session, needsMfa, me, t } = useAuth();
   const { c } = useTheme();
   const launchHidden = useLaunchHidden();
   if (!ready) return launchHidden ? <Loading /> : null;
   if (!session) return <Redirect href="/welcome" />;
   if (needsMfa) return <Redirect href="/mfa" />;
+  // Updated Terms or Privacy Policy: ask before anything else.
+  if (me?.legal && !me.legal.accepted) return <LegalGate legal={me.legal} />;
   return (
     <Stack
       screenOptions={{
