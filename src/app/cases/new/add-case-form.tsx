@@ -11,6 +11,7 @@ export function AddCaseForm({ options, footnote }: { options: Option[]; footnote
   return (
     <form action={action} className="flex flex-col gap-5" noValidate>
       <FormMessage state={state} />
+      {/* DEMO 1a: user input. Example, helper text (where to find it), no browser call to USCIS. */}
       <Field
         label="Receipt number"
         name="receipt"
@@ -53,6 +54,7 @@ export function AddCaseForm({ options, footnote }: { options: Option[]; footnote
 
       <div className="flex flex-col gap-1">
         <label className="flex items-start gap-2 text-sm">
+          {/* DEMO 1a: consent. The user confirms they may track this case. */}
           <input type="checkbox" name="consent" className="mt-1" />
           <span>I confirm the statement I selected above is true.</span>
         </label>

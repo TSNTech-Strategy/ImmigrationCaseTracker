@@ -7,6 +7,8 @@ import { createSupabaseServerClient, createSupabaseTokenClient } from "@/lib/sup
 import { bearerToken } from "./paths";
 import { ensureProfile, isAdminEmail, needsSecondFactor, type AuthClaims } from "./profile";
 import { createTrialService } from "@/lib/billing/trial";
+import { SITE } from "@/lib/site";
+import { lastSeenUpdate } from "./dormant";
 
 export type AppUser = {
   id: string;
@@ -17,6 +19,8 @@ export type AppUser = {
   mfaEnabled: boolean;
   /** "aal2" once the user has passed their second factor this session. */
   aal: string;
+  /** Has accepted the current Terms and Privacy Policy (SITE.legalVersion). */
+  legalAccepted: boolean;
 };
 
 /**
@@ -35,8 +39,13 @@ type Claims = AuthClaims & { aal?: string };
 
 async function stateFromClaims(claims: Claims): Promise<SessionState> {
   const u = await ensureProfile(prisma, claims, async (created) => {
+    // Both sign-up forms (web and app) require agreeing to the Terms and Privacy Policy.
+    await prisma.user.update({ where: { id: created.id }, data: { legalAcceptedVersion: SITE.legalVersion, legalAcceptedAt: new Date() } });
     await createTrialService({ db: prisma }).grantNewAccountTrial(created.id, created.email);
   });
+  // Dormant-account clean-up needs the last sign-in; written at most once a day.
+  const seen = lastSeenUpdate(u, new Date());
+  if (seen) await prisma.user.update({ where: { id: u.id }, data: seen });
   const user: AppUser = {
     id: u.id,
     email: u.email,
@@ -45,6 +54,7 @@ async function stateFromClaims(claims: Claims): Promise<SessionState> {
     isAdmin: isAdminEmail(u.email),
     mfaEnabled: Boolean(u.mfaEnrolledAt),
     aal: claims.aal ?? "aal1",
+    legalAccepted: u.legalAcceptedVersion === SITE.legalVersion,
   };
   return needsSecondFactor(u, claims.aal) ? { state: "mfa_required", user } : { state: "ok", user };
 }
@@ -65,12 +75,18 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   return s.state === "ok" ? s.user : null;
 }
 
-/** For pages: the signed-in user, or a redirect to sign-in / the two-factor step. */
-export async function requireUser(nextPath?: string): Promise<AppUser> {
+/**
+ * For pages: the signed-in user, or a redirect to sign-in / the two-factor
+ * step / accepting updated Terms and Privacy Policy. `allowLegalPending` lets
+ * a user who hasn't accepted reach the page anyway (Settings, so they can
+ * delete their account instead of accepting).
+ */
+export async function requireUser(nextPath?: string, opts: { allowLegalPending?: boolean } = {}): Promise<AppUser> {
   const s = await getSessionState();
   const next = nextPath ? `?next=${encodeURIComponent(nextPath)}` : "";
   if (s.state === "none") redirect(`/login${next}`);
   if (s.state === "mfa_required") redirect(`/login/mfa${next}`);
+  if (!s.user.legalAccepted && !opts.allowLegalPending) redirect(`/legal/accept${next}`);
   return s.user;
 }
 

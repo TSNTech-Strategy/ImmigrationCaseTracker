@@ -20,6 +20,7 @@ export function clearUscisTokenCache(config?: UscisConfig): void {
   else tokens.clear();
 }
 
+// DEMO 5a: token cache. Reuse while valid; concurrent callers share one request; failures aren't cached.
 export async function getUscisAccessToken(
   config: UscisConfig,
   opts: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
@@ -43,6 +44,7 @@ export async function getUscisAccessToken(
   return (await pending).token;
 }
 
+// DEMO 5b: OAuth 2.0 client credentials: POST /oauth/accesstoken, server side only. Expiry minus 60s.
 async function requestToken(
   config: UscisConfig,
   { fetchImpl = fetch, timeoutMs = 10_000 }: { fetchImpl?: typeof fetch; timeoutMs?: number },

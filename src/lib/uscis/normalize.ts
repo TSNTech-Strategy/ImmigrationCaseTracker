@@ -14,6 +14,7 @@ const historyItem = z.looseObject({
   completed_text_es: text,
 });
 
+// DEMO 7a: schema matching USCIS's documented case_status response (EN + ES, history).
 const caseStatus = z.looseObject({
   receiptNumber: text,
   formType: text,
@@ -78,6 +79,7 @@ function validLocal(local: string): string | null {
 
 const clean = (v: string | null | undefined) => (v && v.trim() ? v.trim() : null);
 
+// DEMO 7b: JSON -> CasePingo's shape. No case_status = rejected. Fingerprint detects real changes.
 export function normalizeCaseStatus(body: unknown, requestedReceipt: string): CaseStatusSnapshot {
   const parsed = caseStatusResponseSchema.safeParse(body);
   if (!parsed.success) throw new Error("USCIS response did not contain a valid case_status object");

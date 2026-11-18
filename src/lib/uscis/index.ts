@@ -13,6 +13,7 @@ export type UscisClient = {
   getCaseStatus(receipt: string): Promise<CaseStatusResult>;
 };
 
+// DEMO 3: one server-only entry point (line 1). Sandbox vs production is configuration, not code.
 /** The one entry point app code uses. Mock vs real is decided by env only. */
 export function getUscisClient(): UscisClient {
   assertRealUscisInProduction();

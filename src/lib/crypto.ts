@@ -17,6 +17,7 @@ function subKey(purpose: string): Buffer {
   return Buffer.from(hkdfSync("sha256", masterKey(), Buffer.alloc(0), purpose, 32));
 }
 
+// DEMO 9d: receipt numbers encrypted (AES-256-GCM) before they're stored.
 export function encrypt(plaintext: string): string {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", subKey("ict/encrypt/v1"), iv);

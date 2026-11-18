@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { DraftNotice, Prose } from "@/components/public-chrome";
+import { Prose } from "@/components/public-chrome";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Terms of Service · CasePingo" };
@@ -10,7 +10,6 @@ export default function Terms() {
     <Prose>
       <h1>Terms of Service</h1>
       <p className="text-sm text-[var(--muted)]">Last updated {SITE.legalUpdated}</p>
-      <DraftNotice />
       <p>
         These terms are an agreement between you and {SITE.company} for use of {SITE.name}. By creating an account you agree to
         them.
@@ -47,8 +46,30 @@ export default function Terms() {
         with notice where reasonable.
       </p>
 
-      <h2>Paid plans</h2>
-      <p>Paid plans are not yet available. When they are, prices, billing, renewal, cancellation and refunds will be described here.</p>
+      <h2>Plans, trials and billing</h2>
+      <ul>
+        <li>
+          {SITE.name} has a free plan and paid plans. Current prices and what each plan includes are on our{" "}
+          <Link href="/pricing">Pricing page</Link>.
+        </li>
+        <li>
+          New personal accounts get a free 7-day Premium trial, and new law firms get a free 14-day trial. No card is needed. When a
+          trial ends, you move to the free plan unless you choose a paid plan. We never charge you automatically after a trial.
+        </li>
+        <li>
+          Payments are handled by Stripe. Paid plans renew automatically each month or year until you cancel. Prices may include tax
+          where the law requires it.
+        </li>
+        <li>
+          You can cancel at any time in Billing (law firms: Firm → Billing). You keep your paid features until the end of the period you paid for, and you
+          won&apos;t be charged again.
+        </li>
+        <li>
+          Payments are not refunded for partly used periods, except where the law requires it. If we charged you by mistake, contact
+          us and we will refund it.
+        </li>
+        <li>We will email you at least 30 days before a price increase affects your plan.</li>
+      </ul>
 
       <h2>Ending your account</h2>
       <p>
@@ -59,8 +80,8 @@ export default function Terms() {
       <h2>Disclaimers and limitation of liability</h2>
       <p>
         The service is provided &quot;as is&quot;. To the extent the law allows, {SITE.company} is not liable for indirect or
-        consequential losses, or for decisions made based on statuses shown in the service. [Liability cap and wording to be
-        finalized with counsel.]
+        consequential losses, or for decisions made based on statuses shown in the service. Our total liability for any claim is
+        limited to the greater of the amount you paid us in the 12 months before the claim, or $100.
       </p>
 
       <h2>Privacy</h2>
@@ -77,10 +98,13 @@ export default function Terms() {
       </p>
 
       <h2>Changes to these terms</h2>
-      <p>We will post updates here and notify you of material changes before they take effect.</p>
+      <p>
+        We will post updates here and email you before material changes take effect, with a plain-language summary of what changed.
+        We will ask you to accept the updated terms the next time you sign in. If you don&apos;t accept, you can delete your account.
+      </p>
 
       <h2>Governing law</h2>
-      <p>These terms are governed by the laws of [State to be confirmed], United States.</p>
+      <p>These terms are governed by the laws of the State of Ohio, United States.</p>
 
       <h2>Contact</h2>
       <p>

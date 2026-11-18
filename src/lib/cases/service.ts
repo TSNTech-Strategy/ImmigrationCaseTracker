@@ -262,6 +262,7 @@ export function createCaseService({
       }
     }
 
+    // DEMO 2: before calling USCIS: active consent, daily USCIS budget, sandbox sends only sample receipts.
     const consent = await db.caseConsent.findFirst({ where: { caseId: c.id, withdrawnAt: null }, select: { id: true } });
     if (!consent) return { status: "no_consent", message: "This case has no active consent, so it isn't checked." };
 
@@ -281,6 +282,7 @@ export function createCaseService({
       return { status: "failed", message: checkFailureMessage("sandbox_only") };
     }
 
+    // DEMO 9a: success. Saved with the receipt removed from USCIS's text; check run recorded.
     const started = Date.now();
     try {
       const result = await uscis.getCaseStatus(receipt);
@@ -304,6 +306,7 @@ export function createCaseService({
         eventId,
         message: changed ? "Status updated from USCIS." : "Checked with USCIS. No change since the last check.",
       };
+    // DEMO 9b: failure. USCIS's message (receipt masked) saved, logged as uscis.check_failed, shown to the user.
     } catch (err) {
       const e = err instanceof UscisError ? err : new UscisError("network", "unexpected error");
       // USCIS can echo the receipt number back in its message — mask it before storing or logging.
