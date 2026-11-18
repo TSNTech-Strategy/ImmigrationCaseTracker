@@ -18,6 +18,7 @@ export async function addCaseAction(_prev: FormState, formData: FormData): Promi
     nickname: String(formData.get("nickname") ?? ""),
     basis: String(formData.get("basis") ?? ""),
   };
+  // DEMO 1b: runs on our server ("use server"). Receipt, basis and consent are validated here.
   const parsed = z
     .object({
       receipt: z.string().trim().min(1, "Enter the receipt number from your USCIS notice."),

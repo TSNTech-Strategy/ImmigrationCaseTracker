@@ -1,6 +1,7 @@
 // USCIS receipt numbers: three letters (the service center / office code,
 // e.g. EAC, WAC, LIN, SRC, NBC, MSC, IOE) followed by ten digits.
 
+// DEMO 1c: format check (3 letters + 10 digits) and clean-up before anything is sent.
 const RECEIPT_RE = /^[A-Z]{3}\d{10}$/;
 
 /** Uppercase and strip spaces / dashes people paste in ("eac-99 9910 3402"). */

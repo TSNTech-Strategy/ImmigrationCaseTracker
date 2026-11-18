@@ -64,6 +64,7 @@ export class UscisError extends Error {
   }
 }
 
+// DEMO 8a: HTTP status -> error type (401/403 auth, 404, 429, 5xx, other 4xx).
 export function kindForStatus(status: number): UscisErrorKind {
   if (status === 401 || status === 403) return "auth";
   if (status === 404) return "not_found";
@@ -88,6 +89,7 @@ function detail(o: Record<string, unknown>): UscisApiErrorDetail {
 
 const hasAny = (d: UscisApiErrorDetail) => Boolean(d.code || d.message || d.category);
 
+// DEMO 8b: reads every USCIS error format so the user sees USCIS's own message.
 /**
  * Pull error codes/messages out of a USCIS error body, keeping only safe,
  * short fields. Accepts the documented bare `{ code, message }` and RFC 9457

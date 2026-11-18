@@ -117,6 +117,7 @@ export function CaseStatusPanel({
   journey?: CaseJourney;
 }) {
   const days = journey?.days;
+  // DEMO 9c: case status in the user's language (EN/ES), with history and dates below.
   const primary = { title: es ? c.statusTitleEs : c.statusTitleEn, desc: es ? c.statusDescriptionEs : c.statusDescriptionEn };
   const secondary = { title: es ? c.statusTitleEn : c.statusTitleEs, desc: es ? c.statusDescriptionEn : c.statusDescriptionEs };
   const failed = c.lastCheckOutcome && c.lastCheckOutcome !== "ok";
@@ -146,6 +147,7 @@ export function CaseStatusPanel({
         </details>
       )}
       <StatusGuide titleEn={c.statusTitleEn} es={es} collapsed={guideCollapsed} />
+      {/* DEMO 9c: errors shown in the UI: our explanation plus USCIS said (HTTP n): "..." */}
       {failed && (
         <div role="alert" className="flex flex-col gap-1 rounded-md border border-[var(--danger)] px-3 py-2 text-sm text-[var(--danger)]">
           <p>Last check didn&apos;t succeed: {checkFailureMessage(c.lastCheckOutcome!, c.lastCheckHttpStatus)}</p>

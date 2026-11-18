@@ -39,6 +39,7 @@ export async function fetchCaseStatus(
   opts: FetchCaseStatusOptions = {},
 ): Promise<CaseStatusResult> {
   const { fetchImpl = fetch, timeoutMs = 10_000, maxRetries = 2, backoffMs = 500 } = opts;
+  // DEMO 6a: clean and validate again on the server, then GET /case-status/{receipt} with Bearer token (+ demo_id).
   const receipt = opts.skipValidation ? receiptInput : normalizeReceiptNumber(receiptInput);
   if (!opts.skipValidation && !isValidReceiptNumber(receipt)) {
     throw new UscisError("invalid_receipt", "Receipt number must be 3 letters followed by 10 digits");
@@ -76,6 +77,7 @@ export async function fetchCaseStatus(
         }
       }
 
+      // DEMO 6b: 401 -> new token, retry once. Other errors keep USCIS's status and message.
       // A rejected token: drop it and try once more with a fresh one.
       if (res.status === 401 && !refreshedToken) {
         refreshedToken = true;
@@ -93,6 +95,7 @@ export async function fetchCaseStatus(
       });
     } catch (err) {
       const e = err instanceof UscisError ? err : new UscisError("network", (err as Error)?.message ?? "unknown error");
+      // DEMO 6c: retry only 5xx/timeout/network, max 2, with backoff + jitter. 4xx never; 429 left to the scheduler.
       // Rate limiting is retried by the scheduler later, not in a tight loop here.
       const retryable = e.kind === "server" || e.kind === "timeout" || e.kind === "network";
       if (!retryable || attempts > maxRetries) throw e;

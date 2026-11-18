@@ -6,6 +6,7 @@ import { z } from "zod";
 
 export const SANDBOX_BASE_URL = "https://api-int.uscis.gov";
 
+// DEMO 4: keys are server environment variables (Vercel); never in code, browser or phone app.
 const schema = z.object({
   USCIS_ENV: z.enum(["sandbox", "production"]).default("sandbox"),
   USCIS_BASE_URL: z.string().url().optional(),
